@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.33529.398
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Network2 Decrypt", "Network2 Decrypt.vcxproj", "{5444CD76-5EA4-45FE-8919-5566929E4764}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5444CD76-5EA4-45FE-8919-5566929E4764}.Debug|x64.ActiveCfg = Debug|x64
+		{5444CD76-5EA4-45FE-8919-5566929E4764}.Debug|x64.Build.0 = Debug|x64
+		{5444CD76-5EA4-45FE-8919-5566929E4764}.Debug|x86.ActiveCfg = Debug|Win32
+		{5444CD76-5EA4-45FE-8919-5566929E4764}.Debug|x86.Build.0 = Debug|Win32
+		{5444CD76-5EA4-45FE-8919-5566929E4764}.Release|x64.ActiveCfg = Release|x64
+		{5444CD76-5EA4-45FE-8919-5566929E4764}.Release|x64.Build.0 = Release|x64
+		{5444CD76-5EA4-45FE-8919-5566929E4764}.Release|x86.ActiveCfg = Release|Win32
+		{5444CD76-5EA4-45FE-8919-5566929E4764}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {71B09A95-A4BE-42F8-8E5B-258938F746C4}
+	EndGlobalSection
+EndGlobal
