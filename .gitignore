@@ -30,3 +30,49 @@
 *.exe
 *.out
 *.app
+
+# Dev Client (game files, reverse engineering)
+DevClient/
+
+# Build outputs
+build/
+out/
+cmake-build-*/
+x64/
+Debug/
+Release/
+
+# IDE
+.vs/
+.vscode/
+.cursor/
+*.vcxproj.user
+*.sln
+compile_commands.json
+
+# Config files (local)
+*.ini
+launcher.ini
+Network2.ini.dec
+
+# Logs
+*.log
+logs/
+
+# Dependencies (downloaded)
+server/lib/asio/
+server/lib/json/
+server/lib/httplib/
+launcher/lib/webview/
+launcher/lib/webview2/
+
+# Temp files
+*.tmp
+*.temp
+*.swp
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini

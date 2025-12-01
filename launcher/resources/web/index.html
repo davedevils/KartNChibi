@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kart n' Crazy</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Poppins:wght@400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Custom Title Bar */
+        .titlebar {
+            height: 40px;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 10px;
+            -webkit-app-region: drag;
+        }
+        
+        .titlebar-title {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0.8;
+        }
+        
+        .titlebar-buttons {
+            display: flex;
+            gap: 5px;
+            -webkit-app-region: no-drag;
+        }
+        
+        .titlebar-btn {
+            width: 30px;
+            height: 30px;
+            border: none;
+            background: transparent;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        
+        .titlebar-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .titlebar-btn.close:hover {
+            background: #e94560;
+        }
+        
+        /* Main Content */
+        .main {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+        
+        /* Background Image */
+        .bg-image {
+            position: absolute;
+            inset: 0;
+            background: url('https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200') center/cover;
+            filter: blur(3px) brightness(0.4);
+        }
+        
+        /* Characters decoration */
+        .characters {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 200px;
+            background: linear-gradient(to top, rgba(26, 26, 46, 0.9), transparent);
+        }
+        
+        /* Login Panel */
+        .login-container {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+        }
+        
+        .login-panel {
+            background: linear-gradient(145deg, rgba(255, 200, 50, 0.95), rgba(255, 170, 30, 0.95));
+            border-radius: 20px;
+            padding: 30px 40px;
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.4),
+                0 0 0 3px rgba(139, 90, 43, 0.5),
+                inset 0 2px 0 rgba(255, 255, 255, 0.3);
+            min-width: 380px;
+            transform: perspective(1000px) rotateX(2deg);
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .logo h1 {
+            font-family: 'Fredoka One', cursive;
+            font-size: 42px;
+            color: #e94560;
+            text-shadow: 
+                3px 3px 0 #fff,
+                -1px -1px 0 #8b4513,
+                1px -1px 0 #8b4513,
+                -1px 1px 0 #8b4513;
+            letter-spacing: 2px;
+        }
+        
+        .logo h1 span {
+            color: #00d4ff;
+            font-size: 32px;
+        }
+        
+        .login-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(139, 90, 43, 0.3);
+        }
+        
+        .login-title img {
+            width: 32px;
+            height: 32px;
+        }
+        
+        .login-title h2 {
+            font-family: 'Fredoka One', cursive;
+            color: #8b4513;
+            font-size: 24px;
+            text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.5);
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #5d3a1a;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 3px solid #8b4513;
+            border-radius: 10px;
+            font-size: 16px;
+            background: #fff;
+            transition: all 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #e94560;
+            box-shadow: 0 0 10px rgba(233, 69, 96, 0.3);
+        }
+        
+        .remember-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 15px 0;
+            color: #5d3a1a;
+            font-size: 14px;
+        }
+        
+        .remember-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #e94560;
+        }
+        
+        .buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Fredoka One', cursive;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(145deg, #e94560, #c73e54);
+            color: #fff;
+            box-shadow: 0 4px 0 #8b2a3a, 0 6px 10px rgba(0,0,0,0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #8b2a3a, 0 10px 15px rgba(0,0,0,0.3);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #8b2a3a;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(145deg, #6c757d, #5a6268);
+            color: #fff;
+            box-shadow: 0 4px 0 #3d4246, 0 6px 10px rgba(0,0,0,0.3);
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #3d4246;
+        }
+        
+        .btn-success {
+            background: linear-gradient(145deg, #28a745, #218838);
+            color: #fff;
+            box-shadow: 0 4px 0 #1e7e34, 0 6px 10px rgba(0,0,0,0.3);
+        }
+        
+        .btn-info {
+            background: linear-gradient(145deg, #17a2b8, #138496);
+            color: #fff;
+            box-shadow: 0 4px 0 #117a8b, 0 6px 10px rgba(0,0,0,0.3);
+        }
+        
+        /* Status message */
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin-top: 15px;
+            border-radius: 8px;
+            font-weight: 500;
+            display: none;
+        }
+        
+        .status.error {
+            display: block;
+            background: rgba(220, 53, 69, 0.2);
+            color: #721c24;
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+        
+        .status.success {
+            display: block;
+            background: rgba(40, 167, 69, 0.2);
+            color: #155724;
+            border: 1px solid rgba(40, 167, 69, 0.3);
+        }
+        
+        /* Loading spinner */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(139, 69, 19, 0.2);
+            border-top-color: #e94560;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Version info */
+        .version {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Custom Title Bar -->
+    <div class="titlebar">
+        <span class="titlebar-title">🏎️ Kart n' Crazy Launcher</span>
+        <div class="titlebar-buttons">
+            <button class="titlebar-btn" onclick="minimize()">─</button>
+            <button class="titlebar-btn close" onclick="quit()">✕</button>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main">
+        <div class="bg-image"></div>
+        <div class="characters"></div>
+        
+        <div class="login-container">
+            <div class="login-panel">
+                <div class="logo">
+                    <h1>KART <span>n'</span> CRAZY</h1>
+                </div>
+                
+                <div class="login-title">
+                    <span style="font-size: 28px;">🔐</span>
+                    <h2>LOGIN</h2>
+                </div>
+                
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label>
+                            <span>👤</span> ID
+                        </label>
+                        <input type="text" id="username" placeholder="Enter your ID" required autocomplete="username">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <span>🔑</span> P/W
+                        </label>
+                        <input type="password" id="password" placeholder="Enter your password" required autocomplete="current-password">
+                    </div>
+                    
+                    <div class="remember-row">
+                        <input type="checkbox" id="remember">
+                        <label for="remember">Remember ID</label>
+                        <span style="margin-left: auto;">🏁</span>
+                    </div>
+                    
+                    <div class="buttons">
+                        <button type="button" class="btn btn-secondary" onclick="showRegister()">Register</button>
+                        <button type="submit" class="btn btn-primary">Confirm</button>
+                        <button type="button" class="btn btn-secondary" onclick="quit()">Cancel</button>
+                        <button type="button" class="btn btn-info" onclick="findAccount()">Find ID/PW</button>
+                    </div>
+                </form>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p style="color: #5d3a1a;">Connecting...</p>
+                </div>
+                
+                <div class="status" id="status"></div>
+            </div>
+        </div>
+        
+        <div class="version">v1.0.0 | Server: 127.0.0.1:50017</div>
+    </div>
+    
+    <script>
+        // Load saved username
+        const savedUser = localStorage.getItem('knc_username');
+        if (savedUser) {
+            document.getElementById('username').value = savedUser;
+            document.getElementById('remember').checked = true;
+        }
+        
+        function sendMessage(msg) {
+            if (window.chrome && window.chrome.webview) {
+                window.chrome.webview.postMessage(JSON.stringify(msg));
+            } else {
+                console.log('Message:', msg);
+            }
+        }
+        
+        function quit() {
+            sendMessage({ action: 'quit' });
+        }
+        
+        function minimize() {
+            sendMessage({ action: 'minimize' });
+        }
+        
+        function showStatus(message, isError = false) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + (isError ? 'error' : 'success');
+        }
+        
+        function handleLogin(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const remember = document.getElementById('remember').checked;
+            
+            if (remember) {
+                localStorage.setItem('knc_username', username);
+            } else {
+                localStorage.removeItem('knc_username');
+            }
+            
+            // Show loading
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('loading').classList.add('active');
+            
+            // Send login request
+            sendMessage({
+                action: 'login',
+                username: username,
+                password: password
+            });
+            
+            // For demo, simulate response after 2s
+            setTimeout(() => {
+                document.getElementById('loading').classList.remove('active');
+                document.getElementById('loginForm').style.display = 'block';
+                showStatus('Launching game...', false);
+            }, 2000);
+        }
+        
+        function showRegister() {
+            sendMessage({ action: 'register' });
+            showStatus('Registration not yet implemented', true);
+        }
+        
+        function findAccount() {
+            sendMessage({ action: 'find_account' });
+            showStatus('Account recovery not yet implemented', true);
+        }
+    </script>
+</body>
+</html>
+

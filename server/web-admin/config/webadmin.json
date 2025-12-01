@@ -1,0 +1,22 @@
+{
+    "server": {
+        "name": "KnC Server",
+        "port": 8080
+    },
+    "database": {
+        "host": "localhost",
+        "port": 3306,
+        "name": "knc_emu",
+        "user": "knc",
+        "password": "knc_password",
+        "pool_size": 3
+    },
+    "api": {
+        "token": "admin123"
+    },
+    "logging": {
+        "level": "DEBUG",
+        "file": "logs/webadmin.log"
+    }
+}
+

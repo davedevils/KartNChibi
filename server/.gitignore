@@ -1,0 +1,33 @@
+# Build
+build/
+cmake-build-*/
+.cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs/*.log
+logs/*.log.*
+
+# Dependencies 
+lib/asio/include/asio/
+lib/asio/include/asio.hpp
+lib/json/include/nlohmann/
+lib/httplib/httplib.h
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Compiled
+*.o
+*.a
+*.so
+*.dll
+*.exe
+*.lib
+
