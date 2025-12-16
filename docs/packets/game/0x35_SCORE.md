@@ -1,39 +1,53 @@
-# CMD 0x35 (53) - Room Score Update
+# 0x35 - SCORE
 
-**Direction:** Server → Client  
-**Handler:** `sub_479C20`
+**CMD**: `0x35` (53 decimal)  
+**Direction**: Server → Client  
+**Handler IDA**: `sub_479C20`  
+**Handler Ghidra**: `FUN_00479c20`
 
-## Structure
+## Description
+
+Updates the score/lap information during a race. Calls initialization function before processing.
+
+## Payload Structure
+
+| Offset | Type   | Size | Description           |
+|--------|--------|------|-----------------------|
+| 0x00   | int32  | 4    | Player ID             |
+| 0x04   | int32  | 4    | Score / Lap count     |
+
+**Total Size**: 8 bytes
+
+## C Structure
 
 ```c
-struct RoomScoreUpdate {
-    int32 score1;
-    int32 score2;
+struct ScorePacket {
+    int32_t playerId;           // +0x00 - Target player ID
+    int32_t score;              // +0x04 - Score or lap count
 };
 ```
 
-## Fields
+## Handler Logic (IDA)
 
-| Offset | Size | Type | Name |
-|--------|------|------|------|
-| 0x00 | 4 | int32 | score1 |
-| 0x04 | 4 | int32 | score2 |
-
-## Behavior
-
-1. Calls `sub_4538B0()` - Refresh UI
-2. Updates score display
-
-## Raw Packet
-
-```
-35 08 00 00 00 00 00 00
-0A 00 00 00              // score1 = 10
-05 00 00 00              // score2 = 5
+```c
+// sub_479C20
+int __stdcall sub_479C20(int a1)
+{
+    int v2;  // score
+    int v3;  // playerId
+    
+    sub_4538B0();               // Initialization call
+    sub_44E910(a1, &v3, 4);     // Read playerId
+    sub_44E910(a1, &v2, 4);     // Read score
+    return sub_410360(dword_B88600, v3, v2);  // Update score
+}
 ```
 
-## Notes
+## Cross-Validation
 
-- Used in team modes for team scores
-- May also be used for individual score updates
+| Source | Function       | Payload Read |
+|--------|----------------|--------------|
+| IDA    | sub_479C20     | 8 bytes      |
+| Ghidra | FUN_00479c20   | 8 bytes      |
 
+**Status**: ✅ CERTIFIED

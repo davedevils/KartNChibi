@@ -1,33 +1,51 @@
-# CMD 0x23 (35) - Room Player Update
+# 0x23 PLAYER_UPDATE (Server → Client)
 
-**Direction:** Server → Client  
-**Handler:** `sub_479BE0`
+**Status:** ✅ CERTIFIÉ (IDA + Ghidra)
 
-## Structure
+**Handler IDA:** `sub_479BE0` @ line 220514
+**Handler Ghidra:** `FUN_00479be0`
+
+## Purpose
+
+Updates player state in room (ready status, team, etc.).
+
+## Payload Structure (8 bytes)
 
 ```c
-struct RoomPlayerUpdate {
-    int32 playerId;
-    int32 slotId;
-};
+struct PlayerUpdate {
+    int32_t playerId;    // Player ID
+    int32_t state;       // New state/status
+};  // Total: 8 bytes
 ```
 
-## Fields
+## Handler Code (IDA)
 
-| Offset | Size | Type | Name |
-|--------|------|------|------|
-| 0x00 | 4 | int32 | playerId |
-| 0x04 | 4 | int32 | slotId |
-
-## Behavior
-
-Updates a player's slot position in the room grid.
-
-## Raw Packet
-
-```
-23 08 00 00 00 00 00 00
-05 00 00 00              // playerId = 5
-02 00 00 00              // slotId = 2
+```c
+int __stdcall sub_479BE0(int a1)
+{
+  int playerId, state;
+  
+  sub_44E910(a1, &playerId, 4);
+  sub_44E910(a1, &state, 4);
+  return sub_407660(dword_B35240, playerId, state);
+}
 ```
 
+## Server Implementation
+
+```cpp
+void sendPlayerUpdate(Session::Ptr session, int32_t playerId, int32_t state) {
+    Packet pkt(0x23);
+    pkt.writeInt32(playerId);
+    pkt.writeInt32(state);
+    session->send(pkt);
+}
+```
+
+## State Values
+
+| Value | Meaning |
+|-------|---------|
+| 0 | Not ready |
+| 1 | Ready |
+| 2+ | Other states (team, etc.) |

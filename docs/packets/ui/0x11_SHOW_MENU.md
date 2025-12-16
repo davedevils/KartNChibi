@@ -1,46 +1,58 @@
-# Packet 0x11 - S_SHOW_MENU
+# 0x11 SHOW_MENU (Server → Client)
 
-## Overview
-Server-to-Client packet that displays the main menu screen (state 5).
+**Status:** ✅ CERTIFIÉ (IDA + Ghidra)
 
-## Direction
-**Server → Client**
+**Handler IDA:** `sub_4793C0` @ line 220131
+**Handler Ghidra:** `FUN_004793c0` @ line 84664
 
-## Packet Structure
-```
-[No payload - empty packet]
-```
+## Purpose
 
-## Handler
-Client handler: `sub_4793C0` (case 17 in main packet switch)
+Transition to Main Menu UI. **NO PAYLOAD** - trigger only.
+
+## Payload Structure
 
 ```c
-char __stdcall sub_4793C0(int a1) {
-    char result;
-    if (dword_F727F4 != 2) {  // Not disconnected
-        sub_404410(dword_B23288, 5);  // Change state to 5 (Menu)
-        return sub_4538B0();
-    }
-    return result;
+// NO PAYLOAD!
+// Total: 0 bytes (header only)
+```
+
+## Handler Code (IDA)
+
+```c
+char __stdcall sub_4793C0(int a1)
+{
+  if (dword_F727F4 != 2) {
+    sub_404410(dword_B23288, 5); // Set UI state = 5
+    return sub_4538B0();         // Transition
+  }
+  return result;
 }
 ```
 
-## State Change
-Sets client state to **5** (Menu)
+## Handler Code (Ghidra)
 
-## Prerequisites
-- `dword_F727F4 != 2` (connection not closed)
+```c
+void FUN_004793c0(void)
+{
+  if (DAT_00f727f4 != 2) {
+    FUN_00404410(5);  // UI state = 5
+    FUN_004538b0();
+  }
+  return;
+}
+```
 
-## Related Packets
-- `0x0E` - Channel List (state 4)
-- `0x12` - Show Lobby (state 8)
+## Behavior
 
-## Notes
-- This is the "blue menu" screen
-- NOT the lobby - use 0x12 for lobby
-- Often confused with 0x12 during reverse engineering
+- Sets UI state to **5** (MAIN_MENU)
+- Requires `dword_F727F4 != 2`
 
-## ⚠️ Common Mistake
-**0x11 = Menu (state 5), NOT Lobby!**
-**0x12 = Lobby (state 8)**
+## Server Implementation
 
+```cpp
+void sendShowMenu(Session::Ptr session) {
+    Packet pkt(0x11);
+    // NO PAYLOAD
+    session->send(pkt);
+}
+```

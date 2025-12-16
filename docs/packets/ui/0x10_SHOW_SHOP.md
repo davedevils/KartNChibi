@@ -1,46 +1,60 @@
-# CMD 0x10 (16) - Show Shop
+# 0x10 SHOW_SHOP (Server → Client)
 
-**Direction:** Server → Client  
-**Handler:** `sub_4795C0`
+**Status:** ✅ CERTIFIÉ (IDA + Ghidra)
 
-## Structure
+**Handler IDA:** `sub_479550` @ line 220208
+**Handler Ghidra:** `FUN_00479550` @ line 84733
+
+## Purpose
+
+Transition to Shop UI. **NO PAYLOAD** - trigger only.
+
+## Payload Structure
 
 ```c
-struct ShowShop {
-    int32 shopCategory;   // Which shop section
-    int32 playerCoins;
-    int32 playerCash;
-};
+// NO PAYLOAD!
+// Total: 0 bytes (header only)
 ```
 
-## Fields
+## Handler Code (IDA)
 
-| Offset | Size | Type | Name |
-|--------|------|------|------|
-| 0x00 | 4 | int32 | shopCategory |
-| 0x04 | 4 | int32 | playerCoins |
-| 0x08 | 4 | int32 | playerCash |
-
-## Shop Categories
-
-| Value | Category |
-|-------|----------|
-| 0 | All items |
-| 1 | Vehicles |
-| 2 | Parts |
-| 3 | Accessories |
-| 4 | Special |
-
-## Raw Packet
-
-```
-10 0C 00 00 00 00 00 00
-00 00 00 00              // shopCategory = All
-E8 03 00 00              // playerCoins = 1000
-64 00 00 00              // playerCash = 100
+```c
+char __thiscall sub_479550(void *this, int a2)
+{
+  if (dword_F727F4 != 2) {
+    sub_484010(this);           // Initialize shop
+    sub_404410(dword_B23288, 7); // Set UI state = 7
+    return sub_4538B0();         // Transition
+  }
+  return result;
+}
 ```
 
-## Notes
+## Handler Code (Ghidra)
 
-- Client state changes to SHOP (7)
-- Shop item list sent separately
+```c
+void FUN_00479550(void)
+{
+  if (DAT_00f727f4 != 2) {
+    FUN_00484010();
+    FUN_00404410(7);  // UI state = 7
+    FUN_004538b0();
+  }
+  return;
+}
+```
+
+## Behavior
+
+- Sets UI state to **7** (SHOP)
+- Requires `dword_F727F4 != 2`
+
+## Server Implementation
+
+```cpp
+void sendShowShop(Session::Ptr session) {
+    Packet pkt(0x10);
+    // NO PAYLOAD
+    session->send(pkt);
+}
+```

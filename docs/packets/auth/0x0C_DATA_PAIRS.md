@@ -1,6 +1,7 @@
 # 0x0C DATA_PAIRS (Server → Client)
 
-**Handler:** `sub_4791A0`
+**Handler:** `sub_4791A0` / `FUN_004791a0`  
+**Status:** ✅ CERTIFIÉ IDA+Ghidra
 
 ## Purpose
 

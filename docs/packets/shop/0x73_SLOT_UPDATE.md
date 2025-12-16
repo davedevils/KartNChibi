@@ -1,63 +1,80 @@
-# CMD 0x73 (115) - Slot Update
+# 0x73 - SLOT_UPDATE
 
-**Direction:** Server → Client  
-**Handler:** `sub_47B570`
+**CMD**: `0x73` (115 decimal)  
+**Direction**: Server → Client  
+**Handler IDA**: `sub_47B570`  
+**Handler Ghidra**: `FUN_0047b570`
 
-## Structure
+## Description
+
+Updates slot data for multiple items. Contains a count followed by slot update entries.
+
+## Payload Structure
+
+| Offset | Type   | Size   | Description           |
+|--------|--------|--------|-----------------------|
+| 0x00   | int32  | 4      | Entry count           |
+| 0x04+  | entries| 12 × n | Slot update entries   |
+
+### Per-Entry Structure (12 bytes)
+
+| Offset | Type   | Size | Description           |
+|--------|--------|------|-----------------------|
+| 0x00   | int32  | 4    | Item ID               |
+| 0x04   | int32  | 4    | Slot A value          |
+| 0x08   | int32  | 4    | Slot B value          |
+
+**Total Size**: 4 + (12 × entryCount) bytes
+
+## C Structure
 
 ```c
-struct SlotUpdate {
-    int32 count;
-    SlotEntry entries[count];
-};
-
 struct SlotEntry {
-    int32 slotId;
-    int32 value1;
-    int32 value2;
+    int32_t itemId;             // +0x00 - Item ID
+    int32_t slotA;              // +0x04 - Value for offset +0x24
+    int32_t slotB;              // +0x08 - Value for offset +0x28
+};
+
+struct SlotUpdatePacket {
+    int32_t count;              // +0x00 - Number of entries
+    SlotEntry entries[];        // +0x04 - Array of slot entries
 };
 ```
 
-## Fields
+## Handler Logic (IDA)
 
-### Header
-| Offset | Size | Type | Name |
-|--------|------|------|------|
-| 0x00 | 4 | int32 | count |
-
-### Per Entry (12 bytes = 0x0C)
-| Offset | Size | Type | Name |
-|--------|------|------|------|
-| 0x00 | 4 | int32 | slotId |
-| 0x04 | 4 | int32 | value1 |
-| 0x08 | 4 | int32 | value2 |
-
-## Behavior
-
-1. Iterates existing slots, sets values to -2
-2. Reads new entries
-3. For each entry:
-   - Looks up slot by slotId
-   - Sets offset +36 to value1
-   - Sets offset +40 to value2
-
-## Raw Packet
-
-```
-73 10 00 00 00 00 00 00
-02 00 00 00              // count = 2
-// Entry 1
-01 00 00 00              // slotId = 1
-0A 00 00 00              // value1 = 10
-14 00 00 00              // value2 = 20
-// Entry 2
-02 00 00 00              // slotId = 2
-05 00 00 00              // value1 = 5
-0F 00 00 00              // value2 = 15
+```c
+// sub_47B570
+int __stdcall sub_47B570(int a1)
+{
+    int count;
+    int v7[3];  // SlotEntry buffer (12 bytes)
+    
+    sub_44E910(a1, &count, 4);
+    
+    // First, reset all items' slots to -2
+    for (int i = 0; i < dword_1A5BC2C; ++i) {
+        *(int*)(sub_44F030(dword_1A5AAF8, i) + 36) = -2;  // offset +0x24
+        *(int*)(sub_44F030(dword_1A5AAF8, i) + 40) = -2;  // offset +0x28
+    }
+    
+    // Then update specified slots
+    for (int j = 0; j < count; ++j) {
+        sub_44E910(a1, v7, 0xC);   // Read 12 bytes
+        int item = sub_44F050(v7[0]);  // Find item by ID
+        *(int*)(item + 36) = v7[1];    // Set slot A
+        *(int*)(item + 40) = v7[2];    // Set slot B
+    }
+    
+    return count;
+}
 ```
 
-## Notes
+## Cross-Validation
 
-- Updates inventory slot values
-- -2 used as "unset" marker
+| Source | Function       | Payload Read     |
+|--------|----------------|------------------|
+| IDA    | sub_47B570     | 4 + 12*n bytes   |
+| Ghidra | FUN_0047b570   | 4 + 12*n bytes   |
 
+**Status**: ✅ CERTIFIED

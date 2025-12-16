@@ -1,37 +1,47 @@
-# CMD 0x72 (114) - Shop Data Block
+# 0x72 - DATA_BLOCK
 
-**Direction:** Server → Client  
-**Handler:** `sub_47B550`
+**CMD**: `0x72` (114 decimal)  
+**Direction**: Server → Client  
+**Handler IDA**: `sub_47B550`  
+**Handler Ghidra**: `FUN_0047b550`
 
-## Structure
+## Description
+
+Sends a data block for shop/UI state management. Sets internal state flag to 3.
+
+## Payload Structure
+
+| Offset | Type   | Size | Description           |
+|--------|--------|------|-----------------------|
+| 0x00   | bytes  | 104  | Data block            |
+
+**Total Size**: 104 bytes (0x68)
+
+## C Structure
 
 ```c
-struct DataBlock72 {
-    uint8 data[0x68];     // 104 bytes
+struct DataBlockPacket {
+    uint8_t data[104];          // +0x00 - Raw data block
 };
 ```
 
-## Fields
+## Handler Logic (IDA)
 
-| Offset | Size | Type | Name |
-|--------|------|------|------|
-| 0x00 | 104 | bytes | data |
-
-## Behavior
-
-1. Copies 104 bytes to global `unk_F78F68`
-2. Sets state flag `dword_F78FD4 = 3`
-
-## Raw Packet
-
-```
-72 68 00 00 00 00 00 00
-[104 bytes of data]
+```c
+// sub_47B550
+int __stdcall sub_47B550(int a1)
+{
+    sub_44E910(a1, &unk_F78F68, 0x68);   // Read 104 bytes
+    dword_F78FD4 = 3;                    // Set state to 3
+    return result;
+}
 ```
 
-## Notes
+## Cross-Validation
 
-- Fixed 104-byte data block
-- Purpose unclear - possibly shop configuration
-- Sets specific state flag after receiving
+| Source | Function       | Payload Read |
+|--------|----------------|--------------|
+| IDA    | sub_47B550     | 104 bytes    |
+| Ghidra | FUN_0047b550   | 104 bytes    |
 
+**Status**: ✅ CERTIFIED

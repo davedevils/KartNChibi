@@ -1,38 +1,45 @@
-# CMD 0x63 (99) - Create Room Response
+# 0x63 CREATE_ROOM (Server → Client)
 
-**Direction:** Server → Client
+**Status:** ✅ CERTIFIÉ (IDA + Ghidra)
 
-## Structure
+**Handler IDA:** `sub_47AC30` @ line 221178
+**Handler Ghidra:** `FUN_0047ac30`
+
+## Purpose
+
+Response to room creation request. Contains the new room ID.
+
+## Payload Structure (4 bytes)
 
 ```c
 struct CreateRoomResponse {
-    int32 roomId;         // New room ID, or -1 on failure
-};
+    int32_t roomId;    // New room ID
+};  // Total: 4 bytes
 ```
 
-## Raw Packet
+## Handler Code (IDA)
 
+```c
+int __stdcall sub_47AC30(int a1)
+{
+  int roomId;
+  sub_44E910(a1, &roomId, 4);
+  dword_F6C938 = roomId;  // Store room ID
+  return sub_4634C0(&unk_F661F8);  // Initialize room UI
+}
 ```
-04 00 63 00 00 00 00 00 00 00 00 00
+
+## Server Implementation
+
+```cpp
+void sendCreateRoomResponse(Session::Ptr session, int32_t roomId) {
+    Packet pkt(0x63);
+    pkt.writeInt32(roomId);
+    session->send(pkt);
+}
 ```
-
-## Fields
-
-| Offset | Size | Type | Name |
-|--------|------|------|------|
-| 0x00 | 4 | int32 | roomId |
-
-## Result Codes
-
-| roomId | Meaning |
-|--------|---------|
-| > 0 | Success, room created |
-| 0 | Error |
-| -1 | Creation failed |
 
 ## Notes
 
-- Response to client's create room request
-- On success, client transitions to room screen
-- Follow with 0x3F (Room Info) to populate room data
-
+- Room ID stored globally at dword_F6C938
+- Triggers room UI initialization

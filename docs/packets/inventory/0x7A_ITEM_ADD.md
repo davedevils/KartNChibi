@@ -1,44 +1,58 @@
-# CMD 0x7A (122) - Single Item Add
+# 0x7A - ITEM_ADD
 
-**Direction:** Server → Client  
-**Handler:** `sub_47B4F0`
+**CMD**: `0x7A` (122 decimal)  
+**Direction**: Server → Client  
+**Handler IDA**: `sub_47B4F0`  
+**Handler Ghidra**: `FUN_0047b4f0`
 
-## Structure
+## Description
+
+Adds a new item to the player's inventory. Contains a result code followed by SmallItem data if successful.
+
+## Payload Structure
+
+| Offset | Type      | Size   | Description                |
+|--------|-----------|--------|----------------------------|
+| 0x00   | int32     | 4      | Result code (0 = success)  |
+| 0x04   | SmallItem | 32     | Item data (only if result == 0) |
+
+**Total Size**: 4 bytes (error) or 36 bytes (success)
+
+## C Structure
 
 ```c
-struct SingleItemAdd {
-    int32 resultCode;
-    // If resultCode == 0:
-    uint8 itemData[0x20];  // 32 bytes
+struct ItemAddPacket {
+    int32_t result;             // +0x00 - Result code
+    // Only present if result == 0:
+    SmallItem item;             // +0x04 - 32 bytes (0x20)
 };
 ```
 
-## Fields
+## Handler Logic (IDA)
 
-| Offset | Size | Type | Name |
-|--------|------|------|------|
-| 0x00 | 4 | int32 | resultCode |
-| 0x04 | 32 | bytes | itemData (only if resultCode == 0) |
+```c
+// sub_47B4F0
+int __thiscall sub_47B4F0(void *this, int a2)
+{
+    int result;
+    int v5[9];  // SmallItem buffer (32 bytes)
+    
+    sub_44E910(a2, &result, 4);
+    
+    if (result == 0) {
+        sub_44E910(a2, v5, 0x20);   // Read 32 bytes
+        return sub_44F150((int*)((char*)&unk_84A598 + this), v5);
+    }
+    
+    return result;
+}
+```
 
-## Result Codes
+## Cross-Validation
 
-| Code | Meaning |
-|------|---------|
-| 0 | Success - item data follows |
-| != 0 | Error - no additional data |
+| Source | Function       | Payload Read        |
+|--------|----------------|---------------------|
+| IDA    | sub_47B4F0     | 4 + (32 if success) |
+| Ghidra | FUN_0047b4f0   | 4 + (32 if success) |
 
-## Item Data (32 bytes)
-
-Same as ItemEntryB structure from CMD 0x79.
-
-## Behavior
-
-1. Check resultCode
-2. If 0: Read 32-byte item, add to inventory
-3. If != 0: Error state, no action
-
-## Notes
-
-- Used when acquiring a single item (reward, pickup)
-- Result code 0 = success with item data
-
+**Status**: ✅ CERTIFIED

@@ -1,85 +1,53 @@
-# CMD 0x3F (63) - Full Room Info
+# 0x3F ROOM_INFO (Server → Client)
 
-**Direction:** Server → Client  
-**Handler:** `sub_479AB0`
+**Status:** ✅ CERTIFIÉ (IDA + Ghidra)
 
-## Structure
+**Handler IDA:** `sub_47A050` @ line 220687
+**Handler Ghidra:** `FUN_0047a050`
+
+## Purpose
+
+Room information update. Simple packet with room ID.
+
+## Payload Structure (4 bytes)
 
 ```c
 struct RoomInfo {
-    int32 roomId;
-    int32 hostId;
-    int32 mapId;
-    int32 gameMode;
-    int32 maxPlayers;
-    int32 currentPlayers;
-    int32 state;          // 0=waiting, 1=starting, 2=racing
-    char roomName[32];    // Null-terminated
-    PlayerSlot slots[16]; // Max 16 players
-};
-
-struct PlayerSlot {       // ~64 bytes per slot
-    int32 playerId;
-    int32 team;
-    int32 ready;
-    int32 characterId;
-    int32 vehicleId;
-    char playerName[32];
-    int32 level;
-    int32 unknown[2];
-};
+    int32_t roomId;    // Room ID
+};  // Total: 4 bytes
 ```
 
-## Fields
+## Handler Code (IDA)
 
-### Header
+```c
+int __stdcall sub_47A050(int a1)
+{
+  int roomId;
+  
+  sub_44E910(a1, &roomId, 4);
+  sub_4952F0(byte_1B19090, roomId);      // Update some state
+  sub_48D010(dword_1AF2BB0, roomId);     // Update room list
+  
+  // Decrement player count if not in certain states
+  if (dword_B23178 != 3 && dword_B23178 != 1)
+    --dword_B23198;
+    
+  return dword_B23178;
+}
+```
 
-| Offset | Size | Type | Name |
-|--------|------|------|------|
-| 0x00 | 4 | int32 | roomId |
-| 0x04 | 4 | int32 | hostId |
-| 0x08 | 4 | int32 | mapId |
-| 0x0C | 4 | int32 | gameMode |
-| 0x10 | 4 | int32 | maxPlayers |
-| 0x14 | 4 | int32 | currentPlayers |
-| 0x18 | 4 | int32 | state |
-| 0x1C | 32 | string | roomName |
+## Server Implementation
 
-### Per Player Slot (64 bytes)
-
-| Offset | Size | Type | Name |
-|--------|------|------|------|
-| 0x00 | 4 | int32 | playerId (-1 = empty) |
-| 0x04 | 4 | int32 | team |
-| 0x08 | 4 | int32 | ready |
-| 0x0C | 4 | int32 | characterId |
-| 0x10 | 4 | int32 | vehicleId |
-| 0x14 | 32 | string | playerName |
-| 0x34 | 4 | int32 | level |
-| 0x38 | 8 | int32[2] | unknown |
-
-## Game Modes
-
-| Value | Mode |
-|-------|------|
-| 0 | Race |
-| 1 | Battle |
-| 2 | Team Race |
-| 3 | Team Battle |
-| 4 | Time Attack |
-
-## Room States
-
-| Value | State |
-|-------|-------|
-| 0 | Waiting |
-| 1 | Countdown |
-| 2 | Racing |
-| 3 | Results |
+```cpp
+void sendRoomInfo(Session::Ptr session, int32_t roomId) {
+    Packet pkt(0x3F);
+    pkt.writeInt32(roomId);
+    session->send(pkt);
+}
+```
 
 ## Notes
 
-- Sent when entering a room
-- Total size varies: header + (slots * 64)
-- Empty slots have playerId = -1
-
+- Used for room list updates
+- Decrements player count in certain conditions
+- dword_B23178 appears to be room/game state

@@ -1,42 +1,58 @@
-# 0x9E ADD_ITEM (Server → Client)
+# 0x9E - ADD_ITEM
 
-**Handler:** `sub_47C320`
+**CMD**: `0x9E` (158 decimal)  
+**Direction**: Server → Client  
+**Handler IDA**: `sub_47C320`  
+**Handler Ghidra**: `FUN_0047c320`
 
-## Purpose
+## Description
 
-Adds a new item to the player's inventory.
+Adds a new item to the player's inventory. Contains a full ItemData structure (56 bytes).
 
 ## Payload Structure
 
+| Offset | Type     | Size | Description           |
+|--------|----------|------|-----------------------|
+| 0x00   | ItemData | 56   | Item data             |
+
+**Total Size**: 56 bytes (0x38)
+
+## C Structure
+
 ```c
-struct AddItem {
-    ItemData item;           // 0x38 (56 bytes)
+struct AddItemPacket {
+    ItemData item;              // +0x00 - Full item data (56 bytes)
 };
 ```
 
-## Size
-
-**56 bytes** (0x38)
-
-## ItemData Structure
-
-See [STRUCTURES.md](../STRUCTURES.md) for full ItemData definition.
+## Handler Logic (IDA)
 
 ```c
-struct ItemData {
-    int32 itemId;
-    int32 templateId;
-    int32 quantity;
-    int32 durability;
-    int32 maxDurability;
-    int32 slot;
-    int32 equipped;
-    // ... total 56 bytes
-};
+// sub_47C320
+char __thiscall sub_47C320(void *this, int a2)
+{
+    int v5[14];  // ItemData buffer (56 bytes)
+    
+    sub_44E910(a2, v5, 0x38);   // Read 56 bytes
+    
+    int result = sub_44F2D0((int*)((char*)&unk_845228 + this), v5);
+    if (result < 0)
+        sub_4641E0(byte_F727E8, "MSG_UNKNOWN_ERROR", 2);
+    
+    return result;
+}
 ```
 
 ## Notes
 
-- Called when player purchases/receives an item
-- Updates item list via `sub_44F5D0`
+- If addition fails (result < 0), displays "MSG_UNKNOWN_ERROR"
+- Item is added to internal list at offset `unk_845228`
 
+## Cross-Validation
+
+| Source | Function       | Payload Read |
+|--------|----------------|--------------|
+| IDA    | sub_47C320     | 56 bytes     |
+| Ghidra | FUN_0047c320   | 56 bytes     |
+
+**Status**: ✅ CERTIFIED

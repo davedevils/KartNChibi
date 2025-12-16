@@ -1,6 +1,6 @@
 # Complete CMD → Handler Mapping
 
-Extracted from `sub_4777C0` (main packet dispatcher)
+Extracted from **DevClient/KnC-new.exe.c** line ~219040 (main packet dispatcher)
 
 ## CMD Table
 

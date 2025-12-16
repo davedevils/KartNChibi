@@ -1,43 +1,56 @@
-# CMD 0x31 (49) - Position Update
+# 0x31 POSITION (Server → Client)
 
-**Direction:** Server → Client  
-**Handler:** `sub_479950`
+**Status:** ✅ CERTIFIÉ (IDA + Ghidra)
 
-## Structure
+**Handler IDA:** `sub_479950` @ line 220395
+**Handler Ghidra:** `FUN_00479950`
+
+## Purpose
+
+Position/state synchronization during gameplay.
+
+## Payload Structure (12 bytes)
 
 ```c
-struct PositionUpdate {
-    int32 unknown1;       // Possibly sequence/tick
-    int32 posX;
-    int32 posY;
-};
+struct Position {
+    int32_t field1;    // Unknown (passed to function)
+    int32_t field2;    // Stored in dword_BCE208
+    int32_t field3;    // Stored in dword_BCE20C
+};  // Total: 12 bytes
 ```
 
-## Fields
+## Handler Code (IDA)
 
-| Offset | Size | Type | Name |
-|--------|------|------|------|
-| 0x00 | 4 | int32 | unknown1 |
-| 0x04 | 4 | int32 | posX |
-| 0x08 | 4 | int32 | posY |
-
-## Behavior
-
-1. Stores posX and posY globally
-2. Updates position display/logic
-
-## Raw Packet
-
+```c
+int __stdcall sub_479950(int a1)
+{
+  int field1, field2, field3;
+  
+  sub_44E910(a1, &field1, 4);
+  sub_44E910(a1, &field2, 4);
+  sub_44E910(a1, &field3, 4);
+  
+  dword_BCE208 = field2;
+  dword_BCE20C = field3;
+  
+  return sub_407600(dword_B35240, edx, field1, field2, field3);
+}
 ```
-31 0C 00 00 00 00 00 00
-00 00 00 00              // unknown1
-E8 03 00 00              // posX = 1000
-D0 07 00 00              // posY = 2000
+
+## Server Implementation
+
+```cpp
+void sendPosition(Session::Ptr session, int32_t f1, int32_t f2, int32_t f3) {
+    Packet pkt(0x31);
+    pkt.writeInt32(f1);
+    pkt.writeInt32(f2);
+    pkt.writeInt32(f3);
+    session->send(pkt);
+}
 ```
 
 ## Notes
 
-- Used during race for position sync
-- Coordinates are likely world units
-- May need interpolation on client
-
+- Used for in-game synchronization
+- Fields likely represent position or state data
+- Values stored globally for game logic

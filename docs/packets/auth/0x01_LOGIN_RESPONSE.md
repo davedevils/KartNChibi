@@ -1,7 +1,8 @@
 # CMD 0x01 - Login Response
 
 **Direction:** Server → Client  
-**Handler:** `sub_478DA0`
+**Handler:** `sub_478DA0` / `FUN_00478da0`  
+**Status:** ✅ CERTIFIÉ IDA+Ghidra
 
 ## Structure
 

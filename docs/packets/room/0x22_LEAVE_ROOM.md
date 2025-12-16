@@ -1,32 +1,39 @@
-# CMD 0x22 (34) - Leave Room
+# 0x22 LEAVE_ROOM (Server → Client)
 
-**Direction:** Server → Client  
-**Handler:** `sub_479920`
+**Status:** ✅ CERTIFIÉ (IDA + Ghidra)
 
-## Structure
+**Handler IDA:** `sub_479920` @ line 220387
+**Handler Ghidra:** `FUN_00479920`
+
+## Purpose
+
+Notification that a player has left the room. Simple packet with just player ID.
+
+## Payload Structure (4 bytes)
 
 ```c
 struct LeaveRoom {
-    int32 roomId;
-};
+    int32_t playerId;    // Player who left
+};  // Total: 4 bytes
 ```
 
-## Fields
+## Handler Code (IDA)
 
-| Offset | Size | Type | Name |
-|--------|------|------|------|
-| 0x00 | 4 | int32 | roomId |
-
-## Behavior
-
-1. Removes player from room data structure
-2. Returns player to lobby
-3. Clears room-related UI elements
-
-## Raw Packet
-
-```
-22 04 00 00 00 00 00 00
-01 00 00 00              // roomId = 1
+```c
+char __stdcall sub_479920(int a1)
+{
+  int playerId;
+  sub_44E910(a1, &playerId, 4);
+  return sub_40D880(dword_B9ADD0, playerId);  // Remove from room list
+}
 ```
 
+## Server Implementation
+
+```cpp
+void sendLeaveRoom(Session::Ptr session, int32_t playerId) {
+    Packet pkt(0x22);
+    pkt.writeInt32(playerId);
+    session->send(pkt);
+}
+```

@@ -1,50 +1,82 @@
-# Packet 0x03 - S_CHARACTER_CREATION_TRIGGER
+# 0x03 CHARACTER_CREATION_TRIGGER (Server → Client)
 
-## Overview
-Server-to-Client packet that triggers the character creation screen when the player has no existing character.
+**Status:** ✅ CERTIFIÉ (IDA + Ghidra)
 
-## Direction
-**Server → Client**
+**Handler IDA:** `sub_479220` @ line 220061
+**Handler Ghidra:** `FUN_00479220` @ line 84596
 
-## Packet Structure
-```
-[No payload - empty packet]
-```
+## Purpose
 
-## Handler
-Client handler: `sub_479220` (case 3 in main packet switch)
+Triggers the character creation UI. **NO PAYLOAD** - this is a trigger-only packet.
+
+## Payload Structure
 
 ```c
-char __stdcall sub_479220(int a1) {
-    return sub_473730((int)byte_11B4528);
+// NO PAYLOAD!
+// Total: 0 bytes (header only)
+```
+
+## Handler Code (IDA)
+
+```c
+char __stdcall sub_479220(int a1)
+{
+  return sub_473730((int)byte_11B4528);  // Open character creation UI
 }
 ```
 
-This calls `sub_473730` which initializes the character creation UI:
-- Loads character creation resources
-- Sets up name input field
-- Enables confirmation buttons
+## Handler Code (Ghidra)
 
-## Flow
-1. Client sends 0x07 (auth request)
-2. Server responds 0x07 with `Driver ID = -1` (no character)
-3. Server sends 0x02 (connection confirm, code=1)
-4. **Server sends 0x03** (trigger character creation screen)
-5. Client displays name input UI
-6. Client sends 0x04 with chosen name
-7. Server responds 0x04 with result
+```c
+void FUN_00479220(void)
+{
+  FUN_00473730();  // Open character creation UI
+  return;
+}
+```
 
-## Usage
+## Behavior
+
+Opens the character creation dialog (nickname input, character selection).
+
+## When to Send
+
 Send this packet when:
-- Account has no character (`Driver ID = -1`)
-- After sending session info (0x07) and connection confirm (0x02)
+- Login response (0x07) returns `driverId == -1` (no character)
+- Player has account but no character created yet
 
-## Related Packets
-- `0x04` - Character Creation Response
-- `0x07` - Session Info (contains Driver ID)
+## Server Implementation
 
-## Notes
-- This is a zero-byte packet - just the CMD header
-- Client will show UI for entering character name
-- Must be sent INSTEAD of channel list (0x0E) when no character exists
+```cpp
+void sendCharacterCreationTrigger(Session::Ptr session) {
+    Packet pkt(0x03);
+    // NO PAYLOAD - just header
+    session->send(pkt);
+}
+```
 
+## Sequence
+
+```
+Client                              Server
+  │                                   │
+  │  ════ CMD 0x07 (login) ═══════►  │
+  │                                   │
+  │  ◄════ CMD 0x07 (response) ════  │  driverId = -1 (no char)
+  │       [driverId:-1]               │
+  │       [PlayerInfo:1224]           │
+  │                                   │
+  │  ◄════ CMD 0x03 ═══════════════  │  ← THIS PACKET
+  │                                   │
+  │  [Shows character creation UI]    │
+  │  [User enters nickname]           │
+  │  [User clicks OK]                 │
+  │                                   │
+  │  ════ CMD 0x04 ═══════════════►  │  Create request
+  │                                   │
+```
+
+## Cross-Reference
+
+- Related: [0x07_SESSION_INFO.md](0x07_SESSION_INFO.md) - Checks driverId
+- Related: [0x04_REGISTRATION_RESPONSE.md](0x04_REGISTRATION_RESPONSE.md) - Response to creation

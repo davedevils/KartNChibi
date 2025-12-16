@@ -1,33 +1,57 @@
-# 0x6A SHOP_UPDATE (Server → Client)
+# 0x6A - SHOP_UPDATE
 
-**Handler:** `sub_47AFE0`
+**CMD**: `0x6A` (106 decimal)  
+**Direction**: Server → Client  
+**Handler IDA**: `sub_47AFE0`  
+**Handler Ghidra**: `FUN_0047afe0`
 
-## Purpose
+## Description
 
-Updates shop state or item availability.
+Updates shop-related state for a player. Calls `sub_49E8A0` with the player index and value.
 
 ## Payload Structure
 
+| Offset | Type   | Size | Description           |
+|--------|--------|------|-----------------------|
+| 0x00   | int32  | 4    | Player ID             |
+| 0x04   | int16  | 2    | Update value          |
+
+**Total Size**: 6 bytes
+
+## C Structure
+
 ```c
-struct ShopUpdate {
-    int16 updateType;
-    int32 value;
+struct ShopUpdatePacket {
+    int32_t playerId;           // +0x00 - Target player ID
+    int16_t value;              // +0x04 - Update value
 };
 ```
 
-## Size
+## Handler Logic (IDA)
 
-**6 bytes**
+```c
+// sub_47AFE0
+int __stdcall sub_47AFE0(int a1)
+{
+    int playerId;
+    int16_t value;
+    
+    sub_44E910(a1, &playerId, 4);  // Read playerId
+    int idx = sub_48DEA0(byte_1B19090, playerId);
+    
+    if (idx >= 0) {
+        sub_44E910(a1, &value, 2);  // Read value
+        return sub_49E8A0(byte_1B19090, idx, value);
+    }
+    return idx;
+}
+```
 
-## Fields
+## Cross-Validation
 
-| Offset | Type | Size | Description |
-|--------|------|------|-------------|
-| 0x00 | int16 | 2 | Update type |
-| 0x02 | int32 | 4 | Value |
+| Source | Function       | Payload Read |
+|--------|----------------|--------------|
+| IDA    | sub_47AFE0     | 6 bytes      |
+| Ghidra | FUN_0047afe0   | 6 bytes      |
 
-## Notes
-
-- Used to refresh shop display
-- Can update prices, availability, etc.
-
+**Status**: ✅ CERTIFIED

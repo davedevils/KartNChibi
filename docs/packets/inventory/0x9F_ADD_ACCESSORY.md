@@ -1,41 +1,58 @@
-# 0x9F ADD_ACCESSORY (Server → Client)
+# 0x9F - ADD_ACCESSORY
 
-**Handler:** `sub_47C370`
+**CMD**: `0x9F` (159 decimal)  
+**Direction**: Server → Client  
+**Handler IDA**: `sub_47C370`  
+**Handler Ghidra**: `FUN_0047c370`
 
-## Purpose
+## Description
 
-Adds a new accessory to the player's inventory.
+Adds a new accessory to the player's inventory. Contains a full AccessoryData structure (28 bytes).
 
 ## Payload Structure
 
+| Offset | Type          | Size | Description           |
+|--------|---------------|------|-----------------------|
+| 0x00   | AccessoryData | 28   | Accessory data        |
+
+**Total Size**: 28 bytes (0x1C)
+
+## C Structure
+
 ```c
-struct AddAccessory {
-    AccessoryData accessory;  // 0x1C (28 bytes)
+struct AddAccessoryPacket {
+    AccessoryData accessory;    // +0x00 - Full accessory data (28 bytes)
 };
 ```
 
-## Size
-
-**28 bytes** (0x1C)
-
-## AccessoryData Structure
-
-See [STRUCTURES.md](../STRUCTURES.md) for full AccessoryData definition.
+## Handler Logic (IDA)
 
 ```c
-struct AccessoryData {
-    int32 accessoryId;
-    int32 templateId;
-    int32 slot;
-    int32 equipped;
-    int32 durability;
-    int32 unknown1;
-    int32 unknown2;
-};
+// sub_47C370
+char __thiscall sub_47C370(void *this, int a2)
+{
+    int v5[7];  // AccessoryData buffer (28 bytes)
+    
+    sub_44E910(a2, v5, 0x1C);   // Read 28 bytes
+    
+    int result = sub_450D20((int*)((char*)&unk_846030 + this), v5);
+    if (result < 0)
+        sub_4641E0(byte_F727E8, "MSG_UNKNOWN_ERROR", 2);
+    
+    return result;
+}
 ```
 
 ## Notes
 
-- Called when player purchases/receives an accessory
-- Updates accessory list via `sub_451F60`
+- If addition fails (result < 0), displays "MSG_UNKNOWN_ERROR"
+- Accessory is added to internal list at offset `unk_846030`
 
+## Cross-Validation
+
+| Source | Function       | Payload Read |
+|--------|----------------|--------------|
+| IDA    | sub_47C370     | 28 bytes     |
+| Ghidra | FUN_0047c370   | 28 bytes     |
+
+**Status**: ✅ CERTIFIED

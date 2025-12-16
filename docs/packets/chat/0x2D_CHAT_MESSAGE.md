@@ -1,83 +1,90 @@
-# CMD 0x2D (45) - Chat Message
+# 0x2D CHAT_MESSAGE (Server → Client)
 
-**Direction:** Bidirectional (Client ↔ Server)
+**Status:** ✅ CERTIFIÉ (IDA + Ghidra)
 
-## Structure 
+**Handler IDA:** `sub_479630` @ line 220269
+**Handler Ghidra:** `FUN_00479630`
+
+## Purpose
+
+Displays a chat message from another player.
+
+## Payload Structure (~116+ bytes)
 
 ```c
 struct ChatMessage {
-    int32 senderId;           // Who sent the message
-    wchar_t message[42];      // UTF-16LE (84 bytes max)
-    int32 padding;            // 0x00000000
-    int32 channel;            // 8 = public, 1 = whisper?
-    int32 unknown1;           // 0x00000000
-    int32 unknown2;           // 0x00000000
-    int32 unknown3;           // 0x00000000
-    int32 unknown4;           // 0x00000000
-    int32 unknown5;           // 0x00000000
+    int32_t  senderId;       // Sender player ID
+    wchar_t  message[];      // Message text (wstring, ~84 bytes for 42 chars)
+    int32_t  field1;         // Unknown
+    int32_t  field2;         // Unknown
+    int32_t  field3;         // Unknown
+    int32_t  field4;         // Unknown
+    int32_t  field5;         // Unknown
+    int32_t  field6;         // Unknown
+    int32_t  field7;         // Unknown (team/color?)
 };
-// Total: 4 + 84 + 32 = 120 bytes
 ```
 
-## Raw Packets (from capture)
+## Field Details
 
-### Example 1: "What kinda Crazy are you?"
-```
-46 00 2D 00 00 00 00 00     // Size=0x46 (70), CMD=0x2D
-57 00 68 00 61 00 74 00     // "What"
-20 00 6B 00 69 00 6E 00     // " kin"
-64 00 61 00 20 00 43 00     // "da C"
-72 00 61 00 7A 00 79 00     // "razy"
-20 00 61 00 72 00 65 00     // " are"
-20 00 79 00 6F 00 75 00     // " you"
-3F 00                       // "?"
-00 00                       // null terminator
-00 00 00 00                 // unknown1
-08 00 00 00                 // channel = 8
-00 00 00 00                 // unknown2
-00 00 00 00                 // unknown3
-00 00 00 00                 // unknown4
-```
+| Order | Type | Size | Description |
+|-------|------|------|-------------|
+| 1 | int32 | 4 | Sender ID |
+| 2 | wstring | var | Message (42 wchars max) |
+| 3-9 | int32 | 28 | 7 additional fields |
 
-### Example 2: "Don't know why I didn't race!"
-```
-4E 00 2D 00 00 00 00 00     // Size=0x4E (78), CMD=0x2D
-44 00 6F 00 6E 00 27 00     // "Don'"
-74 00 20 00 6B 00 6E 00     // "t kn"
-6F 00 77 00 20 00 77 00     // "ow w"
-68 00 79 00 20 00 49 00     // "hy I"
-20 00 64 00 69 00 64 00     // " did"
-6E 00 27 00 74 00 20 00     // "n't "
-72 00 61 00 63 00 65 00     // "race"
-21 00                       // "!"
-00 00                       // null terminator
-00 00 00 00                 // unknown1
-08 00 00 00                 // channel = 8
-00 00 00 00 00 00 00 00 00 00 00 00  // rest
+## Handler Code (IDA)
+
+```c
+char __stdcall sub_479630(const wchar_t **a1)
+{
+  int senderId, f1, f2, f3, f4, f5, f6, f7;
+  wchar_t message[42];  // 84 bytes
+
+  sub_44E910(a1, &senderId, 4);
+  sub_44EB60(a1, message);
+  sub_44E910(a1, &f1, 4);
+  sub_44E910(a1, &f2, 4);
+  sub_44E910(a1, &f3, 4);
+  sub_44E910(a1, &f4, 4);
+  sub_44E910(a1, &f5, 4);
+  sub_44E910(a1, &f6, 4);
+  sub_44E910(a1, &f7, 4);
+  
+  return sub_408360(dword_B35240, senderId, message, f1, f2, f3, f4, f5, f6, f7);
+}
 ```
 
-## Fields
+## Server Implementation
 
-| Offset | Size | Type | Name |
-|--------|------|------|------|
-| 0x00 | var | wstring | message (UTF-16LE) |
-| var+2 | 4 | int32 | unknown1 (0) |
-| var+6 | 4 | int32 | channel |
-| var+10 | 4 | int32 | unknown2 (0) |
-| var+14 | 4 | int32 | unknown3 (0) |
-| var+18 | 4 | int32 | unknown4 (0) |
+```cpp
+void sendChatMessage(Session::Ptr session, int32_t senderId, 
+                     const std::u16string& message,
+                     int32_t f1, int32_t f2, int32_t f3, int32_t f4,
+                     int32_t f5, int32_t f6, int32_t f7) {
+    Packet pkt(0x2D);
+    
+    pkt.writeInt32(senderId);
+    pkt.writeWString(message);  // Max 42 chars
+    pkt.writeInt32(f1);
+    pkt.writeInt32(f2);
+    pkt.writeInt32(f3);
+    pkt.writeInt32(f4);
+    pkt.writeInt32(f5);
+    pkt.writeInt32(f6);
+    pkt.writeInt32(f7);
+    
+    session->send(pkt);
+}
 
-## Channel Values (speculation)
-
-| Value | Channel |
-|-------|---------|
-| 0 | System |
-| 1 | Whisper |
-| 8 | Public/All |
+// Simple version
+void sendChatMessage(Session::Ptr session, int32_t senderId, const std::u16string& msg) {
+    sendChatMessage(session, senderId, msg, 0, 0, 0, 0, 0, 0, 0);
+}
+```
 
 ## Notes
 
-- Message is UTF-16LE encoded
-- 20 bytes of metadata after null terminator
-- Same format for send and receive
-- Server broadcasts to other players
+- Message is UTF-16LE (wstring)
+- Maximum 42 characters
+- 7 additional fields purpose unknown (likely: team, color, level, etc.)

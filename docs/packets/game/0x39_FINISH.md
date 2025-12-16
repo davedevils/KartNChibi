@@ -1,37 +1,41 @@
-# CMD 0x39 (57) - Player Finished
+# 0x39 FINISH (Server → Client)
 
-**Direction:** Server → Client
+**Status:** ✅ CERTIFIÉ (IDA + Ghidra)
 
-## Structure
+**Handler IDA:** `sub_479CB0` @ line 220553
+**Handler Ghidra:** `FUN_00479cb0`
+
+## Purpose
+
+Race finish signal. **NO PAYLOAD** - trigger only.
+
+## Payload Structure
 
 ```c
-struct PlayerFinish {
-    int32 playerId;
-    int32 position;       // 1st, 2nd, 3rd...
-    int32 time;           // Finish time in ms
-};
+// NO PAYLOAD!
+// Total: 0 bytes (header only)
 ```
 
-## Fields
+## Handler Code (IDA)
 
-| Offset | Size | Type | Name |
-|--------|------|------|------|
-| 0x00 | 4 | int32 | playerId |
-| 0x04 | 4 | int32 | position |
-| 0x08 | 4 | int32 | time |
-
-## Raw Packet
-
+```c
+char __stdcall sub_479CB0(int a1)
+{
+  return sub_4538B0();  // Just trigger transition
+}
 ```
-39 0C 00 00 00 00 00 00
-05 00 00 00              // playerId = 5
-01 00 00 00              // position = 1st
-F4 55 01 00              // time = 87540ms (1:27.540)
+
+## Server Implementation
+
+```cpp
+void sendFinish(Session::Ptr session) {
+    Packet pkt(0x39);
+    // NO PAYLOAD
+    session->send(pkt);
+}
 ```
 
 ## Notes
 
-- Broadcast when player crosses finish line
-- Other players see position update
-- Used for leaderboard during race
-
+- Simple trigger packet
+- Calls sub_4538B0() for UI/state transition

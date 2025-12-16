@@ -1,36 +1,63 @@
-# CMD 0x79 (121) - Item List Type B
+# 0x79 - ITEM_LIST_B
 
-**Direction:** Server → Client  
-**Handler:** `sub_47B290`
+**CMD**: `0x79` (121 decimal)  
+**Direction**: Server → Client  
+**Handler IDA**: `sub_47B290`  
+**Handler Ghidra**: `FUN_0047b290`
 
-## Structure
+## Description
+
+Sends a secondary item list. Contains a count followed by SmallItem structures (32 bytes each).
+
+## Payload Structure
+
+| Offset | Type      | Size     | Description           |
+|--------|-----------|----------|-----------------------|
+| 0x00   | int32     | 4        | Item count            |
+| 0x04   | SmallItem | 32 × n   | Array of small items  |
+
+**Total Size**: 4 + (32 × itemCount) bytes
+
+## C Structure
 
 ```c
-struct ItemListTypeB {
-    int32 count;
-    ItemEntryB entries[count];
+struct SmallItem {
+    // 32 bytes (0x20) - see STRUCTURES.md
 };
 
-struct ItemEntryB {
-    uint8 data[0x20];     // 32 bytes per item
+struct ItemListBPacket {
+    int32_t count;              // +0x00 - Number of items
+    SmallItem items[];          // +0x04 - Array of SmallItem
 };
 ```
 
-## Fields per Item (0x20 = 32 bytes)
+## Handler Logic (IDA)
 
-| Offset | Size | Type | Name |
-|--------|------|------|------|
-| 0x00 | 4 | int32 | itemId |
-| 0x04 | 4 | int32 | uniqueId |
-| 0x08 | 4 | int32 | quantity |
-| 0x0C | 4 | int32 | unknown1 |
-| 0x10 | 4 | int32 | unknown2 |
-| 0x14 | 4 | int32 | unknown3 |
-| 0x18 | 4 | int32 | unknown4 |
-| 0x1C | 4 | int32 | unknown5 |
+```c
+// sub_47B290
+int __thiscall sub_47B290(void *this, int a2)
+{
+    int *v2 = (int*)((char*)&unk_84A598 + this);
+    int v5;     // count
+    int v6[9];  // SmallItem buffer (32 bytes + padding)
+    
+    sub_44F130(v2);                 // Clear existing list
+    sub_44E910(a2, &v5, 4);         // Read count
+    
+    for (int i = 0; i < v5; ++i) {
+        sub_44E910(a2, v6, 0x20);   // Read 32 bytes (SmallItem)
+        sub_44F150(v2, v6);         // Add to list
+    }
+    
+    return v5;
+}
+```
 
-## Notes
+## Cross-Validation
 
-- 32 bytes per item (smaller than 44-byte items)
-- Different category of items
+| Source | Function       | Payload Read      |
+|--------|----------------|-------------------|
+| IDA    | sub_47B290     | 4 + 32*n bytes    |
+| Ghidra | FUN_0047b290   | 4 + 32*n bytes    |
 
+**Status**: ✅ CERTIFIED

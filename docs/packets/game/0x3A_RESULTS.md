@@ -1,60 +1,44 @@
-# CMD 0x3A (58) - Race Results
+# 0x3A RESULTS (Server → Client)
 
-**Direction:** Server → Client
+**Status:** ✅ CERTIFIÉ (IDA + Ghidra)
 
-## Structure
+**Handler IDA:** `sub_47AE00` @ line 221272
+**Handler Ghidra:** `FUN_0047ae00`
+
+## Purpose
+
+Race results notification.
+
+## Payload Structure (4 bytes)
 
 ```c
-struct RaceResults {
-    int32 playerCount;
-    ResultEntry entries[playerCount];
-};
-
-struct ResultEntry {
-    int32 playerId;
-    int32 position;
-    int32 time;
-    int32 xpGained;
-    int32 coinsGained;
-    int32 unknown[3];
-};
+struct Results {
+    int32_t resultCode;    // Result/ranking code
+};  // Total: 4 bytes
 ```
 
-## Fields per Entry (28 bytes)
+## Handler Code (IDA)
 
-| Offset | Size | Type | Name |
-|--------|------|------|------|
-| 0x00 | 4 | int32 | playerId |
-| 0x04 | 4 | int32 | position |
-| 0x08 | 4 | int32 | time |
-| 0x0C | 4 | int32 | xpGained |
-| 0x10 | 4 | int32 | coinsGained |
-| 0x14 | 12 | int32[3] | unknown |
-
-## Raw Packet
-
+```c
+int __stdcall sub_47AE00(int a1)
+{
+  int resultCode;
+  sub_44E910(a1, &resultCode, 4);
+  return sub_402400(dword_B0C8A8, resultCode);
+}
 ```
-3A 3C 00 00 00 00 00 00  // Size 0x3C = 60
-02 00 00 00              // playerCount = 2
-// Player 1
-05 00 00 00              // playerId = 5
-01 00 00 00              // position = 1
-F4 55 01 00              // time = 87540ms
-64 00 00 00              // xpGained = 100
-32 00 00 00              // coinsGained = 50
-00 00 00 00 00 00 00 00 00 00 00 00
-// Player 2
-07 00 00 00              // playerId = 7
-02 00 00 00              // position = 2
-2C 56 01 00              // time = 87596ms
-32 00 00 00              // xpGained = 50
-19 00 00 00              // coinsGained = 25
-00 00 00 00 00 00 00 00 00 00 00 00
+
+## Server Implementation
+
+```cpp
+void sendResults(Session::Ptr session, int32_t resultCode) {
+    Packet pkt(0x3A);
+    pkt.writeInt32(resultCode);
+    session->send(pkt);
+}
 ```
 
 ## Notes
 
-- Sent after all players finish or time limit
-- Contains rewards for each player
-- Client shows results screen
-
+- Simple result code packet
+- Full race results may use additional packets

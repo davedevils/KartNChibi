@@ -1,53 +1,120 @@
-# CMD 0x6F (111) - Shop Item Response
+# 0x6F - SHOP_RESPONSE
 
-**Direction:** Server → Client  
-**Handler:** `sub_47B3C0`
+**CMD**: `0x6F` (111 decimal)  
+**Direction**: Server → Client  
+**Handler IDA**: `sub_47B3C0`  
+**Handler Ghidra**: `FUN_0047b3c0`
 
-## Structure
+## Description
+
+Response to a shop purchase request. Contains the result code and optional item data if purchase was successful.
+
+## Payload Structure (Variable)
+
+### Header
+
+| Offset | Type   | Size | Description           |
+|--------|--------|------|-----------------------|
+| 0x00   | int32  | 4    | Result code           |
+
+### If Result == 1 (Success - Vehicle)
+
+| Offset | Type          | Size | Description              |
+|--------|---------------|------|--------------------------|
+| 0x04   | VehicleData   | 44   | Purchased vehicle data   |
+
+**Total Size**: 48 bytes
+
+### If Result == 12 (Success - Item)
+
+| Offset | Type       | Size | Description           |
+|--------|------------|------|-----------------------|
+| 0x04   | ItemData36 | 36   | Purchased item data   |
+
+**Total Size**: 40 bytes
+
+### Otherwise (Error)
+
+**Total Size**: 4 bytes only
+
+## C Structure
 
 ```c
-struct ShopItemResponse {
-    int32 resultCode;
-    // Payload varies by resultCode
+struct ShopResponseHeader {
+    int32_t result;             // +0x00 - Result code
 };
 
-// If resultCode == 1 (success)
-struct ShopSuccess {
-    int32 resultCode;     // = 1
-    uint8 itemData[0x2C]; // 44 bytes - item added
+struct ShopResponseVehicle {
+    int32_t result;             // +0x00 - Always 1
+    VehicleData vehicle;        // +0x04 - 44 bytes (0x2C)
 };
 
-// If resultCode == 12 (special)
-struct ShopSpecial {
-    int32 resultCode;     // = 12
-    uint8 data[0x24];     // 36 bytes - special data
+struct ShopResponseItem {
+    int32_t result;             // +0x00 - Always 12
+    uint8_t itemData[36];       // +0x04 - 36 bytes (0x24)
 };
 ```
 
 ## Result Codes
 
-| Code | Meaning | Payload |
-|------|---------|---------|
-| 1 | Success | 44 bytes item data |
-| 12 | Special | 36 bytes special data |
-| Other | Error | No additional payload |
+| Code | Meaning                              | Payload After |
+|------|--------------------------------------|---------------|
+| 1    | Success - Vehicle purchased          | 44 bytes      |
+| 12   | Success - Item purchased             | 36 bytes      |
+| Other | Error (various meanings)            | 0 bytes       |
 
-## Fields (Success)
+## Handler Logic (IDA)
 
-| Offset | Size | Type | Name |
-|--------|------|------|------|
-| 0x00 | 4 | int32 | resultCode |
-| 0x04 | 44 | struct | itemData |
+```c
+// sub_47B3C0
+int __thiscall sub_47B3C0(void *this, int a2)
+{
+    int result;
+    char vehicleData[44];  // v6
+    char itemData[36];     // v5
+    
+    if (byte_F78F50 == 1) {  // Special mode flag
+        sub_44E910(a2, &result, 4);
+        
+        if (result == 1) {
+            sub_44E910(a2, vehicleData, 0x2C);  // 44 bytes
+            sub_44EF90((int*)((char*)&unk_848648 + this), vehicleData);
+            dword_F78FD4 = 7;
+            dword_F78F64 = result;
+            byte_8CCD98[this] = 0;
+            return result;
+        }
+        if (result != 12) {
+            dword_F78FD4 = 7;
+            dword_F78F64 = result;
+            return result;
+        }
+        // result == 12
+        sub_44E910(a2, itemData, 0x24);  // 36 bytes
+        return sub_44EE10((int*)((char*)&unk_849780 + this), itemData);
+    }
+    
+    // Normal mode
+    sub_44E910(a2, &result, 4);
+    
+    if (result == 1) {
+        sub_44E910(a2, vehicleData, 0x2C);
+        return sub_44EF90((int*)((char*)&unk_848648 + this), vehicleData);
+    }
+    if (result == 12) {
+        sub_44E910(a2, itemData, 0x24);
+        return sub_44EE10((int*)((char*)&unk_849780 + this), itemData);
+    }
+    
+    return result;
+}
+```
 
-## Behavior
+## Cross-Validation
 
-- Code 1: Item added to inventory, UI updated
-- Code 12: Special handling (gift box?)
-- Other: Sets error state flag
+| Source | Function       | Payload Read                    |
+|--------|----------------|---------------------------------|
+| IDA    | sub_47B3C0     | 4 + (44 or 36 or 0) bytes       |
+| Ghidra | FUN_0047b3c0   | 4 + (44 or 36 or 0) bytes       |
 
-## Notes
-
-- Sent after purchase request
-- Contains the purchased item data
-- Client adds item to local inventory on success
-
+**Status**: ✅ CERTIFIED
