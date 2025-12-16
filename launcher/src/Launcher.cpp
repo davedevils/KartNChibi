@@ -30,6 +30,23 @@
 
 namespace knc {
 
+// encryption key for Network2.ini 
+static const std::string NETWORK_KEY = "WindySoftKnCOnGame";
+
+static std::string encryptNetwork(const std::string& input) {
+    std::string output;
+    output.resize(input.size());
+    for (size_t i = 0; i < input.size(); ++i) {
+        int v = static_cast<unsigned char>(input[i]);
+        if (v <= 31 || v > 122) {
+            output[i] = static_cast<char>(v);
+        } else {
+            output[i] = static_cast<char>((v - 32 + NETWORK_KEY[i % NETWORK_KEY.length()] - 32) % 91 + 32);
+        }
+    }
+    return output;
+}
+
 bool Launcher::init() {
 #ifdef _WIN32
     WSADATA wsaData;
@@ -218,10 +235,12 @@ bool Launcher::launchGame() {
         gameDir = currentDir;
     }
     
-    // write network config
-    std::ofstream net(gameDir + "\\Network2.ini.dec");
+    // write encrypted Network2.ini
+    std::string ipEnc = encryptNetwork(m_serverIp);
+    std::string portEnc = encryptNetwork(std::to_string(m_serverPort));
+    std::ofstream net(gameDir + "\\Network2.ini", std::ios::binary);
     if (net.is_open()) {
-        net << m_serverIp << "\n" << m_serverPort << "\n";
+        net << ipEnc << "\r\n" << portEnc << "\r\n";
         net.close();
     }
     
