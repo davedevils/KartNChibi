@@ -1,11 +1,11 @@
-# 📡 KnC Protocol - Complete Overview
+# KnC Protocol - Complete Overview
 
 **Version**: 1.0  
-**Status**: ✅ CERTIFIÉ IDA + Ghidra  
-**Date**: Décembre 2025  
+**Status**: ✅ Certified (IDA + Ghidra)  
+**Date**: December 2025  
 **Source**: Reverse engineered from KnC.exe (Chibi Kart / Kart n' Crazy)
 
-> **Note**: Ce document fusionne PROTOCOL_MASTER.md et PROTOCOL.md pour une référence complète.
+> **Note**: This document merges PROTOCOL_MASTER.md and PROTOCOL.md for a complete reference.
 
 ---
 
@@ -50,7 +50,7 @@
 
 ---
 
-## 🏗️ Core Structures (CERTIFIÉES)
+## Core Structures (Certified)
 
 | Structure | Size | Hex | Verification |
 |-----------|------|-----|--------------|
@@ -70,7 +70,7 @@
 | **LargeData** | 132 | 0x84 | ✅ IDA+Ghidra |
 | **ExtendedDataEntry** | 52 | 0x34 | ✅ IDA+Ghidra |
 
-📄 **Voir [STRUCTURES.md](STRUCTURES.md) pour les définitions C++ complètes.**
+See [STRUCTURES.md](STRUCTURES.md) for complete C++ definitions.
 
 ---
 
@@ -107,71 +107,71 @@
 
 ---
 
-## 📡 Packet Categories (150+ Packets)
+## Packet Categories (150+ Packets)
 
-### 🔐 Authentication & Session
+### Authentication & Session
 - **0x01-0x12**: Login, character creation, session init
 - **0xA6, 0xA7**: Heartbeat, session confirm
 - **0x8E-0x90**: Connection acknowledgments
 
-📂 **Détails**: [auth/](auth/)
+**Details**: [auth/](auth/)
 
-### 🎨 UI & Transitions
+### UI & Transitions
 - **0x0E-0x12 (Flag=0x01)**: Screen transitions
 - **0xB6**: Display text
 - **0x62**: Tutorial triggers
 
-📂 **Détails**: [ui/](ui/)
+**Details**: [ui/](ui/)
 
-### 📦 Inventory & Items
+### Inventory & Items
 - **0x1B-0x1E**: Character items
 - **0x78-0x7A**: Item lists
 - **0x81-0x85**: Shop data
 - **0x88-0x8C**: Slot management
 - **0x98-0x9F**: Add items (vehicle, accessory, gift)
 
-📂 **Détails**: [inventory/](inventory/)
+**Details**: [inventory/](inventory/)
 
-### 🏠 Room Management
+### Room Management
 - **0x21-0x23**: Join/leave room, player updates
 - **0x30**: Room state
 - **0x3E-0x3F**: Player join, room info
 - **0x62-0x63**: Tutorial, create room
 - **0xBF-0xC5**: Room lists, details, extended info
 
-📂 **Détails**: [room/](room/)
+**Details**: [room/](room/)
 
-### 💬 Chat & Messaging
+### Chat & Messaging
 - **0x2A-0x2B**: Whisper enable/disable
 - **0x2D, 0x2E**: Chat messages, player left
 - **0x6C, 0x6E**: Player messages, display
 - **0x116-0x117**: Player name, remove
 
-📂 **Détails**: [chat/](chat/)
+**Details**: [chat/](chat/)
 
-### 🏁 Game & Racing
+### Game & Racing
 - **0x14**: Game mode
 - **0x30-0x40**: Room/game state, ready, position, lap, items
 - **0x44-0x4E**: Game updates, effects, timestamps
 - **0x54-0x65**: Race status, speed, entity states
 - **0xF3-0xFE**: Track data, checkpoints, race init, positions
 
-📂 **Détails**: [game/](game/)
+**Details**: [game/](game/)
 
-### 🛒 Shop
+### Shop
 - **0x6F**: Shop action
 - **0x72-0x74**: Shop data blocks
 
-📂 **Détails**: [shop/](shop/)
+**Details**: [shop/](shop/)
 
-### ⚙️ System
+### System
 - **0xAA, 0xB5**: Player data, dual player info
 - **0xCD**: Audio control
 - **0xEE, 0xF0-0xF1**: Entity updates/remove/data
 
-📂 **Détails**: [system/](system/)
+**Details**: [system/](system/)
 
-### 📤 Client → Server
+### Client → Server
 - **0x07**: Client auth
 - **0x19**: Server query
 - **0x2C**: State change
@@ -181,7 +181,7 @@
 - **0xD0**: Client info
 - **0xFA**: Full state
 
-📂 **Détails**: [client/](client/)
+**Details**: [client/](client/)
 
 ---
 
@@ -209,50 +209,50 @@
 
 ---
 
-## 📚 Documentation Structure
+## Documentation Structure
 
 ```
 docs/protocol/
-├── PROTOCOL_OVERVIEW.md     (ce fichier)
-├── STRUCTURES.md            (structures C++ complètes)
-├── MESSAGES.md              (messages types)
-├── README.md                (index navigation)
+├── PROTOCOL_OVERVIEW.md     (this file)
+├── STRUCTURES.md            (complete C++ structures)
+├── MESSAGES.md              (message types)
+├── README.md                (navigation index)
 │
-├── auth/                    (packets authentification)
+├── auth/                    (authentication packets)
 │   ├── 0x01_LOGIN_RESPONSE.md
 │   ├── 0xA6_HEARTBEAT.md
 │   └── ...
 │
-├── game/                    (packets jeu/course)
+├── game/                    (game/racing packets)
 │   ├── 0x31_POSITION.md
 │   ├── 0x36_LAP_INFO.md
 │   └── ...
 │
-├── chat/                    (packets chat)
-├── inventory/               (packets inventaire)
-├── room/                    (packets room)
-├── shop/                    (packets shop)
-├── system/                  (packets système)
-└── ui/                      (packets UI)
+├── chat/                    (chat packets)
+├── inventory/               (inventory packets)
+├── room/                    (room packets)
+├── shop/                    (shop packets)
+├── system/                  (system packets)
+└── ui/                      (UI packets)
 ```
 
 ---
 
-## 🔗 References
+## References
 
-- **Structures détaillées**: [STRUCTURES.md](STRUCTURES.md)
-- **Messages types**: [MESSAGES.md](MESSAGES.md)
+- **Detailed structures**: [STRUCTURES.md](STRUCTURES.md)
+- **Message types**: [MESSAGES.md](MESSAGES.md)
 - **Client Architecture**: [../architecture/CLIENT_ARCHITECTURE.md](../architecture/CLIENT_ARCHITECTURE.md)
 - **Network Protocol Impl**: [../client-clone/05_network_protocol.md](../client-clone/05_network_protocol.md)
 
 ---
 
-## ✅ Certification
+## Certification
 
-- ✅ Vérifié avec IDA Pro 7.x
-- ✅ Vérifié avec Ghidra 10.x
-- ✅ Testé avec DevClient (client original)
-- ✅ Compatible avec serveur émulé
+- ✅ Verified with IDA Pro 7.x
+- ✅ Verified with Ghidra 10.x
+- ✅ Tested with DevClient (original client)
+- ✅ Compatible with emulated server
 
-**Dernière mise à jour:** Décembre 2025
+**Last Updated:** December 2025
 

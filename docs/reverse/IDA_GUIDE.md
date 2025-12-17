@@ -1,16 +1,16 @@
 # KnC UI - Complete Reverse Engineering Guide
 
-## 📋 Objectif
+## Objective
 
-Extraire **toutes les positions, tailles, et assets** de chaque UI du jeu depuis IDA Pro.
+Extract **all positions, sizes, and assets** for each game UI from IDA Pro.
 
 ---
 
-## 🔍 Méthodologie Générale
+## General Methodology
 
-### Étape 1: Identifier la Fonction Init
+### Step 1: Identify Init Function
 
-Chaque UI state a une fonction d'initialisation:
+Each UI state has an initialization function:
 
 | State | Name | Init Function | IDA Address |
 |-------|------|---------------|-------------|
@@ -36,12 +36,12 @@ Chaque UI state a une fonction d'initialisation:
 | 24 | Mission game | FUN_0043a320 | 0x0043a320 |
 | 25 | QuestMenu | FUN_0043cfc0 | 0x0043cfc0 |
 
-### Étape 2: Pattern de Chargement d'Asset
+### Step 2: Asset Loading Pattern
 
-Dans IDA, cherche ce pattern:
+In IDA, search for this pattern:
 
 ```c
-// Pattern 1: Chargement texture
+// Pattern 1: Texture loading
 cVar = FUN_00441720("Path/To/Image.png", layer);
 if (cVar == '\0') {
     // Failed to load
@@ -56,9 +56,9 @@ if (cVar == '\0') {
 *(int *)(element_ptr + 0x1c) = height;
 ```
 
-### Étape 3: Extraction Template
+### Step 3: Extraction Template
 
-Pour chaque élément trouvé:
+For each found element:
 
 ```
 Element: [Type] [Name]
@@ -70,11 +70,11 @@ Layer: [Second param of FUN_00441720]
 
 ---
 
-## 🎨 UI State 0: Logo Screen
+## UI State 0: Logo Screen
 
 ### IDA Function: FUN_00411e20
 
-### Chercher:
+### Search for:
 
 1. **Background Image**:
    ```c
@@ -89,10 +89,10 @@ Layer: [Second param of FUN_00441720]
    ```
 
 3. **Positions**:
-   - Cherche `mov dword ptr [reg+offset], immediate`
-   - Immediate values = coordonnées
+   - Search for `mov dword ptr [reg+offset], immediate`
+   - Immediate values = coordinates
 
-### Template à Remplir:
+### Template to Fill:
 
 ```cpp
 void InitScreen_Logo() {
@@ -109,11 +109,11 @@ void InitScreen_Logo() {
 
 ---
 
-## 🔐 UI State 2: Login Screen
+## UI State 2: Login Screen
 
 ### IDA Function: FUN_00427190
 
-### Chercher:
+### Search for:
 
 1. **Background**:
    ```c
@@ -123,7 +123,7 @@ void InitScreen_Logo() {
 2. **Input Fields**:
    - Username input box
    - Password input box
-   - Cherche création de UI elements (new, malloc)
+   - Search for UI element creation (new, malloc)
 
 3. **Buttons**:
    ```c
@@ -136,11 +136,11 @@ void InitScreen_Logo() {
    - "Username:", "Password:"
    - Version text
 
-### Points Clés:
+### Key Points:
 
-- Input fields probablement centrés horizontalement
-- Buttons sous les inputs
-- Text à côté des inputs
+- Input fields probably centered horizontally
+- Buttons below inputs
+- Text next to inputs
 
 ### Template:
 
@@ -176,11 +176,11 @@ void InitScreen_Login() {
 
 ---
 
-## 🏠 UI State 4: Main Menu
+## UI State 4: Main Menu
 
 ### IDA Function: FUN_00412530
 
-### Chercher:
+### Search for:
 
 1. **Background**:
    ```c
@@ -188,7 +188,7 @@ void InitScreen_Login() {
    FUN_00441720("Menu/Background.png", ?)
    ```
 
-2. **Buttons Verticaux**:
+2. **Vertical Buttons**:
    ```c
    FUN_00441720("Menu/Play_01.png", ?)
    FUN_00441720("Menu/Garage_01.png", ?)
@@ -198,8 +198,8 @@ void InitScreen_Login() {
    ```
 
 3. **Character Display**:
-   - Zone 3D pour afficher le personnage
-   - Probablement à droite de l'écran
+   - 3D zone to display character
+   - Probably on the right side of screen
 
 ### Pattern Layout:
 
@@ -258,11 +258,11 @@ void InitScreen_Menu() {
 
 ---
 
-## 🚗 UI State 5: Garage
+## UI State 5: Garage
 
 ### IDA Function: FUN_00413340
 
-### Chercher:
+### Search for:
 
 1. **Background**:
    ```c
@@ -278,10 +278,10 @@ void InitScreen_Menu() {
    ```
 
 3. **Specific Zones**:
-   - Vehicle list (gauche)
-   - 3D preview (centre)
-   - Stats panel (droite)
-   - Color selector (bas)
+   - Vehicle list (left)
+   - 3D preview (center)
+   - Stats panel (right)
+   - Color selector (bottom)
 
 ### Layout:
 
@@ -339,11 +339,11 @@ void InitScreen_Garage() {
 
 ---
 
-## 🛒 UI State 6: Shop
+## UI State 6: Shop
 
 ### IDA Function: FUN_00417f40
 
-### Chercher:
+### Search for:
 
 1. **Background**:
    ```c
@@ -357,7 +357,7 @@ void InitScreen_Garage() {
    ```
 
 3. **Item Grid**:
-   - Grid layout (4x3 ou 5x3)
+   - Grid layout (4x3 or 5x3)
    - Item icons
    - Prices
 
@@ -428,11 +428,11 @@ void InitScreen_Shop() {
 
 ---
 
-## 🎮 UI State 7: Lobby
+## UI State 7: Lobby
 
 ### IDA Function: FUN_00408ee0
 
-### Chercher:
+### Search for:
 
 1. **Background**:
    ```c
@@ -441,7 +441,7 @@ void InitScreen_Shop() {
 
 2. **Room List Table**:
    - Headers: Room Name | Map | Mode | Players | Status
-   - Rows scrollable
+   - Scrollable rows
 
 3. **Buttons**:
    ```c
@@ -450,7 +450,7 @@ void InitScreen_Shop() {
    FUN_00441720("Lobby/QuickJoin_*.png", ?)
    ```
 
-4. **Chat Area** (bas de l'écran)
+4. **Chat Area** (bottom of screen)
 
 ### Layout:
 
@@ -513,11 +513,11 @@ void InitScreen_Lobby() {
 
 ---
 
-## 🏁 UI State 8: Room (Waiting Room)
+## UI State 8: Room (Waiting Room)
 
 ### IDA Function: FUN_00410cb0
 
-### Chercher:
+### Search for:
 
 1. **Background**:
    ```c
@@ -531,7 +531,7 @@ void InitScreen_Lobby() {
    ```
 
 3. **Track Preview**:
-   - Minimap de la track
+   - Track minimap
 
 4. **Buttons**:
    ```c
@@ -613,11 +613,11 @@ void InitScreen_Room() {
 
 ---
 
-## 🏎️ UI State 10: In-Game HUD
+## UI State 10: In-Game HUD
 
 ### IDA Function: FUN_004028c0
 
-### Chercher:
+### Search for:
 
 1. **Speedometer**:
    ```c
@@ -708,9 +708,9 @@ void InitScreen_InGame() {
 
 ---
 
-## 📝 Checklist d'Extraction
+## Extraction Checklist
 
-Pour **CHAQUE** UI, tu dois extraire:
+For **EACH** UI, you must extract:
 
 ### Assets
 - [ ] Background image path
@@ -733,27 +733,27 @@ Pour **CHAQUE** UI, tu dois extraire:
 
 ---
 
-## 🛠️ Outils IDA
+## IDA Tools
 
-### Scripts Utiles
+### Useful Scripts
 
-**1. Chercher tous les appels à FUN_00441720**:
+**1. Search for all FUN_00441720 calls**:
 ```
 Ctrl+F → Text → "FUN_00441720"
 ```
 
-**2. Trouver strings d'assets**:
+**2. Find asset strings**:
 ```
 Shift+F12 → Strings window
 Search: ".png", "Image/", "Button/"
 ```
 
-**3. Suivre les références**:
+**3. Follow references**:
 ```
 Click on string → X (cross-references)
 ```
 
-**4. Extraire valeurs immédiates**:
+**4. Extract immediate values**:
 ```
 Look for: mov dword ptr [reg+offset], immediate
 immediate = coordinate value
@@ -778,25 +778,25 @@ call    FUN_00441720
 
 ---
 
-## 📊 Priorités
+## Priorities
 
-### Phase 1: UI Critiques (URGENT)
+### Phase 1: Critical UI (URGENT)
 1. ✅ Login (State 2)
 2. ✅ Menu (State 4)
 3. ✅ Lobby (State 7)
 4. ✅ Room (State 8)
 
-### Phase 2: UI Secondaires
+### Phase 2: Secondary UI
 5. ⏳ Garage (State 5)
 6. ⏳ Shop (State 6)
 7. ⏳ Channel (State 3)
 8. ⏳ Logo (State 0)
 
-### Phase 3: UI de Jeu
+### Phase 3: Game UI
 9. ⏳ In-Game HUD (State 10)
 10. ⏳ Tutorial (State 12/13)
 
-### Phase 4: UI Avancées
+### Phase 4: Advanced UI
 11. ⏳ CarFactory (State 17)
 12. ⏳ GhostMode (State 22)
 13. ⏳ MissionMenu (State 23)
@@ -805,9 +805,9 @@ call    FUN_00441720
 
 ---
 
-## 📋 Format de Documentation
+## Documentation Format
 
-Pour chaque UI complétée, crée un fichier:
+For each completed UI, create a file:
 
 **Filename**: `UI_STATE_XX_Name.md`
 
@@ -836,14 +836,8 @@ Pour chaque UI complétée, crée un fichier:
 ...
 
 ## IDA Notes
-[Observations spécifiques]
+[Specific observations]
 
 ## Screenshots
-[Reference screenshot si disponible]
+[Reference screenshot if available]
 ```
-
----
-
-**Commencer par LOGIN (State 2) - C'est le plus important!** 🎯
-
-Veux-tu que je t'aide à extraire un UI spécifique en priorité?
