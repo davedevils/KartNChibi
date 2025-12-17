@@ -1,95 +1,95 @@
-# =============================================================================
-# KnC Server Emulator - Root CMakeLists.txt
-# =============================================================================
-# Build: cmake -B build && cmake --build build
-# =============================================================================
+# ================================================================
+# KnC Server - Gateway + Game + Services
+# ================================================================
+cmake_minimum_required(VERSION 3.15)
+project(KnC_Server)
 
-cmake_minimum_required(VERSION 3.16)
-project(knc-emu VERSION 1.0.0 LANGUAGES CXX)
-
-# -----------------------------------------------------------------------------
-# C++ Standard
-# -----------------------------------------------------------------------------
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# -----------------------------------------------------------------------------
-# Options
-# -----------------------------------------------------------------------------
-option(BUILD_TESTS "Build unit tests" OFF)
-option(BUILD_TOOLS "Build CLI tools" ON)
-option(BUILD_WEB_ADMIN "Build web admin panel" ON)
-
-# -----------------------------------------------------------------------------
-# Platform Detection
-# -----------------------------------------------------------------------------
-if(WIN32)
-    add_definitions(-D_WIN32_WINNT=0x0A00)  # Windows 10+
-    add_definitions(-DWIN32_LEAN_AND_MEAN)
-    add_definitions(-DNOMINMAX)
+# ================================================================
+# GATEWAY SERVER (ex-login)
+# ================================================================
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/gateway")
+    file(GLOB_RECURSE GATEWAY_SOURCES
+        "gateway/*.cpp"
+    )
+    file(GLOB_RECURSE GATEWAY_HEADERS
+        "gateway/*.h"
+    )
+    
+    if(GATEWAY_SOURCES)
+        add_executable(gateway ${GATEWAY_SOURCES} ${GATEWAY_HEADERS})
+    
+    target_include_directories(gateway PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/shared/include
+        ${CMAKE_SOURCE_DIR}/shared/src/include
+    )
+    
+        target_link_libraries(gateway PRIVATE shared)
+        
+        message(STATUS "Gateway server configured")
+    else()
+        message(STATUS "Gateway server skipped (no sources)")
+    endif()
 endif()
 
-if(MSVC)
-    add_compile_options(/W4 /utf-8)
-else()
-    add_compile_options(-Wall -Wextra -Wpedantic)
+# ================================================================
+# GAME SERVER
+# ================================================================
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/game")
+    file(GLOB_RECURSE GAME_SOURCES
+        "game/*.cpp"
+    )
+    file(GLOB_RECURSE GAME_HEADERS
+        "game/*.h"
+    )
+    
+    if(GAME_SOURCES)
+        add_executable(game ${GAME_SOURCES} ${GAME_HEADERS})
+        
+        target_include_directories(game PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}
+            ${CMAKE_SOURCE_DIR}/include
+            ${CMAKE_SOURCE_DIR}/shared/include
+        )
+        
+        target_link_libraries(game PRIVATE shared)
+        
+        message(STATUS "Game server configured")
+    else()
+        message(STATUS "Game server skipped (no sources)")
+    endif()
 endif()
 
-# -----------------------------------------------------------------------------
-# Output directories
-# -----------------------------------------------------------------------------
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-
-# -----------------------------------------------------------------------------
-# Dependencies (header-only libraries)
-# -----------------------------------------------------------------------------
-add_subdirectory(lib)
-
-# -----------------------------------------------------------------------------
-# Common library
-# -----------------------------------------------------------------------------
-add_subdirectory(common)
-
-# -----------------------------------------------------------------------------
-# Executables
-# -----------------------------------------------------------------------------
-add_subdirectory(login-server)
-add_subdirectory(game-server)
-
-if(BUILD_WEB_ADMIN)
-    add_subdirectory(web-admin)
+# ================================================================
+# WEB ADMIN (optionnel)
+# ================================================================
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/web-admin")
+    file(GLOB_RECURSE WEBADMIN_SOURCES
+        "web-admin/*.cpp"
+    )
+    file(GLOB_RECURSE WEBADMIN_HEADERS
+        "web-admin/*.h"
+    )
+    
+    if(WEBADMIN_SOURCES)
+        add_executable(web-admin ${WEBADMIN_SOURCES} ${WEBADMIN_HEADERS})
+        
+        target_include_directories(web-admin PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}
+            ${CMAKE_SOURCE_DIR}/include
+            ${CMAKE_SOURCE_DIR}/shared/include
+        )
+        
+        target_link_libraries(web-admin PRIVATE shared)
+        
+        message(STATUS "Web admin configured")
+    else()
+        message(STATUS "Web admin skipped (no sources)")
+    endif()
 endif()
 
-# -----------------------------------------------------------------------------
-# Tests
-# -----------------------------------------------------------------------------
-if(BUILD_TESTS)
-    enable_testing()
-    add_subdirectory(tests)
-endif()
-
-# -----------------------------------------------------------------------------
-# Tools
-# -----------------------------------------------------------------------------
-if(BUILD_TOOLS)
-    add_subdirectory(tools)
-endif()
-
-# -----------------------------------------------------------------------------
-# Summary
-# -----------------------------------------------------------------------------
-message(STATUS "")
-message(STATUS "=== KnC Server Emulator Configuration ===")
-message(STATUS "Version:      ${PROJECT_VERSION}")
-message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
-message(STATUS "Build Type:   ${CMAKE_BUILD_TYPE}")
-message(STATUS "Tests:        ${BUILD_TESTS}")
-message(STATUS "Tools:        ${BUILD_TOOLS}")
-message(STATUS "Web Admin:    ${BUILD_WEB_ADMIN}")
-message(STATUS "==========================================")
-message(STATUS "")
-
+message(STATUS "Server components configured")

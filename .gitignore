@@ -1,78 +1,82 @@
-# Prerequisites
-*.d
+# ================================================================
+# KnC - Git Ignore
+# ================================================================
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
-
-# Dev Client (game files, reverse engineering)
-DevClient/
-
-# Build outputs
+# Build directories
 build/
-out/
-cmake-build-*/
-x64/
-Debug/
 Release/
+Debug/
+*.suo
+*.user
+*.sln.docstates
+
+# Visual Studio
+.vs/
+*.vcxproj.user
+*.vcxproj.filters
+
+# Compiled outputs
+*.exe
+*.dll
+*.lib
+*.obj
+*.pdb
+*.ilk
+*.exp
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+*.cmake
 
 # IDE
-.vs/
 .vscode/
-.cursor/
-*.vcxproj.user
-*.sln
-compile_commands.json
-
-# Config files (local)
-*.ini
-launcher.ini
-Network2.ini.dec
+.idea/
+*.swp
+*.swo
 
 # Logs
 *.log
-logs/
-
-# Dependencies (downloaded)
-server/lib/asio/
-server/lib/json/
-server/lib/httplib/
-launcher/lib/webview/
-launcher/lib/webview2/
 
 # Temp files
 *.tmp
 *.temp
-*.swp
-*~
 
-# OS files
+# Backup files
+*_backup_*.zip
+*_backup_*.7z
+
+# OS
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Node modules (si web tools)
+node_modules/
+package-lock.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Test outputs
+test_output/
+*.test
+
+# Dev Client (game files, reverse engineering)
+DevClient/
+
+
+# Archives
+*.zip
+*.7z
+*.rar
+*.tar
+*.gz
+
+# Exceptions - Keep these
+!scripts/*.bat
+!scripts/*.ps1

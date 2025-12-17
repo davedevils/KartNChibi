@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  # MariaDB Database
+  mariadb:
+    image: mariadb:11.1
+    container_name: knc-mariadb
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-knc_root_2025}
+      MYSQL_DATABASE: ${DB_NAME:-knc_game}
+      MYSQL_USER: ${DB_USER:-knc_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-knc_password_2025}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./server/scripts:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "3306:3306"
+    networks:
+      - knc-network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Login Server
+  login-server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+      target: login-server
+    container_name: knc-login
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-knc_game}
+      DB_USER: ${DB_USER:-knc_user}
+      DB_PASSWORD: ${DB_PASSWORD:-knc_password_2025}
+      LOGIN_PORT: 50017
+    ports:
+      - "50017:50017"
+    networks:
+      - knc-network
+
+  # Game Server
+  game-server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+      target: game-server
+    container_name: knc-game
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      login-server:
+        condition: service_started
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-knc_game}
+      DB_USER: ${DB_USER:-knc_user}
+      DB_PASSWORD: ${DB_PASSWORD:-knc_password_2025}
+      GAME_PORT: 50018
+    ports:
+      - "50018:50018"
+    networks:
+      - knc-network
+
+  # Web Admin Panel
+  web-admin:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+      target: web-admin
+    container_name: knc-admin
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-knc_game}
+      DB_USER: ${DB_USER:-knc_user}
+      DB_PASSWORD: ${DB_PASSWORD:-knc_password_2025}
+      ADMIN_PORT: 8080
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-admin_secret_2025}
+    ports:
+      - "8080:8080"
+    networks:
+      - knc-network
+
+volumes:
+  mariadb_data:
+    driver: local
+
+networks:
+  knc-network:
+    driver: bridge
+

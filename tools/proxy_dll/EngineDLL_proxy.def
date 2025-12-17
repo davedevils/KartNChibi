@@ -1,0 +1,5 @@
+LIBRARY EngineDLL
+EXPORTS
+    NK_instantiateClass @1
+    NK_instantiateClassByHashedUUID @2
+

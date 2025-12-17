@@ -3,160 +3,192 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KnC Server Admin</title>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>KnC Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #0d1117;
-            --bg-card: #161b22;
-            --bg-hover: #21262d;
-            --accent: #58a6ff;
-            --accent-glow: rgba(88, 166, 255, 0.3);
-            --success: #3fb950;
-            --danger: #f85149;
-            --warning: #d29922;
-            --text: #c9d1d9;
-            --text-dim: #8b949e;
-            --border: #30363d;
+            --bg-dark: #0a0e17;
+            --bg-card: #111827;
+            --bg-hover: #1f2937;
+            --accent-cyan: #00f0ff;
+            --accent-magenta: #ff00ff;
+            --accent-orange: #ff6b00;
+            --accent-green: #00ff88;
+            --accent-red: #ff3366;
+            --text-primary: #ffffff;
+            --text-secondary: #9ca3af;
+            --border-color: #374151;
         }
         
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: 'Outfit', system-ui, sans-serif;
+            font-family: 'Rajdhani', sans-serif;
             background: var(--bg-dark);
-            color: var(--text);
+            color: var(--text-primary);
             min-height: 100vh;
-            line-height: 1.5;
+            background-image: 
+                radial-gradient(ellipse at 10% 20%, rgba(0, 240, 255, 0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 90% 80%, rgba(255, 0, 255, 0.05) 0%, transparent 50%);
         }
         
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 24px;
-        }
-        
-        header {
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(17, 24, 39, 0.9) 100%);
+            border-bottom: 1px solid var(--accent-cyan);
+            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 32px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--border);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.1);
         }
         
-        h1 {
-            font-size: 1.5rem;
+        .logo {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
             font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 12px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(0, 240, 255, 0.5);
         }
-        
-        h1 span { font-size: 1.8rem; }
         
         .status-badge {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: var(--bg-card);
-            border-radius: 20px;
-            font-size: 0.875rem;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid var(--accent-green);
+            border-radius: 999px;
+            font-size: 0.9rem;
         }
         
         .status-dot {
             width: 8px;
             height: 8px;
+            background: var(--accent-green);
             border-radius: 50%;
-            background: var(--success);
             animation: pulse 2s infinite;
         }
         
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            0%, 100% { opacity: 1; box-shadow: 0 0 10px var(--accent-green); }
+            50% { opacity: 0.5; box-shadow: 0 0 5px var(--accent-green); }
         }
         
+        /* Main Layout */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+        }
+        
+        .nav-tab {
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+        }
+        
+        .nav-tab:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+        
+        .nav-tab.active {
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(255, 0, 255, 0.1));
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
+        }
+        
+        /* Stats Cards */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-bottom: 32px;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
         }
         
         .stat-card {
             background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
-            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
         }
         
         .stat-card:hover {
-            border-color: var(--accent);
-            box-shadow: 0 0 20px var(--accent-glow);
-        }
-        
-        .stat-label {
-            font-size: 0.875rem;
-            color: var(--text-dim);
-            margin-bottom: 8px;
+            transform: translateY(-2px);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 10px 40px rgba(0, 240, 255, 0.1);
         }
         
         .stat-value {
-            font-size: 2rem;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
             font-weight: 700;
-            font-family: 'JetBrains Mono', monospace;
-            color: var(--accent);
+            color: var(--accent-cyan);
         }
         
-        .tabs {
-            display: flex;
-            gap: 4px;
-            margin-bottom: 24px;
-            border-bottom: 1px solid var(--border);
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 0.5rem;
         }
         
-        .tab {
-            padding: 12px 20px;
-            background: none;
-            border: none;
-            color: var(--text-dim);
-            font-family: inherit;
-            font-size: 0.875rem;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s;
-        }
-        
-        .tab:hover { color: var(--text); }
-        .tab.active {
-            color: var(--accent);
-            border-bottom-color: var(--accent);
-        }
-        
-        .panel { display: none; }
-        .panel.active { display: block; }
-        
-        .card {
+        /* Tables */
+        .table-container {
             background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
             overflow: hidden;
+            margin-bottom: 2rem;
         }
         
-        .card-header {
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--border);
+        .table-header {
+            padding: 1rem 1.5rem;
+            background: rgba(0, 240, 255, 0.05);
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         
-        .card-header h2 {
-            font-size: 1rem;
+        .table-title {
+            font-size: 1.2rem;
             font-weight: 600;
+            color: var(--accent-cyan);
         }
         
         table {
@@ -165,188 +197,312 @@
         }
         
         th, td {
-            padding: 12px 20px;
+            padding: 1rem 1.5rem;
             text-align: left;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--border-color);
         }
         
         th {
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text-secondary);
             font-weight: 600;
-            color: var(--text-dim);
-            font-size: 0.75rem;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
         }
         
-        tr:hover td { background: var(--bg-hover); }
+        tr:hover td {
+            background: var(--bg-hover);
+        }
         
+        /* Buttons */
         .btn {
-            padding: 6px 12px;
-            border-radius: 6px;
+            padding: 0.5rem 1rem;
             border: none;
-            font-family: inherit;
-            font-size: 0.875rem;
+            border-radius: 4px;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
         }
         
         .btn-primary {
-            background: var(--accent);
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-magenta));
             color: var(--bg-dark);
+        }
+        
+        .btn-primary:hover {
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+            transform: translateY(-1px);
         }
         
         .btn-danger {
-            background: var(--danger);
+            background: var(--accent-red);
             color: white;
         }
         
+        .btn-danger:hover {
+            box-shadow: 0 0 20px rgba(255, 51, 102, 0.5);
+        }
+        
         .btn-success {
-            background: var(--success);
+            background: var(--accent-green);
             color: var(--bg-dark);
         }
         
-        .btn:hover { opacity: 0.8; }
+        .btn-sm {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+        }
         
+        /* Badges */
         .badge {
             display: inline-block;
-            padding: 2px 8px;
-            border-radius: 10px;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
             font-size: 0.75rem;
             font-weight: 600;
         }
         
-        .badge-success { background: rgba(63, 185, 80, 0.2); color: var(--success); }
-        .badge-danger { background: rgba(248, 81, 73, 0.2); color: var(--danger); }
-        
-        .logs-container {
-            max-height: 400px;
-            overflow-y: auto;
-            padding: 16px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            background: #010409;
+        .badge-success {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--accent-green);
+            border: 1px solid var(--accent-green);
         }
         
-        .log-entry {
-            padding: 4px 0;
-            color: var(--text-dim);
+        .badge-danger {
+            background: rgba(255, 51, 102, 0.2);
+            color: var(--accent-red);
+            border: 1px solid var(--accent-red);
         }
         
-        .log-entry .time { color: var(--text-dim); }
-        .log-entry .type { font-weight: 600; }
-        .log-entry.login .type { color: var(--success); }
-        .log-entry.race .type { color: var(--accent); }
-        .log-entry.purchase .type { color: var(--warning); }
+        .badge-warning {
+            background: rgba(255, 107, 0, 0.2);
+            color: var(--accent-orange);
+            border: 1px solid var(--accent-orange);
+        }
         
-        .search-input {
-            padding: 8px 12px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Input */
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        input, select {
+            padding: 0.5rem 1rem;
             background: var(--bg-dark);
-            color: var(--text);
-            font-family: inherit;
-            width: 200px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
         }
         
-        .search-input:focus {
+        input:focus, select:focus {
             outline: none;
-            border-color: var(--accent);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
         }
         
+        /* Loading */
+        .loading {
+            display: flex;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Modal */
         .modal {
             display: none;
             position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.8);
-            z-index: 1000;
-            align-items: center;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
             justify-content: center;
+            align-items: center;
+            z-index: 1000;
         }
         
-        .modal.active { display: flex; }
+        .modal.active {
+            display: flex;
+        }
         
         .modal-content {
             background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 24px;
+            border: 1px solid var(--accent-cyan);
+            border-radius: 8px;
+            padding: 2rem;
             min-width: 400px;
+            max-width: 600px;
         }
         
-        .modal-content h3 {
-            margin-bottom: 16px;
+        .modal-header {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--accent-cyan);
         }
         
         .form-group {
-            margin-bottom: 16px;
+            margin-bottom: 1rem;
         }
         
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            color: var(--text-dim);
-            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
         }
         
-        .form-group input, .form-group textarea {
+        .form-group input {
             width: 100%;
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-            background: var(--bg-dark);
-            color: var(--text);
-            font-family: inherit;
-        }
-        
-        .modal-actions {
-            display: flex;
-            gap: 8px;
-            justify-content: flex-end;
-            margin-top: 20px;
         }
     </style>
 </head>
 <body>
+    <header class="header">
+        <div class="logo">KnC ADMIN</div>
+        <div class="status-badge">
+            <div class="status-dot"></div>
+            <span id="server-status">Connecting...</span>
+        </div>
+    </header>
+    
     <div class="container">
-        <header>
-            <h1><span>🏎️</span> KnC Server Admin</h1>
-            <div class="status-badge">
-                <div class="status-dot"></div>
-                <span id="server-name">Server Online</span>
-            </div>
-        </header>
+        <nav class="nav-tabs">
+            <button class="nav-tab active" data-tab="dashboard">Dashboard</button>
+            <button class="nav-tab" data-tab="players">Players</button>
+            <button class="nav-tab" data-tab="accounts">Accounts</button>
+            <button class="nav-tab" data-tab="richest">Richest</button>
+            <button class="nav-tab" data-tab="leaderboard">Leaderboard</button>
+            <button class="nav-tab" data-tab="anticheat">Anti-Cheat</button>
+            <button class="nav-tab" data-tab="logs">Game Logs</button>
+            <button class="nav-tab" data-tab="ghosts">Ghost Records</button>
+            <button class="nav-tab" data-tab="shop">Shop Editor</button>
+            <button class="nav-tab" data-tab="gacha">Gacha</button>
+            <button class="nav-tab" data-tab="items">All Items</button>
+            <button class="nav-tab" data-tab="gm">GM Management</button>
+            <button class="nav-tab" data-tab="missions">Missions</button>
+        </nav>
         
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Players Online</div>
-                <div class="stat-value" id="stat-players">0</div>
+        <!-- Dashboard -->
+        <div id="dashboard" class="tab-content active">
+            <div class="stats-grid" id="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-online">-</div>
+                    <div class="stat-label">Players Online</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-rooms">-</div>
+                    <div class="stat-label">Active Rooms</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-accounts">-</div>
+                    <div class="stat-label">Total Accounts</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-characters">-</div>
+                    <div class="stat-label">Total Characters</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-races">-</div>
+                    <div class="stat-label">Total Races</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-banned">-</div>
+                    <div class="stat-label">Banned Accounts</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-anticheat">-</div>
+                    <div class="stat-label">AC Violations (24h)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-uptime">-</div>
+                    <div class="stat-label">Uptime</div>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">Active Rooms</div>
-                <div class="stat-value" id="stat-rooms">0</div>
+            
+            <div style="margin-bottom: 1rem;">
+                <button class="btn btn-primary" onclick="showEventModal()">🎉 Mass Currency Event</button>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">Total Accounts</div>
-                <div class="stat-value" id="stat-accounts">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Packets/sec</div>
-                <div class="stat-value" id="stat-packets">0</div>
+            
+            <div class="table-container">
+                <div class="table-header">
+                    <span class="table-title">Online Players</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Character</th>
+                            <th>Account</th>
+                            <th>IP</th>
+                            <th>Connected</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="online-players">
+                        <tr><td colspan="5" class="loading"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
         
-        <div class="tabs">
-            <button class="tab active" data-tab="accounts">Accounts</button>
-            <button class="tab" data-tab="characters">Characters</button>
-            <button class="tab" data-tab="logs">Logs</button>
+        <!-- Players -->
+        <div id="players" class="tab-content">
+            <div class="table-container">
+                <div class="table-header">
+                    <span class="table-title">All Characters</span>
+                    <div class="input-group">
+                        <input type="text" id="player-search" placeholder="Search...">
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Account</th>
+                            <th>Level</th>
+                            <th>Gold</th>
+                            <th>W/L</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="characters-list">
+                        <tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
         
-        <!-- Accounts Panel -->
-        <div class="panel active" id="panel-accounts">
-            <div class="card">
-                <div class="card-header">
-                    <h2>Account Management</h2>
-                    <input type="text" class="search-input" placeholder="Search username..." id="search-accounts">
+        <!-- Accounts -->
+        <div id="accounts" class="tab-content">
+            <div class="table-container">
+                <div class="table-header">
+                    <span class="table-title">Accounts</span>
                 </div>
                 <table>
                     <thead>
@@ -360,248 +516,1006 @@
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="accounts-table">
-                        <tr><td colspan="7">Loading...</td></tr>
+                    <tbody id="accounts-list">
+                        <tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
         
-        <!-- Characters Panel -->
-        <div class="panel" id="panel-characters">
-            <div class="card">
-                <div class="card-header">
-                    <h2>Characters</h2>
+        <!-- Leaderboard -->
+        <div id="leaderboard" class="tab-content">
+            <div class="table-container">
+                <div class="table-header">
+                    <span class="table-title">Top Players</span>
+                    <select id="leaderboard-sort" onchange="loadLeaderboard()">
+                        <option value="wins">Sort by Wins</option>
+                        <option value="level">Sort by Level</option>
+                        <option value="gold">Sort by Gold</option>
+                        <option value="total_races">Sort by Races</option>
+                    </select>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Level</th>
+                            <th>Wins</th>
+                            <th>Losses</th>
+                            <th>Win Rate</th>
+                            <th>Races</th>
+                            <th>Gold</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-list">
+                        <tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Anti-Cheat -->
+        <div id="anticheat" class="tab-content">
+            <div class="table-container">
+                <div class="table-header">
+                    <span class="table-title">Anti-Cheat Violations</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Player</th>
+                            <th>Type</th>
+                            <th>Severity</th>
+                            <th>Details</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="anticheat-list">
+                        <tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Ghost Records -->
+        <div id="ghosts" class="tab-content">
+            <div class="table-container">
+                <div class="table-header">
+                    <span class="table-title">Ghost Records (Time Attack Leaderboard)</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Player</th>
+                            <th>Map</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ghosts-list">
+                        <tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Shop -->
+        <div id="shop" class="tab-content">
+            <div class="table-container">
+                <div class="table-header">
+                    <span class="table-title">Shop Items</span>
                 </div>
                 <table>
                     <thead>
                         <tr>
                             <th>ID</th>
                             <th>Name</th>
-                            <th>Account</th>
-                            <th>Level</th>
+                            <th>Category</th>
                             <th>Gold</th>
-                            <th>W/L</th>
+                            <th>Cash</th>
+                            <th>Discount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="characters-table">
-                        <tr><td colspan="6">Loading...</td></tr>
+                    <tbody id="shop-list">
+                        <tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
         
-        <!-- Logs Panel -->
-        <div class="panel" id="panel-logs">
-            <div class="card">
-                <div class="card-header">
-                    <h2>Recent Activity</h2>
-                    <button class="btn btn-primary" onclick="loadLogs()">Refresh</button>
+        <!-- Missions -->
+        <div id="missions" class="tab-content">
+            <div class="table-container">
+                <div class="table-header">
+                    <span class="table-title">Missions</span>
+                    <button class="btn btn-primary" onclick="showAddMission()">+ Add Mission</button>
                 </div>
-                <div class="logs-container" id="logs-container">
-                    Loading...
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Requirements</th>
+                            <th>Rewards</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="missions-list">
+                        <tr><td colspan="5" class="loading"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Richest Players -->
+        <div id="richest" class="tab-content">
+            <div class="table-container">
+                <div class="table-header">
+                    <span class="table-title">💰 Richest Players</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Account</th>
+                            <th>Level</th>
+                            <th>Gold</th>
+                            <th>Cash</th>
+                            <th>Total Wealth</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="richest-list">
+                        <tr><td colspan="8" class="loading"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Game Logs -->
+        <div id="logs" class="tab-content">
+            <div class="table-container">
+                <div class="table-header">
+                    <span class="table-title">📋 Game Logs (Security)</span>
+                    <div class="input-group">
+                        <select id="log-filter" onchange="loadLogs()">
+                            <option value="">All Events</option>
+                        </select>
+                        <input type="text" id="log-char-id" placeholder="Character ID">
+                        <button class="btn btn-primary" onclick="loadLogs()">Filter</button>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Character</th>
+                            <th>Event</th>
+                            <th>Details</th>
+                            <th>IP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logs-list">
+                        <tr><td colspan="5" class="loading"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Gacha -->
+        <div id="gacha" class="tab-content">
+            <div class="table-container">
+                <div class="table-header">
+                    <span class="table-title">🎰 Gacha Banners</span>
+                    <button class="btn btn-primary" onclick="showAddGacha()">+ Add Banner</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Cost (Gold/Cash)</th>
+                            <th>Period</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gacha-list">
+                        <tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- All Items -->
+        <div id="items" class="tab-content">
+            <div class="table-container">
+                <div class="table-header">
+                    <span class="table-title">📦 All Game Items</span>
+                    <select id="item-category" onchange="loadItems()">
+                        <option value="">All Categories</option>
+                        <option value="vehicle">Vehicles</option>
+                        <option value="item">Items</option>
+                        <option value="accessory">Accessories</option>
+                        <option value="driver">Drivers</option>
+                        <option value="pet">Pets</option>
+                    </select>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Rarity</th>
+                            <th>Base Price</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="items-list">
+                        <tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- GM Management -->
+        <div id="gm" class="tab-content">
+            <div class="stats-grid" style="margin-bottom: 2rem;">
+                <div class="stat-card">
+                    <div class="stat-value" id="gm-count">-</div>
+                    <div class="stat-label">Total GMs</div>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <div class="table-header">
+                    <span class="table-title">👑 GM/Admin List</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Level</th>
+                            <th>Last Login</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gm-list">
+                        <tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="table-container" style="margin-top: 2rem;">
+                <div class="table-header">
+                    <span class="table-title">Promote Account to GM</span>
+                </div>
+                <div style="padding: 1.5rem;">
+                    <div class="input-group">
+                        <input type="number" id="promote-account-id" placeholder="Account ID">
+                        <select id="promote-level">
+                            <option value="0">Player (Remove GM)</option>
+                            <option value="1">Game Master</option>
+                            <option value="2">Admin</option>
+                            <option value="3">Super Admin</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="promoteGM()">Set GM Level</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
     
-    <!-- Ban Modal -->
-    <div class="modal" id="ban-modal">
+    <!-- Give Resources Modal -->
+    <div id="give-modal" class="modal">
         <div class="modal-content">
-            <h3>Ban Account</h3>
+            <div class="modal-header">💰 Modify Currency</div>
+            <input type="hidden" id="give-char-id">
             <div class="form-group">
-                <label>Account ID</label>
-                <input type="text" id="ban-account-id" readonly>
+                <label>Character: <span id="give-char-name"></span></label>
+            </div>
+            <div class="form-group">
+                <label>Currency</label>
+                <select id="give-type">
+                    <option value="gold">Gold</option>
+                    <option value="cash">Cash (Premium)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Amount (use negative to remove)</label>
+                <input type="number" id="give-amount" value="1000">
             </div>
             <div class="form-group">
                 <label>Reason</label>
-                <textarea id="ban-reason" rows="3" placeholder="Enter ban reason..."></textarea>
+                <input type="text" id="give-reason" value="Admin modification">
             </div>
-            <div class="modal-actions">
-                <button class="btn" onclick="closeBanModal()">Cancel</button>
-                <button class="btn btn-danger" onclick="confirmBan()">Ban Account</button>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button class="btn" onclick="closeModal('give-modal')">Cancel</button>
+                <button class="btn btn-danger" onclick="modifyCurrency(-Math.abs(parseInt(document.getElementById('give-amount').value)))">Remove</button>
+                <button class="btn btn-primary" onclick="modifyCurrency(Math.abs(parseInt(document.getElementById('give-amount').value)))">Add</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Send Item Modal -->
+    <div id="send-item-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">📦 Send Item</div>
+            <input type="hidden" id="send-char-id">
+            <div class="form-group">
+                <label>Character: <span id="send-char-name"></span></label>
+            </div>
+            <div class="form-group">
+                <label>Item Template ID</label>
+                <input type="number" id="send-template-id" placeholder="Template ID">
+            </div>
+            <div class="form-group">
+                <label>Quantity</label>
+                <input type="number" id="send-quantity" value="1" min="1">
+            </div>
+            <div class="form-group">
+                <label>Reason</label>
+                <input type="text" id="send-reason" value="Admin gift">
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button class="btn" onclick="closeModal('send-item-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="sendItem()">Send Item</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Send Vehicle Modal -->
+    <div id="send-vehicle-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">🚗 Send Vehicle</div>
+            <input type="hidden" id="sendv-char-id">
+            <div class="form-group">
+                <label>Character: <span id="sendv-char-name"></span></label>
+            </div>
+            <div class="form-group">
+                <label>Vehicle Template ID</label>
+                <input type="number" id="sendv-template-id" placeholder="Vehicle Template ID">
+            </div>
+            <div class="form-group">
+                <label>Reason</label>
+                <input type="text" id="sendv-reason" value="Admin gift">
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button class="btn" onclick="closeModal('send-vehicle-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="sendVehicle()">Send Vehicle</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Shop Item Modal -->
+    <div id="shop-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">🛒 Shop Item Editor</div>
+            <div class="form-group">
+                <label>Template ID</label>
+                <input type="number" id="shop-template-id" placeholder="Template ID">
+            </div>
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="shop-name" placeholder="Item Name">
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select id="shop-category">
+                    <option value="vehicle">Vehicle</option>
+                    <option value="item">Item</option>
+                    <option value="accessory">Accessory</option>
+                    <option value="driver">Driver</option>
+                    <option value="pet">Pet</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Price (Gold)</label>
+                <input type="number" id="shop-price-gold" value="0">
+            </div>
+            <div class="form-group">
+                <label>Price (Cash)</label>
+                <input type="number" id="shop-price-cash" value="0">
+            </div>
+            <div class="form-group">
+                <label>Discount %</label>
+                <input type="number" id="shop-discount" value="0" min="0" max="100">
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button class="btn" onclick="closeModal('shop-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveShopItem()">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Mass Event Modal -->
+    <div id="event-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">🎉 Mass Currency Event</div>
+            <div class="form-group">
+                <label>Give to ALL players:</label>
+            </div>
+            <div class="form-group">
+                <label>Currency</label>
+                <select id="event-currency">
+                    <option value="gold">Gold</option>
+                    <option value="cash">Cash</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Amount</label>
+                <input type="number" id="event-amount" value="1000">
+            </div>
+            <div class="form-group">
+                <label>Reason</label>
+                <input type="text" id="event-reason" value="Event reward">
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button class="btn" onclick="closeModal('event-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="massEvent()">Give to ALL</button>
             </div>
         </div>
     </div>
     
     <script>
-        const API_TOKEN = 'admin123';  // Change this!
+        const API_TOKEN = 'admin123';
         
         // Tab switching
-        document.querySelectorAll('.tab').forEach(tab => {
+        document.querySelectorAll('.nav-tab').forEach(tab => {
             tab.addEventListener('click', () => {
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                 tab.classList.add('active');
-                document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+                loadTabData(tab.dataset.tab);
             });
         });
         
-        // Fetch with auth
-        async function apiFetch(url, options = {}) {
-            options.headers = {
-                ...options.headers,
-                'Authorization': 'Bearer ' + API_TOKEN
-            };
-            const res = await fetch(url, options);
-            return res.json();
-        }
-        
-        // Load stats
-        async function loadStats() {
-            try {
-                const data = await apiFetch('/api/status');
-                document.getElementById('stat-players').textContent = data.players || 0;
-                document.getElementById('stat-rooms').textContent = data.rooms || 0;
-                document.getElementById('stat-accounts').textContent = data.accounts || 0;
-                document.getElementById('stat-packets').textContent = data.packetsPerSec || 0;
-                document.getElementById('server-name').textContent = data.serverName || 'Server';
-            } catch (e) {
-                console.error('Failed to load stats:', e);
+        function loadTabData(tab) {
+            switch(tab) {
+                case 'dashboard': loadDashboard(); break;
+                case 'players': loadCharacters(); break;
+                case 'accounts': loadAccounts(); break;
+                case 'richest': loadRichest(); break;
+                case 'leaderboard': loadLeaderboard(); break;
+                case 'anticheat': loadAntiCheat(); break;
+                case 'logs': loadLogs(); break;
+                case 'ghosts': loadGhosts(); break;
+                case 'shop': loadShop(); break;
+                case 'gacha': loadGacha(); break;
+                case 'items': loadItems(); break;
+                case 'gm': loadGM(); break;
+                case 'missions': loadMissions(); break;
             }
         }
         
-        // Load accounts
-        async function loadAccounts() {
+        async function api(endpoint, options = {}) {
             try {
-                const data = await apiFetch('/api/accounts');
-                const tbody = document.getElementById('accounts-table');
-                
-                if (!data.accounts || data.accounts.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7">No accounts found</td></tr>';
-                    return;
-                }
-                
-                tbody.innerHTML = data.accounts.map(acc => `
-                    <tr>
-                        <td>${acc.id}</td>
-                        <td><strong>${acc.username}</strong></td>
-                        <td>${acc.email || '-'}</td>
-                        <td>${acc.created_at || '-'}</td>
-                        <td>${acc.last_login || 'Never'}</td>
-                        <td>
-                            ${acc.is_banned 
-                                ? '<span class="badge badge-danger">Banned</span>' 
-                                : '<span class="badge badge-success">Active</span>'}
-                        </td>
-                        <td>
-                            ${acc.is_banned 
-                                ? `<button class="btn btn-success" onclick="unban(${acc.id})">Unban</button>`
-                                : `<button class="btn btn-danger" onclick="showBanModal(${acc.id})">Ban</button>`}
-                        </td>
-                    </tr>
-                `).join('');
-            } catch (e) {
-                console.error('Failed to load accounts:', e);
-            }
-        }
-        
-        // Load characters
-        async function loadCharacters() {
-            try {
-                const data = await apiFetch('/api/characters');
-                const tbody = document.getElementById('characters-table');
-                
-                if (!data.characters || data.characters.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6">No characters found</td></tr>';
-                    return;
-                }
-                
-                tbody.innerHTML = data.characters.map(char => `
-                    <tr>
-                        <td>${char.id}</td>
-                        <td><strong>${char.name}</strong></td>
-                        <td>${char.account}</td>
-                        <td>${char.level}</td>
-                        <td>${char.gold.toLocaleString()}</td>
-                        <td>${char.wins}/${char.losses}</td>
-                    </tr>
-                `).join('');
-            } catch (e) {
-                console.error('Failed to load characters:', e);
-            }
-        }
-        
-        // Load logs
-        async function loadLogs() {
-            try {
-                const data = await apiFetch('/api/logs?limit=50');
-                const container = document.getElementById('logs-container');
-                
-                if (!data.logs || data.logs.length === 0) {
-                    container.innerHTML = '<div class="log-entry">No logs yet</div>';
-                    return;
-                }
-                
-                container.innerHTML = data.logs.map(log => `
-                    <div class="log-entry ${log.event_type}">
-                        <span class="time">[${log.created_at}]</span>
-                        <span class="type">[${log.event_type}]</span>
-                        ${log.event_data || ''}
-                    </div>
-                `).join('');
-            } catch (e) {
-                console.error('Failed to load logs:', e);
-                document.getElementById('logs-container').innerHTML = '<div class="log-entry">Failed to load logs</div>';
-            }
-        }
-        
-        // Ban modal
-        function showBanModal(accountId) {
-            document.getElementById('ban-account-id').value = accountId;
-            document.getElementById('ban-reason').value = '';
-            document.getElementById('ban-modal').classList.add('active');
-        }
-        
-        function closeBanModal() {
-            document.getElementById('ban-modal').classList.remove('active');
-        }
-        
-        async function confirmBan() {
-            const accountId = document.getElementById('ban-account-id').value;
-            const reason = document.getElementById('ban-reason').value;
-            
-            try {
-                await apiFetch('/api/ban', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ account_id: parseInt(accountId), reason })
+                const res = await fetch('/api' + endpoint, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + API_TOKEN,
+                        ...options.headers
+                    }
                 });
-                closeBanModal();
-                loadAccounts();
+                return await res.json();
             } catch (e) {
-                alert('Failed to ban account: ' + e.message);
+                console.error('API Error:', e);
+                return null;
             }
+        }
+        
+        function formatUptime(seconds) {
+            const d = Math.floor(seconds / 86400);
+            const h = Math.floor((seconds % 86400) / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            return `${d}d ${h}h ${m}m`;
+        }
+        
+        async function loadDashboard() {
+            const stats = await api('/stats/dashboard');
+            if (stats) {
+                document.getElementById('stat-online').textContent = stats.players_online || 0;
+                document.getElementById('stat-rooms').textContent = stats.active_rooms || 0;
+                document.getElementById('stat-accounts').textContent = stats.total_accounts || 0;
+                document.getElementById('stat-characters').textContent = stats.total_characters || 0;
+                document.getElementById('stat-races').textContent = stats.total_races || 0;
+                document.getElementById('stat-banned').textContent = stats.banned_accounts || 0;
+                document.getElementById('stat-anticheat').textContent = stats.anticheat_24h || 0;
+                document.getElementById('stat-uptime').textContent = formatUptime(stats.uptime_seconds || 0);
+                document.getElementById('server-status').textContent = 'Online';
+            }
+            
+            const online = await api('/online');
+            const tbody = document.getElementById('online-players');
+            if (online && online.players) {
+                tbody.innerHTML = online.players.length ? online.players.map(p => `
+                    <tr>
+                        <td>${p.character || '-'}</td>
+                        <td>${p.username || '-'}</td>
+                        <td>${p.ip}</td>
+                        <td>${new Date(p.connected_at).toLocaleString()}</td>
+                        <td><button class="btn btn-danger btn-sm">Kick</button></td>
+                    </tr>
+                `).join('') : '<tr><td colspan="5">No players online</td></tr>';
+            }
+        }
+        
+        async function loadCharacters() {
+            const data = await api('/characters?limit=100');
+            const tbody = document.getElementById('characters-list');
+            if (data && data.characters) {
+                tbody.innerHTML = data.characters.map(c => `
+                    <tr>
+                        <td>${c.id}</td>
+                        <td>${c.name}</td>
+                        <td>${c.account}</td>
+                        <td>${c.level}</td>
+                        <td style="color: var(--accent-orange)">${c.gold.toLocaleString()}</td>
+                        <td>${c.wins}/${c.losses}</td>
+                        <td>
+                            <button class="btn btn-primary btn-sm" onclick="showGiveModal(${c.id}, '${c.name}')">💰</button>
+                            <button class="btn btn-sm" onclick="showSendItemModal(${c.id}, '${c.name}')">📦</button>
+                            <button class="btn btn-sm" onclick="showSendVehicleModal(${c.id}, '${c.name}')">🚗</button>
+                            <button class="btn btn-danger btn-sm" onclick="resetStats(${c.id})">🔄</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        async function loadAccounts() {
+            const data = await api('/accounts?limit=100');
+            const tbody = document.getElementById('accounts-list');
+            if (data && data.accounts) {
+                tbody.innerHTML = data.accounts.map(a => `
+                    <tr>
+                        <td>${a.id}</td>
+                        <td>${a.username}</td>
+                        <td>${a.email || '-'}</td>
+                        <td>${new Date(a.created_at).toLocaleDateString()}</td>
+                        <td>${a.last_login ? new Date(a.last_login).toLocaleString() : 'Never'}</td>
+                        <td>${a.is_banned ? '<span class="badge badge-danger">Banned</span>' : '<span class="badge badge-success">Active</span>'}</td>
+                        <td>
+                            ${a.is_banned 
+                                ? `<button class="btn btn-success btn-sm" onclick="unban(${a.id})">Unban</button>`
+                                : `<button class="btn btn-danger btn-sm" onclick="ban(${a.id})">Ban</button>`
+                            }
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        async function loadLeaderboard() {
+            const sort = document.getElementById('leaderboard-sort').value;
+            const data = await api('/leaderboard?sort=' + sort);
+            const tbody = document.getElementById('leaderboard-list');
+            if (data && data.leaderboard) {
+                tbody.innerHTML = data.leaderboard.map(p => `
+                    <tr>
+                        <td><strong>#${p.rank}</strong></td>
+                        <td>${p.name}</td>
+                        <td>${p.level}</td>
+                        <td style="color: var(--accent-green)">${p.wins}</td>
+                        <td style="color: var(--accent-red)">${p.losses}</td>
+                        <td>${p.winrate}%</td>
+                        <td>${p.total_races}</td>
+                        <td style="color: var(--accent-orange)">${p.gold.toLocaleString()}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        async function loadAntiCheat() {
+            const data = await api('/anticheat?limit=100');
+            const tbody = document.getElementById('anticheat-list');
+            if (data && data.logs) {
+                tbody.innerHTML = data.logs.length ? data.logs.map(l => `
+                    <tr>
+                        <td>${new Date(l.created_at).toLocaleString()}</td>
+                        <td>${l.character_name || l.character_id}</td>
+                        <td>${l.violation_type}</td>
+                        <td><span class="badge ${l.severity === 'HIGH' ? 'badge-danger' : 'badge-warning'}">${l.severity}</span></td>
+                        <td>${l.details}</td>
+                        <td>${l.action_taken}</td>
+                    </tr>
+                `).join('') : '<tr><td colspan="6">No violations recorded</td></tr>';
+            }
+        }
+        
+        async function loadGhosts() {
+            const data = await api('/ghosts?limit=100');
+            const tbody = document.getElementById('ghosts-list');
+            if (data && data.ghosts) {
+                let rank = 1;
+                tbody.innerHTML = data.ghosts.length ? data.ghosts.map(g => `
+                    <tr>
+                        <td><strong>#${rank++}</strong></td>
+                        <td>${g.player_name}</td>
+                        <td>${g.map_name}</td>
+                        <td style="color: var(--accent-cyan)">${g.time_formatted}</td>
+                        <td>${g.is_valid ? '<span class="badge badge-success">Valid</span>' : '<span class="badge badge-danger">Invalid</span>'}</td>
+                        <td>${new Date(g.created_at).toLocaleDateString()}</td>
+                        <td>
+                            ${g.is_valid ? `<button class="btn btn-danger btn-sm" onclick="invalidateGhost(${g.id})">Invalidate</button>` : ''}
+                        </td>
+                    </tr>
+                `).join('') : '<tr><td colspan="7">No ghost records</td></tr>';
+            }
+        }
+        
+        async function loadShop() {
+            const data = await api('/shop');
+            const tbody = document.getElementById('shop-list');
+            if (data && data.items) {
+                tbody.innerHTML = data.items.map(i => `
+                    <tr>
+                        <td>${i.id}</td>
+                        <td>${i.name}</td>
+                        <td>${i.category}</td>
+                        <td>${i.price_gold.toLocaleString()}</td>
+                        <td>${i.price_cash}</td>
+                        <td>${i.discount_percent}%</td>
+                        <td>${i.is_available ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Disabled</span>'}</td>
+                        <td>
+                            <button class="btn btn-sm" onclick="toggleShopItem(${i.id}, ${!i.is_available})">
+                                ${i.is_available ? 'Disable' : 'Enable'}
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        async function loadMissions() {
+            const data = await api('/missions');
+            const tbody = document.getElementById('missions-list');
+            if (data && data.missions) {
+                tbody.innerHTML = data.missions.map(m => `
+                    <tr>
+                        <td>${m.id}</td>
+                        <td>${m.name}</td>
+                        <td>${m.required_races} races / ${m.required_wins} wins</td>
+                        <td>${m.reward_gold}g + ${m.reward_xp}xp</td>
+                        <td>${m.is_active ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Inactive</span>'}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        // Actions
+        async function ban(accountId) {
+            const reason = prompt('Ban reason:');
+            if (reason === null) return;
+            await api('/ban', { method: 'POST', body: JSON.stringify({ account_id: accountId, reason }) });
+            loadAccounts();
         }
         
         async function unban(accountId) {
-            if (!confirm('Unban this account?')) return;
+            await api('/ban/' + accountId, { method: 'DELETE' });
+            loadAccounts();
+        }
+        
+        async function resetStats(charId) {
+            if (!confirm('Reset all stats for this character?')) return;
+            await api('/reset/stats', { method: 'POST', body: JSON.stringify({ character_id: charId }) });
+            loadCharacters();
+        }
+        
+        async function invalidateGhost(ghostId) {
+            if (!confirm('Invalidate this ghost record?')) return;
+            await api('/ghosts/invalidate', { method: 'POST', body: JSON.stringify({ ghost_id: ghostId }) });
+            loadGhosts();
+        }
+        
+        async function toggleShopItem(itemId, enabled) {
+            await api('/shop', { method: 'PUT', body: JSON.stringify({ id: itemId, is_available: enabled }) });
+            loadShop();
+        }
+        
+        function showGiveModal(charId, charName) {
+            document.getElementById('give-char-id').value = charId;
+            document.getElementById('give-char-name').textContent = charName;
+            document.getElementById('give-modal').classList.add('active');
+        }
+        
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+        
+        async function modifyCurrency(amount) {
+            const charId = document.getElementById('give-char-id').value;
+            const currency = document.getElementById('give-type').value;
+            const reason = document.getElementById('give-reason').value;
             
-            try {
-                await apiFetch('/api/ban/' + accountId, { method: 'DELETE' });
-                loadAccounts();
-            } catch (e) {
-                alert('Failed to unban: ' + e.message);
+            const result = await api('/currency/modify', { 
+                method: 'POST', 
+                body: JSON.stringify({ 
+                    character_id: parseInt(charId), 
+                    currency,
+                    amount,
+                    reason
+                }) 
+            });
+            
+            if (result && result.success) {
+                alert(`Balance updated: ${result.old_balance} → ${result.new_balance}`);
+            }
+            
+            closeModal('give-modal');
+            loadCharacters();
+        }
+        
+        // Richest players
+        async function loadRichest() {
+            const data = await api('/richest?limit=50');
+            const tbody = document.getElementById('richest-list');
+            if (data && data.players) {
+                tbody.innerHTML = data.players.map(p => `
+                    <tr>
+                        <td><strong>#${p.rank}</strong></td>
+                        <td>${p.name}</td>
+                        <td>${p.account}</td>
+                        <td>${p.level}</td>
+                        <td style="color: var(--accent-orange)">${p.gold.toLocaleString()}</td>
+                        <td style="color: var(--accent-magenta)">${p.cash.toLocaleString()}</td>
+                        <td style="color: var(--accent-cyan)">${p.total_wealth.toLocaleString()}</td>
+                        <td>
+                            <button class="btn btn-primary btn-sm" onclick="showGiveModal(${p.id}, '${p.name}')">Modify $</button>
+                        </td>
+                    </tr>
+                `).join('');
             }
         }
         
-        // Search
-        document.getElementById('search-accounts').addEventListener('input', (e) => {
-            const search = e.target.value.toLowerCase();
-            document.querySelectorAll('#accounts-table tr').forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(search) ? '' : 'none';
+        // Game Logs
+        async function loadLogs() {
+            const eventType = document.getElementById('log-filter').value;
+            const charId = document.getElementById('log-char-id').value;
+            
+            let url = '/logs/game?limit=200';
+            if (eventType) url += '&type=' + eventType;
+            if (charId) url += '&character_id=' + charId;
+            
+            const data = await api(url);
+            const tbody = document.getElementById('logs-list');
+            const filter = document.getElementById('log-filter');
+            
+            if (data) {
+                // Populate filter options
+                if (data.event_types && filter.options.length <= 1) {
+                    data.event_types.forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t;
+                        opt.textContent = t;
+                        filter.appendChild(opt);
+                    });
+                }
+                
+                tbody.innerHTML = data.logs.length ? data.logs.map(l => `
+                    <tr>
+                        <td>${new Date(l.created_at).toLocaleString()}</td>
+                        <td>${l.character_name || l.character_id || 'System'}</td>
+                        <td><span class="badge badge-warning">${l.event_type}</span></td>
+                        <td>${l.event_data}</td>
+                        <td>${l.ip_address || '-'}</td>
+                    </tr>
+                `).join('') : '<tr><td colspan="5">No logs found</td></tr>';
+            }
+        }
+        
+        // Gacha
+        async function loadGacha() {
+            const data = await api('/gacha');
+            const tbody = document.getElementById('gacha-list');
+            if (data && data.gachas) {
+                tbody.innerHTML = data.gachas.length ? data.gachas.map(g => `
+                    <tr>
+                        <td>${g.id}</td>
+                        <td>${g.name}</td>
+                        <td>${g.cost_gold}g / ${g.cost_cash}💎</td>
+                        <td>${g.start_date || 'Always'} - ${g.end_date || 'Forever'}</td>
+                        <td>${g.is_active ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Inactive</span>'}</td>
+                        <td>
+                            <button class="btn btn-sm" onclick="viewGachaItems(${g.id})">View Items</button>
+                        </td>
+                    </tr>
+                `).join('') : '<tr><td colspan="6">No gacha banners</td></tr>';
+            }
+        }
+        
+        async function viewGachaItems(gachaId) {
+            const data = await api('/gacha/' + gachaId + '/items');
+            if (data && data.items) {
+                let html = '<h3>Gacha Items (ID: ' + gachaId + ')</h3><table><tr><th>Item</th><th>Rate</th><th>Rarity</th></tr>';
+                data.items.forEach(i => {
+                    html += `<tr><td>${i.item_name}</td><td>${i.drop_rate}%</td><td>${i.rarity}</td></tr>`;
+                });
+                html += '</table>';
+                alert(html); // Could use a nicer modal
+            }
+        }
+        
+        // All Items
+        async function loadItems() {
+            const category = document.getElementById('item-category').value;
+            const data = await api('/items/all' + (category ? '?category=' + category : ''));
+            const tbody = document.getElementById('items-list');
+            if (data && data.items) {
+                const rarityColors = {
+                    common: 'var(--text-secondary)',
+                    uncommon: 'var(--accent-green)',
+                    rare: 'var(--accent-cyan)',
+                    epic: 'var(--accent-magenta)',
+                    legendary: 'var(--accent-orange)'
+                };
+                
+                tbody.innerHTML = data.items.map(i => `
+                    <tr>
+                        <td>${i.id}</td>
+                        <td>${i.name}</td>
+                        <td>${i.category}</td>
+                        <td style="color: ${rarityColors[i.rarity] || 'white'}">${i.rarity}</td>
+                        <td>${i.base_price.toLocaleString()}</td>
+                        <td>
+                            <button class="btn btn-primary btn-sm" onclick="addToShop(${i.id}, '${i.name}', '${i.category}', ${i.base_price})">Add to Shop</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        function addToShop(templateId, name, category, basePrice) {
+            document.getElementById('shop-template-id').value = templateId;
+            document.getElementById('shop-name').value = name;
+            document.getElementById('shop-category').value = category;
+            document.getElementById('shop-price-gold').value = basePrice;
+            document.getElementById('shop-modal').classList.add('active');
+        }
+        
+        async function saveShopItem() {
+            const data = {
+                template_id: parseInt(document.getElementById('shop-template-id').value),
+                name: document.getElementById('shop-name').value,
+                category: document.getElementById('shop-category').value,
+                price_gold: parseInt(document.getElementById('shop-price-gold').value),
+                price_cash: parseInt(document.getElementById('shop-price-cash').value),
+                discount_percent: parseInt(document.getElementById('shop-discount').value)
+            };
+            
+            await api('/shop/item', { method: 'POST', body: JSON.stringify(data) });
+            closeModal('shop-modal');
+            loadShop();
+        }
+        
+        // GM Management
+        async function loadGM() {
+            const data = await api('/gm/list');
+            const tbody = document.getElementById('gm-list');
+            
+            if (data && data.gms) {
+                document.getElementById('gm-count').textContent = data.gms.length;
+                
+                const levelColors = { 1: 'var(--accent-cyan)', 2: 'var(--accent-magenta)', 3: 'var(--accent-orange)' };
+                
+                tbody.innerHTML = data.gms.length ? data.gms.map(g => `
+                    <tr>
+                        <td>${g.id}</td>
+                        <td>${g.username}</td>
+                        <td>${g.email || '-'}</td>
+                        <td style="color: ${levelColors[g.gm_level]}">${g.gm_level_name}</td>
+                        <td>${g.last_login ? new Date(g.last_login).toLocaleString() : 'Never'}</td>
+                        <td>
+                            <button class="btn btn-danger btn-sm" onclick="demoteGM(${g.id})">Remove GM</button>
+                        </td>
+                    </tr>
+                `).join('') : '<tr><td colspan="6">No GMs found</td></tr>';
+            }
+        }
+        
+        async function promoteGM() {
+            const accountId = document.getElementById('promote-account-id').value;
+            const level = document.getElementById('promote-level').value;
+            
+            if (!accountId) {
+                alert('Enter an account ID');
+                return;
+            }
+            
+            await api('/gm/set', { 
+                method: 'POST', 
+                body: JSON.stringify({ account_id: parseInt(accountId), gm_level: parseInt(level) }) 
             });
-        });
+            
+            loadGM();
+        }
+        
+        async function demoteGM(accountId) {
+            if (!confirm('Remove GM status from this account?')) return;
+            await api('/gm/set', { method: 'POST', body: JSON.stringify({ account_id: accountId, gm_level: 0 }) });
+            loadGM();
+        }
+        
+        // Send Item
+        function showSendItemModal(charId, charName) {
+            document.getElementById('send-char-id').value = charId;
+            document.getElementById('send-char-name').textContent = charName;
+            document.getElementById('send-item-modal').classList.add('active');
+        }
+        
+        async function sendItem() {
+            const data = {
+                character_id: parseInt(document.getElementById('send-char-id').value),
+                template_id: parseInt(document.getElementById('send-template-id').value),
+                quantity: parseInt(document.getElementById('send-quantity').value),
+                reason: document.getElementById('send-reason').value
+            };
+            
+            await api('/items/send', { method: 'POST', body: JSON.stringify(data) });
+            closeModal('send-item-modal');
+            alert('Item sent!');
+        }
+        
+        // Send Vehicle
+        function showSendVehicleModal(charId, charName) {
+            document.getElementById('sendv-char-id').value = charId;
+            document.getElementById('sendv-char-name').textContent = charName;
+            document.getElementById('send-vehicle-modal').classList.add('active');
+        }
+        
+        async function sendVehicle() {
+            const data = {
+                character_id: parseInt(document.getElementById('sendv-char-id').value),
+                template_id: parseInt(document.getElementById('sendv-template-id').value),
+                reason: document.getElementById('sendv-reason').value
+            };
+            
+            await api('/vehicles/send', { method: 'POST', body: JSON.stringify(data) });
+            closeModal('send-vehicle-modal');
+            alert('Vehicle sent!');
+        }
+        
+        // Mass Event
+        function showEventModal() {
+            document.getElementById('event-modal').classList.add('active');
+        }
+        
+        async function massEvent() {
+            if (!confirm('This will give currency to ALL players. Are you sure?')) return;
+            
+            const data = {
+                currency: document.getElementById('event-currency').value,
+                amount: parseInt(document.getElementById('event-amount').value),
+                reason: document.getElementById('event-reason').value
+            };
+            
+            await api('/event/currency', { method: 'POST', body: JSON.stringify(data) });
+            closeModal('event-modal');
+            alert('Mass event executed!');
+        }
         
         // Initial load
-        loadStats();
-        loadAccounts();
-        loadCharacters();
-        loadLogs();
+        loadDashboard();
         
-        // Auto-refresh stats
-        setInterval(loadStats, 5000);
+        // Auto refresh
+        setInterval(() => {
+            if (document.getElementById('dashboard').classList.contains('active')) {
+                loadDashboard();
+            }
+        }, 10000);
     </script>
 </body>
 </html>
