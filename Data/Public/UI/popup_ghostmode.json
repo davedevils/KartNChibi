@@ -1,0 +1,59 @@
+{
+  "version": "1.0",
+  "type": "popup",
+  "name": "GhostModeSetup",
+  "resolution": [
+    600,
+    400
+  ],
+  "modal": true,
+  "elements": [
+    {
+      "id": "bg_ghostmode",
+      "type": "image",
+      "asset": "Popup/GhostMode/UI_Ghost mode_back.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "btn_track_left",
+      "type": "button",
+      "asset": "Popup/SelectTrack/UI_system_arrow_left_",
+      "position": [
+        50,
+        200
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_ghost_track_prev"
+    },
+    {
+      "id": "btn_track_right",
+      "type": "button",
+      "asset": "Popup/SelectTrack/UI_system_arrow_right_",
+      "position": [
+        500,
+        200
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_ghost_track_next"
+    },
+    {
+      "id": "btn_start",
+      "type": "button",
+      "asset": "Buttons/Common_Start_",
+      "position": [
+        250,
+        350
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_ghost_start"
+    }
+  ]
+}

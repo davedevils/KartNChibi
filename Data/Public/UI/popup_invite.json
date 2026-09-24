@@ -1,0 +1,71 @@
+{
+  "version": "1.0",
+  "type": "popup",
+  "name": "Invite",
+  "resolution": [
+    400,
+    200
+  ],
+  "modal": true,
+  "elements": [
+    {
+      "id": "bg_invite",
+      "type": "image",
+      "asset": "Popup/Invite/UI_popup_information_back.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "invite_text",
+      "type": "text",
+      "position": [
+        50,
+        50
+      ],
+      "size": [
+        300,
+        80
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "fontSize": 14,
+        "color": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "align": "center"
+      }
+    },
+    {
+      "id": "btn_accept",
+      "type": "button",
+      "asset": "Popup/Invite/bt_accept_",
+      "position": [
+        100,
+        150
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_invite_accept"
+    },
+    {
+      "id": "btn_decline",
+      "type": "button",
+      "asset": "Popup/Invite/bt_decline_",
+      "position": [
+        250,
+        150
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_invite_decline"
+    }
+  ]
+}

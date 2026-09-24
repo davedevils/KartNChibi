@@ -1,0 +1,70 @@
+{
+  "version": "1.0",
+  "type": "popup",
+  "name": "Message",
+  "resolution": [
+    400,
+    200
+  ],
+  "modal": true,
+  "elements": [
+    {
+      "id": "bg_information",
+      "type": "image",
+      "asset": "Popup/Message/Popup_Information.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "bg_warning",
+      "type": "image",
+      "asset": "Popup/Message/Popup_Warning.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": false,
+      "enabled": true
+    },
+    {
+      "id": "bg_input",
+      "type": "image",
+      "asset": "Popup/Message/Popup_Input.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": false,
+      "enabled": true
+    },
+    {
+      "id": "message_text",
+      "type": "text",
+      "position": [
+        50,
+        50
+      ],
+      "size": [
+        300,
+        100
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "fontSize": 14,
+        "color": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "align": "center",
+        "wordWrap": true
+      }
+    }
+  ]
+}

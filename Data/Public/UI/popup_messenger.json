@@ -1,0 +1,133 @@
+{
+  "version": "1.0",
+  "type": "popup",
+  "name": "Messenger",
+  "resolution": [
+    600,
+    500
+  ],
+  "modal": true,
+  "elements": [
+    {
+      "id": "bg_messenger",
+      "type": "image",
+      "asset": "Popup/Messenger/Messenger_List_Back.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "bg_notelist",
+      "type": "image",
+      "asset": "Popup/Messenger/Messenger_NoteList_Back.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": false,
+      "enabled": true
+    },
+    {
+      "id": "bg_noteshow",
+      "type": "image",
+      "asset": "Popup/Messenger/Messenger_NoteShow.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": false,
+      "enabled": true
+    },
+    {
+      "id": "bg_friendname",
+      "type": "image",
+      "asset": "Popup/Messenger/Messenger_FriendName.png",
+      "position": [
+        50,
+        100
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "bg_blockname",
+      "type": "image",
+      "asset": "Popup/Messenger/Messenger_BlockName.png",
+      "position": [
+        50,
+        100
+      ],
+      "visible": false,
+      "enabled": true
+    },
+    {
+      "id": "tab_friend",
+      "type": "button",
+      "asset": "Popup/Messenger/Messenger_Tab_Friend_",
+      "position": [
+        50,
+        50
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_messenger_tab_friend"
+    },
+    {
+      "id": "tab_note",
+      "type": "button",
+      "asset": "Popup/Messenger/Messenger_Tab_Note_",
+      "position": [
+        150,
+        50
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_messenger_tab_note"
+    },
+    {
+      "id": "tab_block",
+      "type": "button",
+      "asset": "Popup/Messenger/Messenger_Tab_block_",
+      "position": [
+        250,
+        50
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_messenger_tab_block"
+    },
+    {
+      "id": "tab_invite",
+      "type": "button",
+      "asset": "Popup/Messenger/Messenger_Tab_inviteFriend_",
+      "position": [
+        350,
+        50
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_messenger_tab_invite"
+    },
+    {
+      "id": "friend_list",
+      "type": "list",
+      "position": [
+        50,
+        100
+      ],
+      "size": [
+        500,
+        350
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "itemHeight": 40,
+        "scrollbar": true
+      }
+    }
+  ]
+}

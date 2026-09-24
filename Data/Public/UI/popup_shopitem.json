@@ -1,0 +1,102 @@
+{
+  "version": "1.0",
+  "type": "popup",
+  "name": "ShopItem",
+  "resolution": [
+    600,
+    500
+  ],
+  "modal": true,
+  "elements": [
+    {
+      "id": "bg_shopitem",
+      "type": "image",
+      "asset": "Popup/ShopItem/Shop_Popup_Back.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_present_list",
+      "type": "image",
+      "asset": "Popup/ShopItem/UI_Shop_itembox_present_list_00.png",
+      "position": [
+        50,
+        50
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_subdownbox_0",
+      "type": "image",
+      "asset": "Popup/ShopItem/UI_charinfo_subdownbox_00.png",
+      "position": [
+        50,
+        350
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_subdownbox_1",
+      "type": "image",
+      "asset": "Popup/ShopItem/UI_charinfo_subdownbox_01.png",
+      "position": [
+        150,
+        350
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_buy_peri",
+      "type": "image",
+      "asset": "Popup/ShopItem/UI_Shop_iteminfo_buy_Peri.png",
+      "position": [
+        250,
+        400
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_buy_cash",
+      "type": "image",
+      "asset": "Popup/ShopItem/UI_Shop_iteminfo_buy_Cash.png",
+      "position": [
+        350,
+        400
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "btn_buy",
+      "type": "button",
+      "asset": "Buttons/Common_Buy_",
+      "position": [
+        250,
+        450
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_buy_item"
+    },
+    {
+      "id": "btn_cancel",
+      "type": "button",
+      "asset": "Popup/ShopItem/UI_Shop_iteminfo_cancel_",
+      "position": [
+        350,
+        450
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_cancel"
+    }
+  ]
+}

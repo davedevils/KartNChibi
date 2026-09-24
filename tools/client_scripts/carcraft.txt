@@ -1,0 +1,67 @@
+# gate: live
+# gate: account hltest2
+# gate: args --stop-at lobby
+# gate: needs gold
+# the car factory installs a tire and a cover on the preset then saves with 0x010B
+# run on hltest2 a one day car craft part costs 1000 gold the stage opens with 0x010A
+# the save needs a kart and a tire on the preset else the stock shows MSG UNSUPPORT
+# so the chassis tab installs the owned kart first then the tire then the cover
+# our server writes the two part slots and still answers a MSG UNSUPPORT box the last click closes it
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 120
+click 255 20
+waitfor lobby 400
+wait 30
+click 128 746
+waitfor shop 250
+wait 50
+click 900 112
+wait 20
+click 505 147
+wait 30
+shot carcraft_shop_tire
+click 540 385
+waitfor shopitem 100
+wait 20
+click 436 551
+wait 120
+click 564 147
+wait 30
+click 540 385
+waitfor shopitem 100
+wait 20
+click 436 551
+wait 120
+shot carcraft_bought
+click 546 746
+waitfor carcraft 300
+wait 60
+shot carcraft_open
+click 95 270
+wait 20
+click 120 460
+wait 20
+click 158 687
+wait 40
+shot carcraft_chassis_on
+click 250 270
+wait 20
+click 120 460
+wait 20
+click 158 687
+wait 60
+shot carcraft_tire_on
+click 172 270
+wait 20
+click 120 460
+wait 20
+click 158 687
+wait 60
+shot carcraft_cover_on
+click 902 682
+wait 150
+shot carcraft_saved
+click 500 420
+wait 40
+expect carcraft
+quit

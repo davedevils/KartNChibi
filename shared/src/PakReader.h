@@ -1,14 +1,4 @@
-/**
- * NKZIP PAK File Reader v3
- * Properly parses the file table at the start of PAK
- * 
- * Format discovered:
- * - 0x00: "NKZIP\0\0\0" magic
- * - 0x10: Version "1"
- * - 0x20+: File entries, each ~420 bytes:
- *   - [8 bytes header][4 bytes size][path ~400 bytes null-terminated + padding]
- *   - Followed by file data
- */
+/// NKZIP PAK file reader v3 header at 0x00 version at 0x10 entries from 0x20
 #pragma once
 
 #include <string>
@@ -21,10 +11,10 @@
 namespace KnC {
 
 struct PakEntry {
-    std::string path;      // Full path like "./Data/Car/..."
-    std::string filename;  // Just filename
+    std::string path;      // full path such as Data Car directory
+    std::string filename;
     std::string extension;
-    uint32_t offset;       // Offset of file data in PAK
+    uint32_t offset;       // offset of file data in the pak
     uint32_t size;
     int pakIndex;
 };
@@ -140,7 +130,7 @@ public:
     const std::vector<PakEntry>& GetEntries() const { return m_entries; }
     const std::string& GetGameDir() const { return m_gameDir; }
     
-    // List all files in a path prefix (like a directory)
+    // lists all files under a path prefix like a directory
     std::vector<std::string> ListFilesInPath(const std::string& pathPrefix) {
         std::vector<std::string> result;
         std::string prefix = NormalizePath(pathPrefix);
@@ -149,9 +139,8 @@ public:
         for (const auto& entry : m_entries) {
             std::string entryPath = NormalizePath(entry.path);
             if (entryPath.find(prefix) == 0) {
-                // Get relative path after prefix
                 std::string relPath = entryPath.substr(prefix.length());
-                // Only include direct children (no subdirs)
+                // only includes direct children not subdirectories
                 if (relPath.find('/') == std::string::npos) {
                     result.push_back(entry.path);
                 }
@@ -160,7 +149,6 @@ public:
         return result;
     }
     
-    // List all unique subdirectories in a path
     std::vector<std::string> ListSubdirs(const std::string& pathPrefix) {
         std::set<std::string> subdirs;
         std::string prefix = NormalizePath(pathPrefix);
@@ -191,7 +179,7 @@ private:
         std::string p = path;
         std::transform(p.begin(), p.end(), p.begin(), ::tolower);
         for (char& c : p) if (c == '\\') c = '/';
-        // Remove leading "./"
+        // removes a leading current directory prefix
         if (p.size() > 2 && p[0] == '.' && p[1] == '/') {
             p = p.substr(2);
         }
@@ -222,8 +210,7 @@ private:
         fseek(f, 0, SEEK_END);
         long fileSize = ftell(f);
         fseek(f, 0, SEEK_SET);
-        
-        // Check magic
+
         char magic[8];
         fread(magic, 1, 8, f);
         if (strncmp(magic, "NKZIP", 5) != 0) {
@@ -261,14 +248,9 @@ private:
         FILE* f = m_pakFiles[pakIndex].file;
         long fileSize = m_pakFiles[pakIndex].fileSize;
         
-        // NKZIP format:
-        // - Header: 32 bytes (0x00-0x1F)
-        // - Entry: 12 bytes header + 260 bytes path area + data
-        // - Entry header: [4 bytes flags][4 bytes ?][4 bytes size]
-        // - Path: starts at header+12, null-terminated, padded to 260 bytes
-        // - Data: starts at path_start + 260
+        // NKZIP header is 32 bytes then per entry a 12 byte header a 260 byte path and data
         
-        const size_t CHUNK = 8 * 1024 * 1024;  // 8MB
+        const size_t CHUNK = 8 * 1024 * 1024;
         std::vector<uint8_t> buffer(CHUNK);
         
         int fileCount = 0;
@@ -279,18 +261,17 @@ private:
             size_t bytesRead = fread(buffer.data(), 1, CHUNK, f);
             if (bytesRead < 300) break;
             
-            // Scan for "./" path patterns
+            // scans for a relative path marker
             for (size_t i = 12; i < bytesRead - 300; i++) {
                 if (buffer[i] == '.' && buffer[i+1] == '/') {
-                    // Check if followed by valid path char (A-Z or a-z)
+                    // next char must be a letter A to Z or a to z
                     char c = buffer[i+2];
                     if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))) continue;
                     
-                    // Find end of path (null terminator)
+                    // finds the end of path at the null terminator
                     size_t end = i + 2;
                     while (end < bytesRead && buffer[end] != 0 && end - i < 256) {
                         char ch = buffer[end];
-                        // Valid path characters
                         if (!((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
                               (ch >= '0' && ch <= '9') || ch == '/' || ch == '\\' ||
                               ch == '_' || ch == '-' || ch == '.' || ch == ' ' || 
@@ -302,38 +283,35 @@ private:
                     
                     size_t pathLen = end - i;
                     if (pathLen < 5 || pathLen > 250) continue;
-                    
+
                     std::string path((char*)&buffer[i], pathLen);
-                    
-                    // Must have a file extension
+
                     size_t dot = path.rfind('.');
                     if (dot == std::string::npos || dot < path.size() - 6) continue;
                     
                     std::string ext = path.substr(dot);
                     std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
                     
-                    // Known extensions
-                    bool validExt = (ext == ".nif" || ext == ".dds" || ext == ".png" || 
+                    bool validExt = (ext == ".nif" || ext == ".dds" || ext == ".png" ||
                                     ext == ".jpg" || ext == ".jpeg" || ext == ".bmp" ||
                                     ext == ".wav" || ext == ".ogg" || ext == ".mp3" ||
                                     ext == ".xml" || ext == ".txt" || ext == ".ini" ||
                                     ext == ".car" || ext == ".kf" || ext == ".kfm" ||
                                     ext == ".tga" || ext == ".lua" || ext == ".csv" ||
-                                    ext == ".ifl" || ext == ".col");  // IFL = animated textures, COL = collision
+                                    ext == ".ifl" || ext == ".col");  // IFL is animated textures COL is collision
                     
                     if (!validExt) continue;
                     
-                    // Get size from entry header (4 bytes before path)
+                    // gets size from the entry header 4 bytes before the path
                     uint32_t fileSize = 0;
                     if (i >= 4) {
                         fileSize = *(uint32_t*)&buffer[i - 4];
-                        // Sanity check
                         if (fileSize > 50 * 1024 * 1024) fileSize = 0;
                     }
+
+                    if (fileSize == 0) continue;
                     
-                    if (fileSize == 0) continue;  // Skip invalid entries
-                    
-                    // Data offset = path_start + 260 (fixed path area size)
+                    // data offset is path start plus 260 the fixed path area size
                     long dataOffset = pos + i + 260;
                     
                     AddEntry(path, (uint32_t)dataOffset, fileSize, pakIndex);
@@ -341,7 +319,7 @@ private:
                     fileCount++;
                     extCounts[ext]++;
                     
-                    // Skip past this entry (path area + data)
+                    // skips past this entry the path area plus data
                     i += 260 + fileSize;
                     if (i >= bytesRead) break;
                 }
@@ -370,8 +348,7 @@ private:
         std::string lowerPath = NormalizePath(path);
         std::string lowerName = entry.filename;
         std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
-        
-        // Avoid duplicates
+
         if (m_pathIndex.find(lowerPath) != m_pathIndex.end()) return;
         
         size_t idx = m_entries.size();

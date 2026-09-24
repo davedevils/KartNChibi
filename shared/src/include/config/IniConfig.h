@@ -1,7 +1,3 @@
-/**
- * @file IniConfig.h
- * @brief Simple INI file parser
- */
 
 #pragma once
 #include <string>
@@ -19,15 +15,12 @@ public:
         
         std::string line, currentSection;
         while (std::getline(file, line)) {
-            // Trim whitespace
             size_t start = line.find_first_not_of(" \t\r\n");
             if (start == std::string::npos) continue;
             line = line.substr(start);
             
-            // Skip comments
             if (line[0] == ';' || line[0] == '#') continue;
-            
-            // Section header
+
             if (line[0] == '[') {
                 size_t end = line.find(']');
                 if (end != std::string::npos) {
@@ -36,13 +29,11 @@ public:
                 continue;
             }
             
-            // Key=Value
             size_t eq = line.find('=');
             if (eq != std::string::npos) {
                 std::string key = line.substr(0, eq);
                 std::string value = line.substr(eq + 1);
-                
-                // Trim key and value
+
                 while (!key.empty() && (key.back() == ' ' || key.back() == '\t')) key.pop_back();
                 while (!value.empty() && (value[0] == ' ' || value[0] == '\t')) value = value.substr(1);
                 while (!value.empty() && (value.back() == '\r' || value.back() == '\n')) value.pop_back();
@@ -80,5 +71,5 @@ private:
     std::map<std::string, std::string> m_data;
 };
 
-} // namespace knc
+}
 

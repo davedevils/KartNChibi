@@ -1,0 +1,17 @@
+# gate: live
+# gate: args --stop-at lobby
+# the Channel button of the top bar from the lobby
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 120
+click 255 20
+waitfor lobby 400
+wait 30
+click 90 20
+waitfor channel 250
+expect channel
+shot channel_back
+wait 10
+click 720 214
+waitfor lobby 400
+expect lobby
+quit

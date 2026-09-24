@@ -1,0 +1,14 @@
+# gate: live
+# gate: args --stop-at licence
+# gate: needs fresh
+# the licence menu then the first tile of the rookie tier opens the picked state on a fresh account
+# run on uitest4 which lands on the licence stage at login the kart preview is the first of the process
+# the car goes in with its paint so the first drawn frame swaps no body see UI PARITY
+waitfor licence 500
+wait 20
+shot licence_pick_menu
+click 372 317
+wait 60
+shot licence_pick_state
+expect licence
+quit

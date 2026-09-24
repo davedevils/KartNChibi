@@ -1,10 +1,4 @@
-/**
- * @file Result.h
- * @brief Result<T, E> type for error handling
- * 
- * Rust-inspired Result type for explicit error handling.
- * Prefer this over exceptions for expected errors.
- */
+/// Result of T E type for explicit error handling prefer this over exceptions for expected errors
 
 #pragma once
 
@@ -13,31 +7,10 @@
 
 namespace KnC {
 
-/**
- * @brief Result type that can hold either a value (Ok) or an error (Err)
- * 
- * @tparam T Value type
- * @tparam E Error type
- * 
- * @example
- * Result<int, std::string> divide(int a, int b) {
- *     if (b == 0) {
- *         return Err<std::string>("Division by zero");
- *     }
- *     return Ok(a / b);
- * }
- * 
- * auto result = divide(10, 2);
- * if (result.IsOk()) {
- *     printf("Result: %d\n", result.Unwrap());
- * } else {
- *     printf("Error: %s\n", result.UnwrapErr().c_str());
- * }
- */
+/// result type that holds either a value or an error
 template<typename T, typename E>
 class Result {
 public:
-    // Constructors
     Result(const Result&) = default;
     Result(Result&&) noexcept = default;
     Result& operator=(const Result&) = default;
@@ -47,19 +20,13 @@ public:
         Destroy();
     }
     
-    /**
-     * @brief Check if Result contains a value (Ok)
-     */
+    /// check if Result contains a value
     bool IsOk() const { return m_hasValue; }
     
-    /**
-     * @brief Check if Result contains an error (Err)
-     */
+    /// check if Result contains an error
     bool IsErr() const { return !m_hasValue; }
     
-    /**
-     * @brief Get the value (panics if Err)
-     */
+    /// get the value panics if Err
     T& Unwrap() {
         if (!m_hasValue) {
             throw std::runtime_error("Called Unwrap() on Err");
@@ -74,9 +41,7 @@ public:
         return m_value;
     }
     
-    /**
-     * @brief Get the error (panics if Ok)
-     */
+    /// get the error panics if Ok
     E& UnwrapErr() {
         if (m_hasValue) {
             throw std::runtime_error("Called UnwrapErr() on Ok");
@@ -91,16 +56,12 @@ public:
         return m_error;
     }
     
-    /**
-     * @brief Get value or default
-     */
+    /// get value or default
     T UnwrapOr(T defaultValue) const {
         return m_hasValue ? m_value : defaultValue;
     }
     
-    /**
-     * @brief Get reference to value or nullptr
-     */
+    /// get reference to value or nullptr
     T* Ok() {
         return m_hasValue ? &m_value : nullptr;
     }
@@ -109,9 +70,7 @@ public:
         return m_hasValue ? &m_value : nullptr;
     }
     
-    /**
-     * @brief Get reference to error or nullptr
-     */
+    /// get reference to error or nullptr
     E* Err() {
         return !m_hasValue ? &m_error : nullptr;
     }
@@ -121,7 +80,7 @@ public:
     }
 
 private:
-    // Only constructible through Ok() and Err() helpers
+    // only constructible through the Ok and Err helpers
     template<typename, typename>
     friend class Result;
     
@@ -154,23 +113,13 @@ private:
     bool m_hasValue;
 };
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-/**
- * @brief Create an Ok result
- * Usage: Ok<int, std::string>(42)
- */
+/// create an Ok result
 template<typename T, typename E>
 Result<T, E> Ok(T value) {
     return Result<T, E>(std::move(value), true);
 }
 
-/**
- * @brief Create an Err result
- * Usage: Err<std::string, int>("error")
- */
+/// create an Err result
 template<typename E, typename T>
 Result<T, E> Err(E error) {
     return Result<T, E>(std::move(error));

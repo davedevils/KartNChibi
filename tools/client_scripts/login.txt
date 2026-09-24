@@ -1,0 +1,14 @@
+# gate: live
+# gate: args --stop-at login
+# the login screen wears Login02 the wallpaper with the login box of sub 427190
+# run with --stop-at login so the auto walk holds on it then the OK button logs in
+waitfor login 400
+wait 12
+expect login
+shot login_box
+wait 3
+click 456 417
+waitfor channel 600
+expect channel
+shot login_channel
+quit

@@ -1,7 +1,4 @@
-/**
- * @file LobbyHandler.h
- * @brief Handles lobby packets (room list, create room, join room, player list, whisper)
- */
+/// handles lobby packets quick match player profile friends and block list
 
 #pragma once
 #include "net/Session.h"
@@ -37,24 +34,19 @@ struct LobbyRoomInfo {
 
 class LobbyHandler {
 public:
-    // Room management
     static void handleRoomListRequest(Session::Ptr session, GameServer* server);
-    static void handleCreateRoom(Session::Ptr session, Packet& packet, GameServer* server);
-    static void handleJoinRoom(Session::Ptr session, Packet& packet, GameServer* server);
+    // C2S 0x64 from the lobby one int32 mode seats the player through GameServer quickMatch
     static void handleQuickMatch(Session::Ptr session, Packet& packet, GameServer* server);
-    
-    // Player list
+
     static void handlePlayerListRequest(Session::Ptr session, GameServer* server);
     static void handlePlayerProfile(Session::Ptr session, Packet& packet, GameServer* server);
-    
-    // Chat & Whisper
+
     static void handleLobbyChat(Session::Ptr session, Packet& packet, GameServer* server);
     static void handleWhisper(Session::Ptr session, Packet& packet, GameServer* server);
     static void handleAddFriend(Session::Ptr session, Packet& packet, GameServer* server);
     static void handleRemoveFriend(Session::Ptr session, Packet& packet, GameServer* server);
     static void handleBlockPlayer(Session::Ptr session, Packet& packet, GameServer* server);
-    
-    // Helpers
+
     static void sendRoomList(Session::Ptr session, GameServer* server);
     static void sendPlayerList(Session::Ptr session, GameServer* server);
     static void sendPlayerProfile(Session::Ptr session, int32_t playerId);

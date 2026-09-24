@@ -1,7 +1,3 @@
-/**
- * Simple JSON Parser for UI Editor
- * Lightweight JSON parsing without external dependencies
- */
 
 #pragma once
 
@@ -29,14 +25,12 @@ public:
     double AsDouble() const { return numValue; }
     const std::string& AsString() const { return strValue; }
     
-    // Array access
     size_t ArraySize() const { return arrayValue.size(); }
     const Value& operator[](size_t index) const {
         static Value null_value;
         return (index < arrayValue.size()) ? arrayValue[index] : null_value;
     }
     
-    // Object access
     bool HasKey(const std::string& key) const {
         return objectValue.find(key) != objectValue.end();
     }
@@ -47,7 +41,6 @@ public:
         return (it != objectValue.end()) ? it->second : null_value;
     }
     
-    // For building JSON
     void SetBool(bool b) { type = BOOL; boolValue = b; }
     void SetNumber(double n) { type = NUMBER; numValue = n; }
     void SetString(const std::string& s) { type = STRING; strValue = s; }
@@ -69,7 +62,6 @@ private:
     std::map<std::string, Value> objectValue;
 };
 
-// Simple JSON parser (subset - enough for UI files)
 class Parser {
 public:
     static Value Parse(const std::string& json) {
@@ -123,51 +115,47 @@ private:
     
     Value ParseObject() {
         Value obj;
-        Get(); // consume '{'
-        
+        Get();
+
         while (Peek() != '}' && Peek() != '\0') {
-            // Parse key
             if (Peek() != '"') break;
             Value keyVal = ParseString();
             std::string key = keyVal.AsString();
-            
-            // Parse ':'
+
             if (Get() != ':') break;
-            
-            // Parse value
+
             Value value = ParseValue();
             obj.SetObjectKey(key, value);
-            
-            // Check for comma
+
             if (Peek() == ',') Get();
         }
-        
-        Get(); // consume '}'
+
+        Get();
         return obj;
     }
     
     Value ParseArray() {
         Value arr;
-        Get(); // consume '['
-        
+        Get();
+
         while (Peek() != ']' && Peek() != '\0') {
             Value element = ParseValue();
             arr.AddArrayElement(element);
-            
+
             if (Peek() == ',') Get();
         }
-        
-        Get(); // consume ']'
+
+        Get();
         return arr;
     }
     
     Value ParseString() {
-        Get(); // consume '"'
+        Get();
         std::string str;
-        
+
         while (pos < json.size() && json[pos] != '"') {
             if (json[pos] == '\\' && pos + 1 < json.size()) {
-                pos++; // skip escape char
+                pos++;
                 char c = json[pos++];
                 if (c == 'n') str += '\n';
                 else if (c == 't') str += '\t';
@@ -177,8 +165,8 @@ private:
                 str += json[pos++];
             }
         }
-        
-        Get(); // consume '"'
+
+        Get();
         return Value(str);
     }
     
@@ -220,5 +208,5 @@ private:
     size_t pos;
 };
 
-} // namespace SimpleJSON
+}
 

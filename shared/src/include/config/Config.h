@@ -1,7 +1,4 @@
-/**
- * @file Config.h
- * @brief JSON configuration loader with defaults
- */
+/// JSON configuration loader with defaults
 
 #pragma once
 #include <nlohmann/json.hpp>
@@ -66,5 +63,5 @@ private:
     }
 };
 
-} // namespace knc
+}
 

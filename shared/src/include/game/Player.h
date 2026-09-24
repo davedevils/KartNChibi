@@ -1,7 +1,3 @@
-/**
- * @file Player.h
- * @brief Player/Character data structures
- */
 
 #pragma once
 #include "net/Protocol.h"
@@ -34,34 +30,27 @@ public:
     Player() = default;
     Player(uint32_t id, const std::string& name);
     
-    // Identifiers
     uint32_t id() const { return m_id; }
     uint32_t accountId() const { return m_accountId; }
     const std::string& name() const { return m_name; }
-    
-    // Stats
+
     PlayerStats& stats() { return m_stats; }
     const PlayerStats& stats() const { return m_stats; }
-    
-    // Currency
+
     PlayerCurrency& currency() { return m_currency; }
     const PlayerCurrency& currency() const { return m_currency; }
-    
-    // Equipment
+
     EquippedItems& equipped() { return m_equipped; }
     const EquippedItems& equipped() const { return m_equipped; }
-    
-    // Inventory
+
     std::vector<VehicleData>& vehicles() { return m_vehicles; }
     std::vector<ItemData>& items() { return m_items; }
     std::vector<AccessoryData>& accessories() { return m_accessories; }
-    
-    // State
+
     enum class State { Offline, Menu, Garage, Shop, Lobby, Room, Loading, Racing, Results };
     State state() const { return m_state; }
     void setState(State s) { m_state = s; }
-    
-    // Room
+
     int32_t roomId() const { return m_roomId; }
     void setRoomId(int32_t id) { m_roomId = id; }
     uint8_t slot() const { return m_slot; }
@@ -71,7 +60,6 @@ public:
     bool isReady() const { return m_ready; }
     void setReady(bool r) { m_ready = r; }
     
-    // Serialization for network
     void serializeToPacket(class Packet& pkt) const;
     void deserializeFromPacket(class Packet& pkt);
 
@@ -95,5 +83,5 @@ private:
     bool m_ready = false;
 };
 
-} // namespace knc
+}
 

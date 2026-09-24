@@ -1,0 +1,114 @@
+{
+  "version": "1.0",
+  "state": 23,
+  "name": "GhostModeMenu",
+  "description": "Ghost mode menu",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "image_0",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "GhostMode/Ghost_Back.png"
+    },
+    {
+      "id": "image_1",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "GhostMode/Ghost_Top.png"
+    },
+    {
+      "id": "image_2",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "GhostMode/theme_select.png"
+    },
+    {
+      "id": "image_3",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "GhostMode/locked.png"
+    },
+    {
+      "id": "button_4",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "GhostMode/Common_Top_Left_",
+      "position": [
+        68,
+        120
+      ],
+      "index": 0
+    },
+    {
+      "id": "button_5",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "GhostMode/Common_Top_Right_",
+      "position": [
+        910,
+        120
+      ],
+      "index": 1
+    },
+    {
+      "id": "button_6",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "GhostMode/Common_Bottom_Left_",
+      "position": [
+        143,
+        289
+      ],
+      "index": 2
+    },
+    {
+      "id": "button_7",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "GhostMode/Common_Bottom_Right_",
+      "position": [
+        540,
+        289
+      ],
+      "index": 3
+    },
+    {
+      "id": "button_8",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "GhostMode/Common_Start_",
+      "position": [
+        808,
+        619
+      ],
+      "index": 4
+    },
+    {
+      "id": "image_9",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Mission/Mission_1024_768_blue.PNG"
+    },
+    {
+      "id": "image_10",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Mission/Mission_1024_768_red.PNG"
+    }
+  ]
+}

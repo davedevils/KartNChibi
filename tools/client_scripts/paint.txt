@@ -1,0 +1,43 @@
+# gate: live
+# gate: args --stop-at lobby
+# gate: needs gold
+# the paint applied on the 3D body the shop Car tab Paint sub tab sells it the garage equips it
+# run on hltest or hltest2 a one day paint costs 500 gold the equip is 0x00B9 category 3 with the key
+# the ack and the 0x00BC set write the owned kart skin slot 0 and the preview body swaps at once
+# the row is taken off with Backspace first so a rerun always ends on the installed paint
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 120
+click 255 20
+waitfor lobby 400
+wait 30
+click 128 746
+waitfor shop 250
+wait 50
+click 586 112
+wait 20
+click 774 147
+wait 30
+shot paint_shop_tab
+click 540 385
+waitfor shopitem 100
+wait 20
+click 436 551
+wait 120
+shot paint_bought
+click 430 746
+waitfor garage 250
+wait 60
+click 628 110
+wait 20
+click 774 147
+wait 30
+shot paint_garage_tab
+click 486 229
+wait 20
+key backspace
+wait 60
+key enter
+wait 120
+shot paint_on_body
+expect garage
+quit

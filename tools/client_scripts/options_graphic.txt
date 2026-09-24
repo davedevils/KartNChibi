@@ -1,0 +1,49 @@
+# gate: live
+# gate: args --stop-at lobby
+# the Graphic tab of Game Setting the window check the wide arrow the quality arrows the invite and blur checks
+# OK writes Option2 ini the window takes 1440 by 900 at once on a stretched canvas
+# Default then the two checks again and OK put the stock rows back and the window 1024 by 768
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 60
+click 255 20
+waitfor lobby 400
+wait 25
+click 942 748
+wait 3
+click 460 338
+wait 3
+expect gameoption
+shot options_graphic_before
+click 398 268
+wait 2
+click 605 376
+wait 2
+click 396 449
+wait 2
+click 396 449
+wait 2
+click 398 291
+wait 2
+click 398 314
+wait 2
+shot options_graphic_set
+click 454 580
+wait 25
+expect lobby
+shot options_graphic_wide
+click 942 748
+wait 3
+click 460 338
+wait 3
+expect gameoption
+click 424 533
+wait 2
+click 398 291
+wait 2
+click 398 314
+wait 2
+click 454 580
+wait 25
+expect lobby
+shot options_graphic_back
+quit

@@ -1,0 +1,8 @@
+# gate: state mission
+# gate: args --auto-mission 1 --race-seconds 300
+# the sample server row 1 of kind 1 wants 5 boxes the lap over the goal wins the run
+waitfor mission 900
+expect mission
+waitfor missions 7500
+expect missions
+quit

@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "state": 15,
+  "name": "GhostMode",
+  "description": "Ghost mode gameplay",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "input_0",
+      "type": "input",
+      "visible": true,
+      "enabled": true,
+      "position": [
+        450,
+        310
+      ],
+      "size": [
+        184,
+        20
+      ]
+    },
+    {
+      "id": "input_1",
+      "type": "input",
+      "visible": true,
+      "enabled": true,
+      "position": [
+        450,
+        339
+      ],
+      "size": [
+        184,
+        20
+      ]
+    }
+  ]
+}

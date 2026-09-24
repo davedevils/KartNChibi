@@ -1,0 +1,385 @@
+{
+  "version": "1.0",
+  "state": 13,
+  "name": "Shop",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "image_0",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Shop_Back.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_1",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Shop_Top.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_2",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/UI_Shop_itembox_hot.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_3",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/UI_Shop_itembox_new.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "button_6",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Shop_Category_Char_",
+      "position": [
+        439,
+        96
+      ]
+    },
+    {
+      "id": "button_7",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Shop_Category_Car_",
+      "position": [
+        538,
+        96
+      ]
+    },
+    {
+      "id": "button_8",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Shop_Category_Item_",
+      "position": [
+        637,
+        96
+      ]
+    },
+    {
+      "id": "button_9",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Shop_Category_RoomCraft_",
+      "position": [
+        736,
+        96
+      ]
+    },
+    {
+      "id": "button_10",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Shop_Category_CarCraft_",
+      "position": [
+        835,
+        96
+      ]
+    },
+    {
+      "id": "button_11",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Char_Tab_Char_",
+      "position": [
+        415,
+        134
+      ]
+    },
+    {
+      "id": "button_12",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Char_Tab_Head_",
+      "position": [
+        506,
+        134
+      ]
+    },
+    {
+      "id": "button_13",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Char_Tab_Cloth_",
+      "position": [
+        597,
+        134
+      ]
+    },
+    {
+      "id": "button_14",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Char_Tab_Face_",
+      "position": [
+        688,
+        134
+      ]
+    },
+    {
+      "id": "button_15",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Char_Tab_Back_",
+      "position": [
+        779,
+        134
+      ]
+    },
+    {
+      "id": "button_16",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Char_Tab_Pet_",
+      "position": [
+        870,
+        134
+      ]
+    },
+    {
+      "id": "button_17",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Car_Tab_Car_",
+      "position": [
+        461,
+        134
+      ]
+    },
+    {
+      "id": "button_18",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Car_Tab_Antenna_",
+      "position": [
+        552,
+        134
+      ]
+    },
+    {
+      "id": "button_19",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Car_Tab_Number_",
+      "position": [
+        643,
+        134
+      ]
+    },
+    {
+      "id": "button_20",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Car_Tab_Paint_",
+      "position": [
+        734,
+        134
+      ]
+    },
+    {
+      "id": "button_21",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Item_Tab_All_",
+      "position": [
+        461,
+        134
+      ]
+    },
+    {
+      "id": "button_22",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Shop_RoomCraft_Tab_Sky_",
+      "position": [
+        415,
+        134
+      ]
+    },
+    {
+      "id": "button_23",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Shop_RoomCraft_Tab_Terrain_",
+      "position": [
+        506,
+        134
+      ]
+    },
+    {
+      "id": "button_24",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Shop_RoomCraft_Tab_Back_",
+      "position": [
+        597,
+        134
+      ]
+    },
+    {
+      "id": "button_25",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Shop_RoomCraft_Tab_Obj_",
+      "position": [
+        688,
+        134
+      ]
+    },
+    {
+      "id": "button_26",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Shop_RoomCraft_Tab_Eff_",
+      "position": [
+        779,
+        134
+      ]
+    },
+    {
+      "id": "button_27",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Shop_CarCraft_Tab_Chassis_",
+      "position": [
+        418,
+        134
+      ]
+    },
+    {
+      "id": "button_28",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Shop_CarCraft_Tab_Tire_",
+      "position": [
+        477,
+        134
+      ]
+    },
+    {
+      "id": "button_29",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Shop_CarCraft_Tab_Cover_",
+      "position": [
+        536,
+        134
+      ]
+    },
+    {
+      "id": "button_30",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Shop_CarCraft_Tab_Booster_",
+      "position": [
+        595,
+        134
+      ]
+    },
+    {
+      "id": "button_31",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Shop_CarCraft_Tab_Front_",
+      "position": [
+        654,
+        134
+      ]
+    },
+    {
+      "id": "button_32",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Shop_CarCraft_Tab_Rear_",
+      "position": [
+        713,
+        134
+      ]
+    },
+    {
+      "id": "button_33",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Shop_CarCraft_Tab_Bumper_",
+      "position": [
+        772,
+        134
+      ]
+    },
+    {
+      "id": "button_34",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Shop_CarCraft_Tab_Wing_",
+      "position": [
+        831,
+        134
+      ]
+    },
+    {
+      "id": "image_35",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/UI_Shop_itembox_buy.png",
+      "position": [
+        0,
+        0
+      ]
+    }
+  ]
+}

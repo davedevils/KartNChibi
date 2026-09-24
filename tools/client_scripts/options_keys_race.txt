@@ -1,0 +1,29 @@
+# gate: live
+# gate: args --auto-race 90 --wait 20
+# the Control Setting of the room Menu box binds the back row to B and OK writes Input ini
+# the race reads the row a held B turns the eye to the rear as camera update 0x43F040
+# the ini keeps B until options default txt runs Default and OK on both panels
+waitfor room 900
+wait 20
+key escape
+wait 5
+expect escmenu
+click 460 374
+wait 5
+expect controloption
+click 540 420
+wait 3
+key b
+wait 3
+shot options_keys_back_b
+click 435 550
+wait 5
+expect room
+waitfor race 900
+wait 450
+shot options_keys_front
+hold b 40
+wait 10
+shot options_keys_back
+wait 40
+quit

@@ -1,0 +1,15 @@
+# gate: live
+# gate: args --stop-at licence
+# gate: env KNC_AUTO_LICENCE=2
+# gate: needs fresh
+# the third rookie test brings the 0x00A4 grade so the top bar Mission button opens the menu with no relogin
+waitfor licence 400
+waitfor licencerun 500
+expect licencerun
+waitfor licence 4000
+expect licence
+wait 25
+click 730 20
+waitfor missions 100
+expect missions
+quit

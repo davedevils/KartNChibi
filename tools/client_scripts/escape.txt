@@ -1,0 +1,24 @@
+# gate: live
+# gate: args --stop-at lobby
+# the Escape key in the lobby the Menu box its End item and the confirm box
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 120
+click 255 20
+waitfor lobby 400
+wait 30
+key escape
+wait 3
+expect escmenu
+click 460 410
+wait 3
+expect confirm
+shot escconfirm
+click 561 419
+wait 3
+expect lobby
+key escape
+wait 3
+key escape
+wait 3
+expect lobby
+quit

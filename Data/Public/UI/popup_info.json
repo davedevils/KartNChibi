@@ -1,0 +1,51 @@
+{
+  "version": "1.0",
+  "type": "popup",
+  "name": "UserInfo",
+  "resolution": [
+    500,
+    400
+  ],
+  "modal": true,
+  "elements": [
+    {
+      "id": "bg_userinfo",
+      "type": "image",
+      "asset": "Popup/Info/UserInfo_Back.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_info_bar",
+      "type": "image",
+      "asset": "Popup/Info/Common_Info_Bar.png",
+      "position": [
+        50,
+        50
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "user_stats",
+      "type": "panel",
+      "position": [
+        50,
+        100
+      ],
+      "size": [
+        400,
+        250
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "dynamicContent": true
+      }
+    }
+  ]
+}

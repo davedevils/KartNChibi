@@ -1,0 +1,14 @@
+# gate: live
+# gate: args --auto-race 90 --wait 20
+# the race the item boxes stand on the track a pickup fills the slot Ctrl uses it
+# run with --auto-race 90 --wait 20 the line follower drives through the boxes by itself
+waitfor race 900
+expect race
+wait 175
+shot race_items_countdown
+wait 200
+shot race_items_slot
+key ctrl
+wait 25
+shot race_items_used
+quit

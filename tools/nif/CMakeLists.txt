@@ -1,0 +1,10 @@
+# Command line checks of the NIF and KFM readers against a client tree
+add_executable(nif_smoke nif_smoke.cpp nif_effect_census.cpp)
+add_executable(nif_rewrite nif_rewrite.cpp)
+add_executable(nif_export nif_export.cpp)
+add_executable(nif_animate nif_animate.cpp)
+add_executable(kfm_smoke kfm_smoke.cpp)
+foreach(tool nif_smoke nif_rewrite nif_export nif_animate kfm_smoke)
+    target_link_libraries(${tool} PRIVATE KnCFormats)
+    set_target_properties(${tool} PROPERTIES FOLDER "tools/nif")
+endforeach()

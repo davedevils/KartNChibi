@@ -1,7 +1,3 @@
-/**
- * @file Player.cpp
- * @brief Player implementation
- */
 
 #include "game/Player.h"
 #include "net/Packet.h"
@@ -35,5 +31,5 @@ void Player::deserializeFromPacket(Packet& pkt) {
     m_currency.cash = pkt.readUInt32();
 }
 
-} // namespace knc
+}
 

@@ -1,0 +1,46 @@
+# gate: live
+# gate: args --stop-at lobby
+# the gear of the bottom bar then the four items of the Menu box
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 120
+click 255 20
+waitfor lobby 400
+wait 30
+click 942 748
+wait 3
+expect escmenu
+shot escmenu
+click 460 302
+wait 3
+expect help
+shot help
+key escape
+wait 3
+expect lobby
+click 942 748
+wait 3
+click 460 338
+wait 3
+expect gameoption
+shot gameoption
+click 527 221
+wait 3
+shot gameoption_sound
+click 549 580
+wait 3
+expect lobby
+click 942 748
+wait 3
+click 460 374
+wait 3
+expect controloption
+shot controloption
+click 540 260
+wait 3
+shot controloption_edit
+key escape
+wait 3
+click 532 550
+wait 3
+expect lobby
+quit

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # MariaDB Database
   mariadb:
@@ -8,9 +6,9 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-knc_root_2025}
-      MYSQL_DATABASE: ${DB_NAME:-knc_game}
-      MYSQL_USER: ${DB_USER:-knc_user}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-knc_password_2025}
+      MYSQL_DATABASE: ${DB_NAME:-knc_emu}
+      MYSQL_USER: ${DB_USER:-knc}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-knc_password}
     volumes:
       - mariadb_data:/var/lib/mysql
       - ./server/scripts:/docker-entrypoint-initdb.d:ro
@@ -26,75 +24,91 @@ services:
 
   # Login Server
   login-server:
+    image: knc-server:dev
     build:
-      context: ./server
-      dockerfile: Dockerfile
-      target: login-server
+      context: .
+      dockerfile: server/Dockerfile
+      target: runtime
     container_name: knc-login
     restart: unless-stopped
+    command: ["login"]
     depends_on:
       mariadb:
         condition: service_healthy
     environment:
       DB_HOST: mariadb
       DB_PORT: 3306
-      DB_NAME: ${DB_NAME:-knc_game}
-      DB_USER: ${DB_USER:-knc_user}
-      DB_PASSWORD: ${DB_PASSWORD:-knc_password_2025}
-      LOGIN_PORT: 50017
+      DB_NAME: ${DB_NAME:-knc_emu}
+      DB_USER: ${DB_USER:-knc}
+      DB_PASSWORD: ${DB_PASSWORD:-knc_password}
+      # the signup page rides in this process, empty turns it off
+      KNC_WEB_PORT: ${WEB_PORT_INTERNAL:-8080}
+      KNC_SITE_NAME: ${SITE_NAME:-Kart N Chibi}
+    # LOGIN_PORT here is the HOST side only  container always listens on 50017
     ports:
-      - "50017:50017"
+      - "${LOGIN_PORT:-50017}:50017"
+      - "${WEB_PORT:-8080}:8080"
     networks:
       - knc-network
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/knc-entrypoint.sh", "healthcheck", "50017"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
 
   # Game Server
   game-server:
+    image: knc-server:dev
     build:
-      context: ./server
-      dockerfile: Dockerfile
-      target: game-server
+      context: .
+      dockerfile: server/Dockerfile
+      target: runtime
     container_name: knc-game
     restart: unless-stopped
+    command: ["game"]
     depends_on:
       mariadb:
         condition: service_healthy
       login-server:
-        condition: service_started
-    environment:
-      DB_HOST: mariadb
-      DB_PORT: 3306
-      DB_NAME: ${DB_NAME:-knc_game}
-      DB_USER: ${DB_USER:-knc_user}
-      DB_PASSWORD: ${DB_PASSWORD:-knc_password_2025}
-      GAME_PORT: 50018
-    ports:
-      - "50018:50018"
-    networks:
-      - knc-network
-
-  # Web Admin Panel
-  web-admin:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
-      target: web-admin
-    container_name: knc-admin
-    restart: unless-stopped
-    depends_on:
-      mariadb:
         condition: service_healthy
     environment:
       DB_HOST: mariadb
       DB_PORT: 3306
-      DB_NAME: ${DB_NAME:-knc_game}
-      DB_USER: ${DB_USER:-knc_user}
-      DB_PASSWORD: ${DB_PASSWORD:-knc_password_2025}
-      ADMIN_PORT: 8080
-      ADMIN_TOKEN: ${ADMIN_TOKEN:-admin_secret_2025}
+      DB_NAME: ${DB_NAME:-knc_emu}
+      DB_USER: ${DB_USER:-knc}
+      DB_PASSWORD: ${DB_PASSWORD:-knc_password}
+      KNC_CARPART_CATALOG: ${KNC_CARPART_CATALOG:-1}
+      KNC_STAT_PROBE: ${KNC_STAT_PROBE:-}
+      KNC_PART_UICAT: ${KNC_PART_UICAT:-1}
+      KNC_LOG_LEVEL: ${KNC_LOG_LEVEL:-INFO}
+      KNC_GHOST_BOARD_TRACKS: ${KNC_GHOST_BOARD_TRACKS:-}
+      KNC_DRIP_GAP: ${KNC_DRIP_GAP:-}
+      KNC_DRIP_CHUNK: ${KNC_DRIP_CHUNK:-}
+      KNC_LOGIN_DELAY_MS: ${KNC_LOGIN_DELAY_MS:-}
+      KNC_LAZY_CATALOGS: ${KNC_LAZY_CATALOGS:-}
+      KNC_REDIRECT_0X19: ${KNC_REDIRECT_0X19:-}
+      KNC_DATA_ROOT: /app/DevClient/Data/Public
+      LOGIN_HOST: login-server
+      # address the client dials from the docker host
+      GAME_PUBLIC_HOST: ${GAME_PUBLIC_HOST:-127.0.0.1}
+    volumes:
+      # keep the wire trace on the host, a container recreate used to wipe it
+      - ./logs/game:/app/logs
+      # the client data tree, read only. SpawnPackets reads track.COL from it for
+      # server side lap tracking, without it every race logs "track COL unreadable"
+      - ./DevClient:/app/DevClient:ro
+    # GAME_PORT here is the HOST side only  container always listens on 50018
     ports:
-      - "8080:8080"
+      - "${GAME_PORT:-50018}:50018"
     networks:
       - knc-network
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/knc-entrypoint.sh", "healthcheck", "50018"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
 
 volumes:
   mariadb_data:
@@ -103,4 +117,3 @@ volumes:
 networks:
   knc-network:
     driver: bridge
-

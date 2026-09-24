@@ -1,0 +1,105 @@
+{
+  "version": "1.0",
+  "type": "popup",
+  "name": "GiftInfo",
+  "resolution": [
+    500,
+    350
+  ],
+  "modal": true,
+  "elements": [
+    {
+      "id": "bg_giftinfo",
+      "type": "image",
+      "asset": "Popup/GiftInfo/giftbox_info_back.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_from",
+      "type": "image",
+      "asset": "Popup/GiftInfo/from.PNG",
+      "position": [
+        50,
+        50
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_to",
+      "type": "image",
+      "asset": "Popup/GiftInfo/to.PNG",
+      "position": [
+        50,
+        100
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "gift_description",
+      "type": "text",
+      "position": [
+        50,
+        150
+      ],
+      "size": [
+        400,
+        100
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "fontSize": 12,
+        "color": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "wordWrap": true
+      }
+    },
+    {
+      "id": "btn_ok",
+      "type": "button",
+      "asset": "Popup/GiftInfo/ok_",
+      "position": [
+        350,
+        290
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_gift_ok"
+    },
+    {
+      "id": "btn_accept",
+      "type": "button",
+      "asset": "Popup/GiftInfo/giftbox_accept_",
+      "position": [
+        150,
+        290
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_gift_accept"
+    },
+    {
+      "id": "btn_delete",
+      "type": "button",
+      "asset": "Popup/GiftInfo/giftbox_delete_",
+      "position": [
+        250,
+        290
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_gift_delete"
+    }
+  ]
+}

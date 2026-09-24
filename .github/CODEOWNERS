@@ -1,0 +1,38 @@
+# CODEOWNERS - Define who owns different parts of the codebase
+
+# Default owner for everything
+* @knc-dev-team
+
+# Engine core
+/engine/core/                @engine-core-team
+/engine/ecs/                 @engine-core-team
+
+# RHI (Rendering Hardware Interface)
+/engine/rhi/                 @engine-rhi-team
+
+# Renderer and graphics
+/engine/graphics/            @engine-renderer-team
+/engine/shaders/             @engine-renderer-team
+/engine/camera/              @engine-renderer-team
+
+# Physics
+/engine/physics/             @engine-physics-team
+
+# Kart game
+/games/kart/                 @game-kart-team
+
+# Tests and QA
+/tests/                      @qa-team
+
+# Shared libraries
+/shared/                     @engine-core-team
+
+# Build system
+/CMakeLists.txt              @engine-core-team
+/scripts/                    @engine-core-team
+
+# CI/CD
+/.github/                    @engine-core-team
+
+# Documentation
+/docs/                       @knc-dev-team

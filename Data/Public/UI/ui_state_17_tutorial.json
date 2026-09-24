@@ -1,0 +1,39 @@
+{
+  "version": "1.0",
+  "state": 17,
+  "name": "Tutorial",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "tutorial_tip",
+      "type": "image",
+      "asset": "Tutorial/Miniturbo/Tutorial_Tip_MiniTurbo.png",
+      "position": [
+        200,
+        150
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "tutorial_panel",
+      "type": "panel",
+      "position": [
+        100,
+        100
+      ],
+      "size": [
+        824,
+        568
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "sequenceContent": true
+      }
+    }
+  ]
+}

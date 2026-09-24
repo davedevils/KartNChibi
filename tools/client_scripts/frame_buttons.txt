@@ -1,0 +1,31 @@
+# gate: live
+# gate: args --stop-at lobby
+# the top bar Mission and Ghost buttons answer from the garage and the shop through the frame action
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 60
+click 255 20
+waitfor lobby 400
+wait 25
+click 428 746
+waitfor garage 250
+wait 20
+click 745 20
+waitfor missions 250
+expect missions
+shot frame_missions
+# the stock Escape opens the menu box on these stages so the Lobby button leaves
+click 255 20
+waitfor lobby 250
+wait 20
+click 128 746
+waitfor shop 250
+wait 20
+click 390 20
+waitfor ghostmode 250
+expect ghostmode
+shot frame_ghost
+# the stock Escape opens the menu box on these stages so the Lobby button leaves
+click 255 20
+waitfor lobby 250
+expect lobby
+quit

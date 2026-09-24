@@ -1,0 +1,34 @@
+{
+    "server": {
+        "name": "KnC Login Server",
+        "port": 50017,
+        "max_connections": 500,
+        "timeout_ms": 30000
+    },
+    "game_server": {
+        "host": "127.0.0.1",
+        "port": 50018
+    },
+    "database": {
+        "host": "localhost",
+        "port": 3306,
+        "name": "knc_emu",
+        "user": "knc",
+        "password": "knc_password",
+        "pool_size": 5
+    },
+    "auth": {
+        "auto_create_accounts": false,
+        "allow_test_login": false,
+        "_comment": "both off by default, allow test login lets the headless sign in as test with password test on a local box only"
+    },
+    "internal": {
+        "key": "",
+        "_comment": "shared secret set from an environment variable or fill in here never commit a real secret"
+    },
+    "logging": {
+        "level": "DEBUG",
+        "file": "logs/login.log"
+    }
+}
+

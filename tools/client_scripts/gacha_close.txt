@@ -1,0 +1,18 @@
+# gate: live
+# gate: args --stop-at lobby
+# the gacha box over the lobby then its close the kart preview comes back and the User List tab still fills
+waitfor licence 60
+click 255 20
+waitfor lobby 400
+wait 25
+click 215 745
+waitfor gacha 100
+wait 30
+click 731 607
+wait 10
+expect lobby
+shot gacha_after
+click 120 130
+wait 40
+shot gacha_userlist
+quit

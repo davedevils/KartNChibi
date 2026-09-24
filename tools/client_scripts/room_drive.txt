@@ -1,0 +1,25 @@
+# gate: live
+# gate: args --stop-at lobby
+# gate: env KNC_ROOM_DRIVE=1
+# the waiting room the local kart drives the field the Quick Garage button opens the garage
+# run with KNC ROOM DRIVE 1 so the gas is held the harness has no key hold verb
+waitfor licence 120
+click 255 20
+waitfor lobby 400
+wait 30
+click 907 115
+wait 5
+expect makeroom
+click 453 488
+waitfor room 250
+expect room
+wait 25
+shot room_drive_start
+wait 40
+shot room_drive_moved
+# the Quick Garage button of the top row sits at 139 4
+click 150 14
+waitfor garage 300
+expect garage
+shot room_drive_garage
+quit

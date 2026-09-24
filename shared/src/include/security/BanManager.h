@@ -1,7 +1,4 @@
-/**
- * @file BanManager.h
- * @brief IP and account ban management
- */
+/// ip and account ban management
 
 #pragma once
 #include <string>
@@ -27,21 +24,18 @@ public:
         return inst;
     }
     
-    // Check if banned
     bool isBanned(const std::string& ip) const;
     bool isBanned(uint32_t accountId) const;
-    
-    // Add ban
-    void banIP(const std::string& ip, const std::string& reason, 
+
+    void banIP(const std::string& ip, const std::string& reason,
                const std::string& by, int durationMinutes = 0);
     void banAccount(uint32_t accountId, const std::string& reason,
                     const std::string& by, int durationMinutes = 0);
-    
-    // Remove ban
+
     void unbanIP(const std::string& ip);
     void unbanAccount(uint32_t accountId);
     
-    // Load/save from database
+    // loads and saves from the database
     void loadFromDB();
     void saveToDB();
 
@@ -52,5 +46,5 @@ private:
     std::unordered_set<uint32_t> m_bannedAccounts;
 };
 
-} // namespace knc
+}
 

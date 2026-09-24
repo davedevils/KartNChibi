@@ -1,0 +1,23 @@
+# gate: live
+# gate: args --stop-at lobby
+# the shop from the lobby then every category tab the shots must show different tiles
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 120
+click 255 20
+waitfor lobby 400
+wait 30
+click 128 746
+waitfor shop 250
+wait 40
+shot shop_tab_character
+click 586 112
+wait 30
+shot shop_tab_car
+click 680 112
+wait 30
+shot shop_tab_item
+click 900 112
+wait 30
+shot shop_tab_carcraft
+expect shop
+quit

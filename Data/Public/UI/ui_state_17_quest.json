@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "state": 17,
+  "name": "Quest",
+  "description": "Quest gameplay",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": []
+}

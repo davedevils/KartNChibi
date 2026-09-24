@@ -1,0 +1,59 @@
+{
+  "version": "1.0",
+  "type": "popup",
+  "name": "LicenseStepClear",
+  "resolution": [
+    600,
+    400
+  ],
+  "modal": true,
+  "elements": [
+    {
+      "id": "bg_finish",
+      "type": "image",
+      "asset": "Popup/LicenseStepClear/licence_finish.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "completion_text",
+      "type": "text",
+      "position": [
+        100,
+        180
+      ],
+      "size": [
+        400,
+        100
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "fontSize": 20,
+        "color": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "align": "center"
+      }
+    },
+    {
+      "id": "btn_continue",
+      "type": "button",
+      "asset": "Buttons/Common_Continue_",
+      "position": [
+        250,
+        320
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_license_continue"
+    }
+  ]
+}

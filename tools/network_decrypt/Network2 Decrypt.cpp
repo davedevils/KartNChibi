@@ -65,7 +65,6 @@ void writeBinaryFile(const std::string& filename, const std::vector<unsigned cha
 }
 
 void processFile(const std::string& filename) {
-	// LOOOOL THAT KEY IS FUUNNY
 	std::string key = "WindySoftKnCOnGame";
 	std::vector<unsigned char> content = readBinaryFile(filename);
 	std::vector<unsigned char> result;

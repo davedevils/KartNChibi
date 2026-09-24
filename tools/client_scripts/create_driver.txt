@@ -1,0 +1,53 @@
+# gate: live
+# gate: args --stop-at licence
+# gate: needs fresh
+# the RegistDriver popup of a fresh account the pick portraits the name box and the OK of sub 473950
+# an empty name MSG NEED NAME a short or taboo one MSG INVALID NICK and no packet
+# a taken name comes back as 0x0004 result 2 MSG ALREADY REGIST each OK opens a fresh popup
+# the gate nickname then creates the character 0x0004 result 0 MSG SAVE DONE then the licence stage
+waitfor createdriver 900
+key backspace
+wait 2
+shot create_popup
+key enter
+wait 5
+expect confirm
+shot create_need_name
+key enter
+waitfor createdriver 50
+click 599 326
+wait 5
+text ab
+key enter
+wait 5
+expect confirm
+shot create_invalid
+key enter
+waitfor createdriver 50
+text xFuckx
+key enter
+wait 5
+expect confirm
+shot create_taboo
+key enter
+waitfor createdriver 50
+text HlTester
+key enter
+waitfor confirm 250
+expect confirm
+shot create_taken
+key enter
+waitfor createdriver 50
+text {nick}
+wait 2
+shot create_name
+key enter
+waitfor message 250
+expect message
+shot create_saved
+key enter
+waitfor licence 600
+expect licence
+wait 30
+shot create_licence
+quit

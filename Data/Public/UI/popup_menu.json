@@ -1,0 +1,72 @@
+{
+  "version": "1.0",
+  "type": "popup",
+  "name": "GameMenu",
+  "resolution": [
+    300,
+    300
+  ],
+  "modal": true,
+  "notes": "Menu contextuel ESC pendant le jeu",
+  "elements": [
+    {
+      "id": "bg_menu",
+      "type": "image",
+      "asset": "Popup/Menu/Menu_Back.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "btn_help",
+      "type": "button",
+      "asset": "Popup/Menu/Menu_Help_",
+      "position": [
+        50,
+        50
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_menu_help"
+    },
+    {
+      "id": "btn_game_setting",
+      "type": "button",
+      "asset": "Popup/Menu/Menu_GameSetting_",
+      "position": [
+        50,
+        100
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_menu_game_settings"
+    },
+    {
+      "id": "btn_control_setting",
+      "type": "button",
+      "asset": "Popup/Menu/Menu_ControlSetting_",
+      "position": [
+        50,
+        150
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_menu_control_settings"
+    },
+    {
+      "id": "btn_end",
+      "type": "button",
+      "asset": "Popup/Menu/Menu_End_",
+      "position": [
+        50,
+        200
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_menu_exit_game"
+    }
+  ]
+}

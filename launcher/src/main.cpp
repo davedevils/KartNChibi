@@ -1,7 +1,3 @@
-/**
- * @file main.cpp
- * @brief KnC Launcher - Windows native with WebView2
- */
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -25,10 +21,8 @@
 
 using namespace Microsoft::WRL;
 
-// Forward declarations
 std::wstring GenerateHTML();
 
-// Simple logging
 static std::ofstream g_logFile;
 
 void LogInit() {
@@ -46,7 +40,6 @@ void Log(const std::string& msg) {
     OutputDebugStringA(("[KnC] " + msg + "\n").c_str());
 }
 
-// Base64 encoding for image
 std::string Base64Encode(const std::vector<unsigned char>& data) {
     static const char* chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     std::string result;
@@ -75,7 +68,7 @@ std::string LoadImageAsBase64(const std::string& path) {
     return "data:image/jpeg;base64," + Base64Encode(data);
 }
 
-// Extract image from NKZIP pak file to temp and return file:// URL
+// extracts an image from the NKZIP pak to a temp file and returns a file url
 std::string LoadImageFromPak(const std::string& pakPath, const std::string& innerPath) {
     std::ifstream pakFile(pakPath, std::ios::binary);
     if (!pakFile.is_open()) {
@@ -83,7 +76,6 @@ std::string LoadImageFromPak(const std::string& pakPath, const std::string& inne
         return "";
     }
     
-    // Read NKZIP header
     char magic[16];
     pakFile.read(magic, sizeof(magic));
     if (std::string(magic, 5) != "NKZIP") {
@@ -91,21 +83,18 @@ std::string LoadImageFromPak(const std::string& pakPath, const std::string& inne
         return "";
     }
     
-    // Skip version (16 bytes) + dataBytes (4 bytes)
+    // skips the 16 byte version and 4 byte data length
     pakFile.seekg(16 + 4, std::ios::cur);
     
-    // Read file count
     uint32_t fileCount;
     pakFile.read(reinterpret_cast<char*>(&fileCount), sizeof(fileCount));
     Log("PAK contains " + std::to_string(fileCount) + " files");
     
-    // Normalize inner path for comparison (convert backslashes to forward slashes)
     std::string normalizedInner = innerPath;
     for (char& c : normalizedInner) {
         if (c == '\\') c = '/';
     }
     
-    // Search for the file
     for (uint32_t i = 0; i < fileCount; i++) {
         uint32_t fileSize;
         char fileName[260];
@@ -113,19 +102,16 @@ std::string LoadImageFromPak(const std::string& pakPath, const std::string& inne
         pakFile.read(reinterpret_cast<char*>(&fileSize), sizeof(fileSize));
         pakFile.read(fileName, sizeof(fileName));
         
-        // Normalize file name for comparison
         std::string normalizedName(fileName);
         for (char& c : normalizedName) {
             if (c == '\\') c = '/';
         }
         
         if (normalizedName == normalizedInner) {
-            // Found the file, read its data
             std::vector<unsigned char> data(fileSize);
             pakFile.read(reinterpret_cast<char*>(data.data()), fileSize);
             Log("Loaded from PAK: " + innerPath + " (" + std::to_string(fileSize) + " bytes)");
             
-            // Save to temp file
             char tempPath[MAX_PATH];
             GetTempPathA(MAX_PATH, tempPath);
             std::string tempFile = std::string(tempPath) + "knc_login_bg.png";
@@ -136,12 +122,11 @@ std::string LoadImageFromPak(const std::string& pakPath, const std::string& inne
                 outFile.close();
                 Log("Saved to temp: " + tempFile);
                 
-                // Return virtual host URL (mapped via SetVirtualHostNameToFolderMapping)
+                // returns the virtual host url mapped via SetVirtualHostNameToFolderMapping
                 return "https://knc.local/knc_login_bg.png";
             }
             return "";
         } else {
-            // Skip this file's data
             pakFile.seekg(fileSize, std::ios::cur);
         }
     }
@@ -150,11 +135,9 @@ std::string LoadImageFromPak(const std::string& pakPath, const std::string& inne
     return "";
 }
 
-// Window dimensions
 constexpr int WIDTH = 800;
 constexpr int HEIGHT = 620;
 
-// Globals
 HWND g_hwnd = nullptr;
 ComPtr<ICoreWebView2Controller> g_controller;
 ComPtr<ICoreWebView2> g_webview;
@@ -191,7 +174,6 @@ void InitWebView(HWND hwnd) {
     GetTempPathW(MAX_PATH, tempPath);
     std::wstring userDataFolder = std::wstring(tempPath) + L"KnCLauncher_WebView2";
     
-    // Create the folder and set it as hidden
     CreateDirectoryW(userDataFolder.c_str(), nullptr);
     SetFileAttributesW(userDataFolder.c_str(), FILE_ATTRIBUTE_HIDDEN);
     
@@ -208,7 +190,6 @@ void InitWebView(HWND hwnd) {
                             g_controller = controller;
                             g_controller->get_CoreWebView2(&g_webview);
                             
-                            // Settings
                             ComPtr<ICoreWebView2Settings> settings;
                             g_webview->get_Settings(&settings);
                             settings->put_AreDefaultContextMenusEnabled(FALSE);
@@ -225,12 +206,10 @@ void InitWebView(HWND hwnd) {
                                 Log("Mapped knc.local to temp folder");
                             }
                             
-                            // Resize
                             RECT bounds;
                             GetClientRect(hwnd, &bounds);
                             g_controller->put_Bounds(bounds);
                             
-                            // Handle messages from JS
                             g_webview->add_WebMessageReceived(
                                 Callback<ICoreWebView2WebMessageReceivedEventHandler>(
                                     [](ICoreWebView2* sender, ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT {
@@ -243,13 +222,11 @@ void InitWebView(HWND hwnd) {
                                         std::wstring msg(msgRaw);
                                         CoTaskMemFree(msgRaw);
                                         
-                                        // Log all received messages
                                         std::string msgStr;
                                         for (wchar_t c : msg) msgStr += (char)c;
                                         Log("Received message: " + msgStr);
                                         
                                         if (msg == L"GET_SAVED_USER") {
-                                            // Load saved username from ini
                                             std::ifstream cfg("launcher.ini");
                                             std::string savedUser;
                                             if (cfg.is_open()) {
@@ -273,7 +250,6 @@ void InitWebView(HWND hwnd) {
                                             ShowWindow(g_hwnd, SW_MINIMIZE);
                                         }
                                         else if (msg == L"REGISTER") {
-                                            // Open register URL from ini in default browser
                                             std::ifstream cfg("launcher.ini");
                                             std::string registerUrl;
                                             if (cfg.is_open()) {
@@ -294,7 +270,6 @@ void InitWebView(HWND hwnd) {
                                             }
                                         }
                                         else if (msg == L"FIND_ACCOUNT") {
-                                            // Open find account URL from ini in default browser
                                             std::ifstream cfg("launcher.ini");
                                             std::string findUrl;
                                             if (cfg.is_open()) {
@@ -318,7 +293,7 @@ void InitWebView(HWND hwnd) {
                                             // Start drag - nothing to do here
                                         }
                                         else if (msg.find(L"DRAG:") == 0) {
-                                            // Parse DRAG:dx:dy
+                                            // parses DRAG colon dx colon dy
                                             std::wstring data = msg.substr(5);
                                             size_t sep = data.find(L':');
                                             int dx = std::stoi(data.substr(0, sep));
@@ -334,7 +309,7 @@ void InitWebView(HWND hwnd) {
                                             Log("Launching game...");
                                             g_webview->ExecuteScript(L"showLaunching()", nullptr);
                                             
-                                            // Small delay to show the message, then launch
+                                            // shows the message briefly before launching
                                             std::thread([]() {
                                                 Sleep(500);
                                                 if (knc::Launcher::instance().launchGame()) {
@@ -348,7 +323,7 @@ void InitWebView(HWND hwnd) {
                                             }).detach();
                                         }
                                         else if (msg.find(L"LOGIN:") == 0) {
-                                            // Parse LOGIN:user:pass:remember
+                                            // parses LOGIN colon user colon pass colon remember
                                             std::wstring data = msg.substr(6);
                                             size_t sep1 = data.find(L':');
                                             size_t sep2 = data.find(L':', sep1 + 1);
@@ -356,14 +331,13 @@ void InitWebView(HWND hwnd) {
                                             std::wstring wpass = data.substr(sep1 + 1, sep2 - sep1 - 1);
                                             bool remember = (data.length() > sep2 + 1 && data[sep2 + 1] == L'1');
                                             
-                                            // Convert wstring to string (ASCII only)
+                                            // converts wstring to string ascii only
                                             std::string user, pass;
                                             for (wchar_t c : wuser) user += (char)c;
                                             for (wchar_t c : wpass) pass += (char)c;
                                             
                                             Log("Login attempt for user: " + user);
                                             
-                                            // Save username if remember is checked
                                             if (remember) {
                                                 std::ofstream cfg("launcher.ini");
                                                 cfg << "ServerIP=" << knc::Launcher::instance().getServerIp() << "\n";
@@ -372,7 +346,6 @@ void InitWebView(HWND hwnd) {
                                                 cfg << "SavedUser=" << user << "\n";
                                             }
                                             
-                                            // Login in background
                                             std::thread([user, pass]() {
                                                 try {
                                                     Log("Starting login thread...");
@@ -386,7 +359,6 @@ void InitWebView(HWND hwnd) {
                                                         else safeMsg += c;
                                                     }
                                                     
-                                                    // Build JS to execute
                                                     std::wstring js;
                                                     if (result.message.find("Cannot connect") != std::string::npos ||
                                                         result.message.find("No response") != std::string::npos ||
@@ -399,7 +371,6 @@ void InitWebView(HWND hwnd) {
                                                             L",'" + std::wstring(safeMsg.begin(), safeMsg.end()) + L"')";
                                                     }
                                                     
-                                                    // Post to UI thread via Windows message
                                                     Log("Posting JS to UI thread: " + std::string(js.begin(), js.end()));
                                                     PostMessageW(g_hwnd, WM_APP + 1, 0, (LPARAM)new std::wstring(js));
                                                     
@@ -418,7 +389,6 @@ void InitWebView(HWND hwnd) {
                                 ).Get(), nullptr
                             );
                             
-                                            // Navigate to HTML
                                             Log("WebView2 ready, loading HTML...");
                                             std::wstring html = GenerateHTML();
                                             g_webview->NavigateToString(html.c_str());
@@ -434,16 +404,12 @@ void InitWebView(HWND hwnd) {
     );
 }
 
-// Generate HTML with embedded background image
 std::wstring GenerateHTML() {
-    // Try to load background from pak001.dat first (path starts with ./)
     std::string bgImage = LoadImageFromPak("pak001.dat", "./Data/Eng/Image/Login/Login01.png");
     if (bgImage.empty()) {
-        // Fallback: try external bg.jpg
         bgImage = LoadImageAsBase64("bg.jpg");
     }
     if (bgImage.empty()) {
-        // Fallback: try other locations
         bgImage = LoadImageAsBase64("resources/bg.jpg");
     }
     if (bgImage.empty()) {
@@ -452,7 +418,7 @@ std::wstring GenerateHTML() {
         Log("Using fallback gradient background");
     }
     
-    // Use 100% cover for dynamic scaling (1024x768 image)
+    // uses 100% cover for dynamic scaling of the 1024x768 image
     std::wstring bgStyle;
     if (bgImage.find("https://") == 0 || bgImage.find("file://") == 0 || bgImage.find("data:") == 0) {
         bgStyle = L"url('" + std::wstring(bgImage.begin(), bgImage.end()) + L"') center/cover no-repeat";
@@ -553,7 +519,7 @@ tb.addEventListener('mousedown',e=>{if(e.target.closest('.titlebar-btns'))return
 document.addEventListener('mousemove',e=>{if(isDragging){window.chrome.webview.postMessage('DRAG:'+(e.screenX-startX)+':'+(e.screenY-startY));startX=e.screenX;startY=e.screenY}});
 document.addEventListener('mouseup',()=>{isDragging=false});
 
-// Request saved username from C++
+// ask host for saved username
 window.chrome.webview.postMessage('GET_SAVED_USER');
 
 function setSavedUser(user){
@@ -621,7 +587,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nCmdShow) {
     knc::Launcher::instance().init();
     Log("Launcher initialized");
     
-    // Register window class
     WNDCLASSEXW wc = {};
     wc.cbSize = sizeof(wc);
     wc.style = CS_HREDRAW | CS_VREDRAW;
@@ -630,20 +595,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nCmdShow) {
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wc.lpszClassName = L"KnCLauncher";
-    // Load application icon
     wc.hIcon = (HICON)LoadImageW(hInstance, MAKEINTRESOURCEW(101), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE);
     wc.hIconSm = (HICON)LoadImageW(hInstance, MAKEINTRESOURCEW(101), IMAGE_ICON, 16, 16, LR_DEFAULTSIZE);
     if (!wc.hIcon) {
-        // Fallback: try loading from file
         wc.hIcon = (HICON)LoadImageW(nullptr, L"KnC.ico", IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE);
     }
     RegisterClassExW(&wc);
     
-    // Center on screen
     int x = (GetSystemMetrics(SM_CXSCREEN) - WIDTH) / 2;
     int y = (GetSystemMetrics(SM_CYSCREEN) - HEIGHT) / 2;
     
-    // Create borderless window (WS_POPUP for no title bar)
+    // creates a borderless window using WS POPUP for no title bar
     g_hwnd = CreateWindowExW(
         WS_EX_LAYERED,
         L"KnCLauncher", L"Kart n' Crazy",
@@ -658,10 +620,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nCmdShow) {
     ShowWindow(g_hwnd, nCmdShow);
     UpdateWindow(g_hwnd);
     
-    // Initialize WebView2
     InitWebView(g_hwnd);
     
-    // Message loop
     MSG msg;
     while (GetMessage(&msg, nullptr, 0, 0)) {
         TranslateMessage(&msg);
@@ -673,7 +633,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int nCmdShow) {
 }
 
 #else
-// Linux/macOS placeholder
 #include <iostream>
 int main() {
     std::cout << "Linux/macOS launcher not yet implemented. Use Windows version.\n";

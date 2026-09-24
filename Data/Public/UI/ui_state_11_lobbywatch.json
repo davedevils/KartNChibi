@@ -1,0 +1,42 @@
+{
+  "version": "1.0",
+  "state": 11,
+  "name": "LobbyWatch",
+  "resolution": [
+    1024,
+    768
+  ],
+  "renderMode": "mixed_3d_2d",
+  "notes": "Spectator mode dans le lobby - affichage 3D des joueurs avec overlay 2D",
+  "elements": [
+    {
+      "id": "watch_overlay",
+      "type": "panel",
+      "position": [
+        0,
+        0
+      ],
+      "size": [
+        1024,
+        768
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "transparent": true
+      }
+    },
+    {
+      "id": "btn_exit_watch",
+      "type": "button",
+      "asset": "Buttons/Common_Exit_",
+      "position": [
+        900,
+        700
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_exit_watch"
+    }
+  ]
+}

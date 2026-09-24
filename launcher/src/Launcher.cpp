@@ -30,7 +30,7 @@
 
 namespace knc {
 
-// encryption key for Network2.ini 
+// encryption key for Network2 ini
 static const std::string NETWORK_KEY = "WindySoftKnCOnGame";
 
 static std::string encryptNetwork(const std::string& input) {
@@ -119,7 +119,7 @@ LoginResult Launcher::login(const std::string& username, const std::string& pass
         return result;
     }
     
-    // packet: [size:2][cmd:1][flag:1][reserved:4][user\0][pass\0]
+    // packet layout is size 2 cmd 1 flag 1 reserved 4 then user and pass null terminated
     std::vector<uint8_t> payload;
     for (char c : username) {
         payload.push_back((uint8_t)c);
@@ -144,7 +144,7 @@ LoginResult Launcher::login(const std::string& username, const std::string& pass
     
     send(sock, (const char*)packet.data(), (int)packet.size(), 0);
     
-    // recv response [size:2][0xFE][flag][reserved:4][success:1][token\0][msg\0]
+    // response layout is size 2 then 0xFE flag reserved 4 success 1 then token and msg null terminated
     uint8_t buffer[512];
     int attempts = 0;
     bool found = false;
@@ -235,7 +235,6 @@ bool Launcher::launchGame() {
         gameDir = currentDir;
     }
     
-    // write encrypted Network2.ini
     std::string ipEnc = encryptNetwork(m_serverIp);
     std::string portEnc = encryptNetwork(std::to_string(m_serverPort));
     std::ofstream net(gameDir + "\\Network2.ini", std::ios::binary);
@@ -244,7 +243,7 @@ bool Launcher::launchGame() {
         net.close();
     }
     
-    // client args: serviceid=X userid=NAME token=TOKEN
+    // client args are serviceid userid and token
     std::string params;
     if (!m_sessionToken.empty() && !m_username.empty()) {
         params = "serviceid=1 userid=" + m_username + " token=" + m_sessionToken;

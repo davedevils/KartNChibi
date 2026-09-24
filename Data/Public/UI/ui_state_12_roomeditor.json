@@ -1,0 +1,88 @@
+{
+  "version": "1.0",
+  "state": 12,
+  "name": "RoomEditor",
+  "description": "Room/Track editor",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "image_0",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "RoomEditer/Factory_Room_Back.png"
+    },
+    {
+      "id": "image_1",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "RoomEditer/Factory_Room_Top.png"
+    },
+    {
+      "id": "button_2",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Buttons/Common_Room_Save_",
+      "position": [
+        850,
+        140
+      ],
+      "index": 2
+    },
+    {
+      "id": "button_3",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "RoomEditer/Factory_Room_Thumbnail_Right_",
+      "position": [
+        813,
+        117
+      ],
+      "index": 4
+    },
+    {
+      "id": "button_4",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "RoomEditer/Factory_Room_Thumbnail_Left_",
+      "position": [
+        177,
+        117
+      ],
+      "index": 3
+    },
+    {
+      "id": "button_5",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "RoomEditer/Factory_Room_Tip_",
+      "position": [
+        933,
+        97
+      ],
+      "index": 5
+    },
+    {
+      "id": "image_6",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "RoomEditer/UI_SetupItem.png"
+    },
+    {
+      "id": "image_7",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "RoomEditer/UI_iconbox_unuse.png"
+    }
+  ]
+}

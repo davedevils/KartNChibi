@@ -1,0 +1,275 @@
+{
+  "version": "1.0",
+  "state": 6,
+  "name": "Garage",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "image_0",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Popup/QuickGarage/garage_back.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_1",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Garage/Garage_Top.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_2",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Garage/UI_garage_itembox_expired.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_3",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Garage/UI_garage_itembox_expired.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_4",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Garage/UI_Shop_itembox_used.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_5",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Garage/UI_garage_itembox_use_00.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "button_12",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Garage/Garage_Category_Char_",
+      "position": [
+        489,
+        96
+      ]
+    },
+    {
+      "id": "button_13",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Garage/Garage_Category_Car_",
+      "position": [
+        588,
+        96
+      ]
+    },
+    {
+      "id": "button_14",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Garage/Garage_Category_Item_",
+      "position": [
+        687,
+        96
+      ]
+    },
+    {
+      "id": "button_15",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Garage/Garage_Category_etc_",
+      "position": [
+        786,
+        96
+      ]
+    },
+    {
+      "id": "button_16",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Char_Tab_Char_",
+      "position": [
+        415,
+        134
+      ]
+    },
+    {
+      "id": "button_17",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Char_Tab_Head_",
+      "position": [
+        506,
+        134
+      ]
+    },
+    {
+      "id": "button_18",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Char_Tab_Cloth_",
+      "position": [
+        597,
+        134
+      ]
+    },
+    {
+      "id": "button_19",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Char_Tab_Face_",
+      "position": [
+        688,
+        134
+      ]
+    },
+    {
+      "id": "button_20",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Char_Tab_Back_",
+      "position": [
+        779,
+        134
+      ]
+    },
+    {
+      "id": "button_21",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Char_Tab_Pet_",
+      "position": [
+        870,
+        134
+      ]
+    },
+    {
+      "id": "button_22",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Car_Tab_Car_",
+      "position": [
+        461,
+        134
+      ]
+    },
+    {
+      "id": "button_23",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Car_Tab_Antenna_",
+      "position": [
+        552,
+        134
+      ]
+    },
+    {
+      "id": "button_24",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Car_Tab_Number_",
+      "position": [
+        643,
+        134
+      ]
+    },
+    {
+      "id": "button_25",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Car_Tab_Paint_",
+      "position": [
+        734,
+        134
+      ]
+    },
+    {
+      "id": "button_26",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Shop/Common_Item_Tab_All_",
+      "position": [
+        461,
+        134
+      ]
+    },
+    {
+      "id": "image_27",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Garage/permanent.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_28",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Garage/days.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_29",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Garage/times.png",
+      "position": [
+        0,
+        0
+      ]
+    }
+  ]
+}

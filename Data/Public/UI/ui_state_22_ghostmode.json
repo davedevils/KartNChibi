@@ -1,0 +1,37 @@
+{
+  "version": "1.0",
+  "state": 22,
+  "name": "GhostMode",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "ghost_panel",
+      "type": "panel",
+      "position": [
+        200,
+        100
+      ],
+      "size": [
+        624,
+        568
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "btn_start_ghost",
+      "type": "button",
+      "asset": "Buttons/Common_Start_",
+      "position": [
+        400,
+        650
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_start_ghost_race"
+    }
+  ]
+}

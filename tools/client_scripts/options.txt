@@ -1,0 +1,38 @@
+# gate: live
+# gate: args --stop-at lobby
+# the Sound tab lowers the effect bar twice and OK writes Option2 ini the log prints the new group gain
+# the Control tab binds the up row to W and OK writes Input ini the next start prints race keys up W
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 60
+click 255 20
+waitfor lobby 400
+wait 25
+click 942 748
+wait 3
+click 460 338
+wait 3
+expect gameoption
+click 527 221
+wait 3
+click 392 389
+wait 3
+click 392 389
+wait 3
+shot options_sound
+click 452 580
+wait 5
+expect lobby
+click 942 748
+wait 3
+click 460 374
+wait 3
+expect controloption
+click 540 260
+wait 3
+key w
+wait 3
+shot options_keys
+click 435 550
+wait 5
+expect lobby
+quit

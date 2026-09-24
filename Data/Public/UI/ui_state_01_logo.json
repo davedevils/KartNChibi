@@ -1,0 +1,42 @@
+{
+  "version": "1.0",
+  "state": 1,
+  "name": "Logo",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "image_1",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "WallPaper/intro_bg.png"
+    },
+    {
+      "id": "button_2",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Menu/multi_Bt_",
+      "position": [
+        35,
+        679
+      ],
+      "index": 0
+    },
+    {
+      "id": "button_3",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Menu/x_button_",
+      "position": [
+        971,
+        26
+      ],
+      "index": 6
+    }
+  ]
+}

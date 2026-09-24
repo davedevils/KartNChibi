@@ -1,0 +1,64 @@
+{
+  "version": "1.0",
+  "type": "popup",
+  "name": "FactoryCarName",
+  "resolution": [
+    400,
+    200
+  ],
+  "modal": true,
+  "elements": [
+    {
+      "id": "bg_carname",
+      "type": "image",
+      "asset": "Popup/FactoryCarName/Popup_Information.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_input",
+      "type": "image",
+      "asset": "Popup/FactoryCarName/Popup_Input.png",
+      "position": [
+        50,
+        80
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "input_carname",
+      "type": "input",
+      "position": [
+        100,
+        90
+      ],
+      "size": [
+        200,
+        30
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "placeholder": "Car Name",
+        "maxLength": 16
+      }
+    },
+    {
+      "id": "btn_confirm",
+      "type": "button",
+      "asset": "Buttons/Common_Confirm_",
+      "position": [
+        100,
+        150
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_carname_confirm"
+    }
+  ]
+}

@@ -1,95 +1,37 @@
-# ================================================================
-# KnC Server - Gateway + Game + Services
-# ================================================================
-cmake_minimum_required(VERSION 3.15)
-project(KnC_Server)
+# built by the Dockerfile via cmake -S server -B build -G Ninja shared sits beside server with its binary dir
+cmake_minimum_required(VERSION 3.16)
+project(KnC_Server CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# ================================================================
-# GATEWAY SERVER (ex-login)
-# ================================================================
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/gateway")
-    file(GLOB_RECURSE GATEWAY_SOURCES
-        "gateway/*.cpp"
-    )
-    file(GLOB_RECURSE GATEWAY_HEADERS
-        "gateway/*.h"
-    )
-    
-    if(GATEWAY_SOURCES)
-        add_executable(gateway ${GATEWAY_SOURCES} ${GATEWAY_HEADERS})
-    
-    target_include_directories(gateway PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ${CMAKE_SOURCE_DIR}/include
-        ${CMAKE_SOURCE_DIR}/shared/include
-        ${CMAKE_SOURCE_DIR}/shared/src/include
-    )
-    
-        target_link_libraries(gateway PRIVATE shared)
-        
-        message(STATUS "Gateway server configured")
-    else()
-        message(STATUS "Gateway server skipped (no sources)")
-    endif()
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# ================================================================
-# GAME SERVER
-# ================================================================
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/game")
-    file(GLOB_RECURSE GAME_SOURCES
-        "game/*.cpp"
-    )
-    file(GLOB_RECURSE GAME_HEADERS
-        "game/*.h"
-    )
-    
-    if(GAME_SOURCES)
-        add_executable(game ${GAME_SOURCES} ${GAME_HEADERS})
-        
-        target_include_directories(game PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}
-            ${CMAKE_SOURCE_DIR}/include
-            ${CMAKE_SOURCE_DIR}/shared/include
-        )
-        
-        target_link_libraries(game PRIVATE shared)
-        
-        message(STATUS "Game server configured")
-    else()
-        message(STATUS "Game server skipped (no sources)")
-    endif()
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# header only third party libraries asio nlohmann and httplib
+add_subdirectory(lib)
+
+# knc-common holds shared net db game and logging code own binary dir since root project already uses build shared
+if(NOT TARGET knc-common)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../shared/src ${CMAKE_CURRENT_BINARY_DIR}/knc-common)
 endif()
 
-# ================================================================
-# WEB ADMIN (optionnel)
-# ================================================================
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/web-admin")
-    file(GLOB_RECURSE WEBADMIN_SOURCES
-        "web-admin/*.cpp"
-    )
-    file(GLOB_RECURSE WEBADMIN_HEADERS
-        "web-admin/*.h"
-    )
-    
-    if(WEBADMIN_SOURCES)
-        add_executable(web-admin ${WEBADMIN_SOURCES} ${WEBADMIN_HEADERS})
-        
-        target_include_directories(web-admin PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}
-            ${CMAKE_SOURCE_DIR}/include
-            ${CMAKE_SOURCE_DIR}/shared/include
-        )
-        
-        target_link_libraries(web-admin PRIVATE shared)
-        
-        message(STATUS "Web admin configured")
-    else()
-        message(STATUS "Web admin skipped (no sources)")
-    endif()
+add_subdirectory(login)
+add_subdirectory(game)
+
+# tests server holds the gtest suite wired off by default because gtest fetches over network at configure time
+option(KNC_BUILD_TESTS "build the server unit tests" OFF)
+if(KNC_BUILD_TESTS AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../tests/server/CMakeLists.txt")
+    enable_testing()
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../tests/server ${CMAKE_BINARY_DIR}/tests-server)
 endif()
 
-message(STATUS "Server components configured")
+# web-admin needs openssl which the slim image lacks so keep it opt in
+option(KNC_BUILD_WEB_ADMIN "build the web admin service" OFF)
+if(KNC_BUILD_WEB_ADMIN AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/web-admin/CMakeLists.txt")
+    add_subdirectory(web-admin)
+endif()

@@ -1,7 +1,4 @@
-/**
- * @file Logger.h
- * @brief Thread-safe logging with file rotation
- */
+/// thread safe logging with file rotation
 
 #pragma once
 #include <string>
@@ -33,7 +30,7 @@ private:
     std::mutex m_mutex;
     std::ofstream m_file;
     LogLevel m_minLevel = LogLevel::LVL_INFO;
-    size_t m_maxFileSize = 10 * 1024 * 1024; // 10MB
+    size_t m_maxFileSize = 10 * 1024 * 1024;
     std::string m_filepath;
     
     void rotateIfNeeded();
@@ -41,14 +38,12 @@ private:
     std::string timestamp();
 };
 
-// Convenience macros
 #define LOG_DEBUG(cat, msg) knc::Logger::instance().debug(cat, msg)
 #define LOG_INFO(cat, msg)  knc::Logger::instance().info(cat, msg)
 #define LOG_WARN(cat, msg)  knc::Logger::instance().warn(cat, msg)
 #define LOG_ERROR(cat, msg) knc::Logger::instance().error(cat, msg)
 
-// Print a styled server header
 void PrintServerHeader(const char* serverName, const char* version = "1.0");
 
-} // namespace knc
+}
 

@@ -1,0 +1,26 @@
+# gate: live
+# gate: args --stop-at lobby
+# the messenger block tab the friend row menu blocks with 0x007A the bin unblocks with 0x007B
+# run on hltest which has HlTestTwo on its friend list the block list is the third tab
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 120
+click 255 20
+waitfor lobby 400
+wait 40
+key f
+waitfor messenger 200
+wait 40
+shot block_friends
+click 380 232
+wait 20
+shot block_row_menu
+click 400 344
+wait 80
+click 567 196
+wait 30
+shot block_list
+click 650 235
+wait 80
+shot block_removed
+expect messenger
+quit

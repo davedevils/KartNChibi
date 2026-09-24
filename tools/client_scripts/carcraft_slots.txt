@@ -1,0 +1,61 @@
+# gate: live
+# gate: account dock2
+# gate: args --stop-at lobby
+# gate: needs gold
+# the factory of the official server one top row slot per owned chassis each with its BASIC set installed
+# the shop Car Craft Chassis tab sells the second chassis for gold the ack then 0x0109 and 0x0107 bring its slot
+# the Tire tab lists every owned tire instance with its grade its period and its plus count Equip then Save sends 0x010B
+# the garage Car tab lists the crafted karts first their detail box lists the chassis and the seven parts with the wrench bar
+waitfor lobby 400
+wait 40
+click 128 746
+waitfor shop 250
+wait 50
+click 900 112
+wait 20
+click 447 147
+wait 30
+shot slots_shop_chassis
+click 709 385
+waitfor shopitem 100
+wait 20
+shot slots_shop_chassis_popup
+click 436 551
+wait 150
+shot slots_chassis_bought
+click 546 746
+waitfor carcraft 300
+wait 80
+shot slots_open
+click 402 150
+wait 40
+shot slots_second
+click 250 270
+wait 20
+shot slots_second_tires
+click 200 465
+wait 10
+click 158 687
+wait 40
+shot slots_second_tire_equipped
+click 902 682
+wait 150
+shot slots_saved
+click 500 420
+wait 40
+key escape
+waitfor lobby 300
+wait 40
+click 430 746
+waitfor garage 250
+wait 60
+click 628 110
+wait 30
+click 486 229
+wait 30
+shot garage_factory_first
+click 567 229
+wait 30
+shot garage_factory_second
+expect garage
+quit

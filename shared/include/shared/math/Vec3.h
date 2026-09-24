@@ -1,7 +1,3 @@
-/**
- * @file Vec3.h
- * @brief 3D Vector math
- */
 
 #pragma once
 
@@ -11,18 +7,14 @@
 namespace KnC {
 namespace Math {
 
-/**
- * @brief 3D Vector
- */
+/// 3D vector
 struct Vec3 {
     float x, y, z;
     
-    // Constructors
     Vec3() : x(0.0f), y(0.0f), z(0.0f) {}
     Vec3(float x, float y, float z) : x(x), y(y), z(z) {}
     Vec3(float scalar) : x(scalar), y(scalar), z(scalar) {}
     
-    // Operators
     Vec3 operator+(const Vec3& other) const {
         return Vec3(x + other.x, y + other.y, z + other.z);
     }
@@ -75,7 +67,6 @@ struct Vec3 {
         return !(*this == other);
     }
     
-    // Methods
     float Length() const {
         return std::sqrt(x * x + y * y + z * z);
     }
@@ -119,7 +110,6 @@ struct Vec3 {
         return (*this - other).LengthSquared();
     }
     
-    // Static methods
     static Vec3 Zero() { return Vec3(0.0f, 0.0f, 0.0f); }
     static Vec3 One() { return Vec3(1.0f, 1.0f, 1.0f); }
     static Vec3 UnitX() { return Vec3(1.0f, 0.0f, 0.0f); }
@@ -137,6 +127,6 @@ struct Vec3 {
     }
 };
 
-} // namespace Math
-} // namespace KnC
+}
+} // namespace Math KnC
 

@@ -2,7 +2,7 @@
 
 **Thank you for considering contributing to Kart N'Chibi!**
 
-This project was made in **free time for fun**, so code can be messy in places. We welcome contributions to improve it =D YAP!
+This is a study project, reversing and rebuilding a 2010 kart racer server first. The server is the reference, the client rewrite adapts to the server, never the other way. We welcome contributions that keep that rule =D
 
 ---
 
@@ -48,7 +48,7 @@ We are committed to providing a welcoming and inspiring community for all
 **Before submitting a bug report:**
 1. Check if it's already reported in [Issues](https://github.com/davedevils/KartNChibi/issues)
 2. Test with the latest version
-3. Test with DevClient to verify protocol compatibility
+3. Test with the stock client or the headless client (`tools/headless`) to verify protocol compatibility
 
 **When submitting:**
 ```markdown
@@ -67,9 +67,9 @@ What should happen
 What actually happens
 
 ### Environment
-- OS: Windows 11
-- Build: Release/Debug
-- Version: [commit hash or version]
+- OS: Windows 10 or 11
+- Build: Release
+- Version: [commit hash]
 
 ### Logs
 ```
@@ -80,8 +80,9 @@ Paste relevant logs here
 ### 💡 Suggesting Features
 
 **Before suggesting:**
-- Check if it's already proposed in [Issues](https://github.com/davedevils/KartNChibi/issues) or [Discussions](https://github.com/davedevils/KartNChibi/discussions)
-- Consider if it fits the project's educational/preservation goals
+- Check if it's already proposed in [Issues](https://github.com/davedevils/KartNChibi/issues)
+- Consider if it fits the project's educational and preservation goals
+- Remember the server is the reference, a feature the stock client never had is out of scope
 
 **Feature request template:**
 ```markdown
@@ -107,7 +108,7 @@ We welcome:
 - **Bug fixes** 🐛
 - **Code cleanup** 🧹
 - **Performance improvements** ⚡
-- **New features** ✨
+- **New features that match stock behaviour** ✨
 - **Test coverage** 🧪
 - **Documentation** 📚
 - **Tooling improvements** 🛠️
@@ -115,20 +116,18 @@ We welcome:
 ### 📝 Documentation Contributions
 
 Help improve:
-- API documentation
-- Protocol documentation
-- User guides
+- Engine API docs in `docs/engine/`
+- Protocol docs in `docs/packets/`
+- Build and contributing guides
 - Code comments
-- README files
 - Tutorial content
 
 ### 🌍 Translations
 
 Help translate:
-- UI text
+- UI text in the client rewrite
 - Documentation
 - Error messages
-- Comments (optional)
 
 ---
 
@@ -136,9 +135,10 @@ Help translate:
 
 ### Prerequisites
 
-- **Windows** (or Linux )
-- **Visual Studio 2022/2019** with C++ Desktop Development
-- **CMake 3.15+**
+- **Windows** 10 or 11, x64
+- **Visual Studio 2022**, any edition, C++ desktop workload, toolset v143
+- **CMake 3.21** or later
+- **Docker Desktop** for the server image
 - **Git**
 
 ### Clone and Build
@@ -146,24 +146,27 @@ Help translate:
 ```bash
 # Clone your fork
 git clone https://github.com/YOUR_USERNAME/KartNChibi.git
-cd knc-clone
+cd KartNChibi
 
 # Add upstream remote
 git remote add upstream https://github.com/davedevils/KartNChibi.git
 
-# Build
-scripts\build.bat release
+# Get the submodules
+git submodule update --init --recursive
 ```
+
+See **[BUILD.md](BUILD.md)** for the full build steps, the scripts and the output layout.
 
 ### Project Structure
 
 ```
 📦 Kart N'Chibi
-├── client/         # Client code
-├── server/         # Server code
-├── engine/         # Engine (NIF, render, UI)
-├── shared/         # Shared library
-├── tools/          # Development tools
+├── server/         # Login server, game server, web admin
+├── shared/         # Shared code, packets, sessions, database
+├── engine/         # Engine (render, formats, RHI, physics, UI)
+├── games/kart/     # Kart game layer, race, items, physics
+├── client/         # Client rewrite, builds as knc_client
+├── tools/          # Development tools, headless client, viewers
 ├── docs/           # Documentation
 ├── tests/          # Tests
 └── scripts/        # Build scripts
@@ -172,13 +175,12 @@ scripts\build.bat release
 ### Running Tests
 
 ```bash
-# Build with tests enabled
-cmake .. -DBUILD_TESTS=ON
-cmake --build . --config Release
-
-# Run tests
-ctest -C Release
+# Server tests, off by default, gtest fetched at configure time
+cmake -S server -B build-server -DKNC_BUILD_TESTS=ON
+cmake --build build-server --config Release
 ```
+
+Engine tests are targets of the main solution, run the `test_*.exe` in `release/` after building with `cmake --preset vs2022`.
 
 ---
 
@@ -197,58 +199,36 @@ git checkout -b feature/my-awesome-feature
 
 ### 2. Make Changes
 
-- Write clean, readable code
-- Follow existing code style
-- Add comments for complex logic
-- Update documentation if needed
+- Follow the style of the file you are in, C++17
+- Comments are one line, at most twenty words, letters, digits, space and `@ % - " '`. Say what the code cannot say, an address, an offset, a unit, a rule
+- No banners, no file headers, no history in comments, no commented out code
+- Update the matching doc in `docs/engine/` in the same commit, the map is in `docs/engine/INDEX.md`
+- Nothing generated in the tree, no build output, no logs, no captures
 
 ### 3. Test Thoroughly
 
-- ✅ Build succeeds (Release and Debug)
+- ✅ Build succeeds (Release)
 - ✅ No new compiler warnings
 - ✅ Existing tests pass
 - ✅ New features have tests
-- ✅ **Test with official client** (protocol compatibility!)
+- ✅ **Test with the stock or headless client** when packets are touched (protocol compatibility!)
+- ✅ The servers, the headless client and the client dll build, the engine solution when it is touched
 
 ### 4. Commit
 
+One change per commit.
+
 ```bash
-# Stage your changes
-git add .
-
-# Commit with a descriptive message
-git commit -m "feat: add replay recording system
-
-- Implement packet capture to file
-- Add replay playback functionality
-- Update documentation
-- Add unit tests
-
-Closes #123"
+git add <files>
+git commit -m "fix the room craft ack sent before the object catalogue"
 ```
 
 **Commit message format:**
 ```
-type: brief description (50 chars max)
+Present tense, one line of subject.
 
-Detailed description of what changed and why.
-Can be multiple paragraphs.
-
-- Bullet points for key changes
-- Reference issues: Closes #123, Fixes #456
-
-Breaking Changes: (if any)
+A short body when the why is not obvious. No trailers.
 ```
-
-**Types:**
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation only
-- `style`: Code style (formatting, no logic change)
-- `refactor`: Code restructuring
-- `perf`: Performance improvement
-- `test`: Adding tests
-- `chore`: Maintenance tasks
 
 ### 5. Push & PR
 
@@ -276,18 +256,18 @@ Brief description of changes
 - [ ] Documentation update
 
 ## Testing
-- [ ] Built successfully (Release/Debug)
-- [ ] Tested with Official Client (protocol compatibility)
+- [ ] Built successfully (Release)
+- [ ] Tested with stock or headless client (protocol compatibility)
 - [ ] Added/updated tests
 - [ ] All tests pass
 
 ## Checklist
 - [ ] Code follows project style
 - [ ] Self-reviewed the code
-- [ ] Commented complex parts
-- [ ] Updated documentation
+- [ ] Comments kept to one line
+- [ ] Updated the matching doc in docs/engine/
 - [ ] No new warnings
-- [ ] Added tests
+- [ ] No generated files committed
 
 ## Screenshots (if applicable)
 
@@ -297,7 +277,7 @@ Closes #123
 
 ### 6. Code Review
 
-- Maintainers will review your PR
+- The maintainer will review your PR
 - Address feedback promptly
 - Be open to suggestions
 - Keep discussions respectful
@@ -305,9 +285,9 @@ Closes #123
 ### 7. Merge
 
 Once approved:
-- Maintainer will merge
+- Maintainer merges it
 - Your contribution is live!
-- You're added to contributors list 🎉
+- You're added to the contributors list 🎉
 
 ---
 
@@ -319,25 +299,33 @@ Once approved:
 - Use **C++17** features
 - Prefer `const` and `constexpr`
 - Use RAII for resource management
-- Avoid raw pointers (use smart pointers)
+- No raw owning pointers, `std::unique_ptr` for ownership
 
 **Naming:**
 ```cpp
+// Namespaces: PascalCase, nested
+namespace KnC {
+namespace Engine { }
+namespace Render { }
+namespace Kart {
+namespace Client { }
+}
+}
+
 // Classes: PascalCase
 class PlayerManager { };
 
-// Functions: PascalCase or camelCase (be consistent)
+// Functions: PascalCase
 void UpdatePosition();
-void handlePacket();
 
 // Variables: camelCase
 int playerCount;
 float velocityX;
 
 // Constants: UPPER_SNAKE_CASE
-const int MAX_PLAYERS = 12;
+constexpr int MAX_PLAYERS = 12;
 
-// Members: m_ prefix (optional but preferred)
+// Members: m_ prefix
 class Player {
 private:
     int m_id;
@@ -347,70 +335,47 @@ private:
 
 **Formatting:**
 ```cpp
-// Braces on new line (Allman style preferred)
-if (condition)
-{
-    DoSomething();
-}
-
-// Or K&R style (acceptable)
-if (condition) {
-    DoSomething();
-}
-
-// Indentation: 4 spaces (no tabs)
-void Function()
-{
-    if (something)
-    {
+// Braces on the same line, K&R style
+void Function() {
+    if (something) {
         DoThis();
     }
 }
+
+// Indentation: 4 spaces, no tabs
+// Soft limit 100 chars, hard limit 120
 ```
 
 **Headers:**
 ```cpp
-// Use header guards
 #pragma once
-
-// Or include guards
-#ifndef PLAYER_H
-#define PLAYER_H
-// ...
-#endif
 
 // Include order:
 // 1. Corresponding header
-// 2. C system headers
-// 3. C++ system headers
-// 4. Third-party headers
-// 5. Project headers
+// 2. C++ system headers
+// 3. Third-party headers
+// 4. Project headers, shared first, then engine, then local
 ```
 
 **Comments:**
 ```cpp
-// Use English for comments
-// Brief comments for simple logic
 int count = 0;  // Player count
+float kmh = speed * 3.6f;  // 0x5A69A8 speed to km per hour
 
-// Detailed comments for complex logic
-/**
- * Handles position update packet from server.
- * Updates local player position and interpolates
- * between server snapshots for smooth movement.
- * 
- * @param packet The position update packet
- * @return true if update successful
- */
-bool HandlePositionUpdate(const Packet& packet);
+// TODO open physics/RIGID_BODY.md wheel offset
 ```
+
+- One line, at most twenty words
+- Only letters, digits, space and `@ % - " '`, no other punctuation
+- Say what the code cannot say, an address, an offset, a unit, a rule. Delete the rest
+- Identifiers from the client keep a space, `sub 47F800`, `FUN 00418e00`
 
 ### Documentation
 
-- **Public APIs**: Must have Doxygen comments
-- **Complex algorithms**: Explain the approach
-- **Magic numbers**: Use named constants
-- **TODOs**: Format as `// TODO(name): description`
+- **Public APIs**: short `/** @brief */` Doxygen comments, see `docs/engine/INDEX.md`
+- **Complex algorithms**: one line pointing at the source doc, not a paragraph
+- **Magic numbers**: named `constexpr`, the source address in the comment
+- **TODOs**: `// TODO open <doc> <item>`, no parentheses or colon
 
 ---
 
@@ -446,15 +411,14 @@ Test full workflows:
 
 ### Protocol Compatibility Tests
 
-**Critical:** Always test with real client
-```bash
-# 1. Run your server
-release\gateway.exe
-release\game.exe
+**Critical:** always test against a real client when packets change
 
-# 2. Run real client
-cd Client
-KnC.exe
+```bash
+# 1. Run the servers
+release\LoginServer.exe
+release\GameServer.exe
+
+# 2. Run the stock client, or tools/headless if you don't have one
 
 # 3. Verify:
 # - Can connect
@@ -471,33 +435,19 @@ KnC.exe
 ### Code Documentation
 
 ```cpp
-/**
- * @brief Sends a packet to the server
- * @param packet The packet to send
- * @param reliable Whether to use reliable delivery
- * @return true if sent successfully
- * 
- * @throws NetworkException if connection is lost
- * 
- * @note This is a blocking operation
- * @warning Not thread-safe, use mutex if multi-threaded
- * 
- * @example
- * Packet p = CreateLoginPacket(username, password);
- * if (SendPacket(p, true)) {
- *     // Wait for response
- * }
- */
+/** @brief Sends a packet to the server, blocking until it is written */
 bool SendPacket(const Packet& packet, bool reliable = false);
 ```
 
+- Public headers carry a short `/** @brief */` summary, maintained when the API changes
+- Regenerate the HTML reference with `docs/engine/generate_docs.bat`
+
 ### Markdown Documentation
 
-- Use **clear headings**
-- Include **code examples**
-- Add **diagrams** where helpful
-- Keep **tables** for structured data
-- Update **related docs** when changing code
+- Plain short English, simple words, no emoji, no badges (this file and `BUILD.md` are the deliberate exception)
+- The doc that describes a file changes in the same commit as the file, the map is in `docs/engine/INDEX.md`
+- New reverse findings go to `docs/packets`, the registry row first
+- Old material that stops being accurate gets removed, not archived
 
 ---
 
@@ -505,9 +455,10 @@ bool SendPacket(const Packet& packet, bool reliable = false);
 
 ### Where to Get Help
 
-- 💬 **[GitHub Discussions](https://github.com/davedevils/KartNChibi/discussions)** - General questions
+- 💬 **[Development Discord](https://discord.gg/CKyNXXR2jj)** - Questions and general discussion
+- 🎮 **[chibikart.gg private server Discord](https://discord.gg/mKSc55hr5H)**
 - 🐛 **[GitHub Issues](https://github.com/davedevils/KartNChibi/issues)** - Bugs and features
-- 📖 **[Documentation](docs/)** - Technical reference
+- 📖 **[Documentation](docs/)** - Technical reference, `docs/README.md` first
 
 ### Communication Guidelines
 
@@ -522,10 +473,9 @@ bool SendPacket(const Packet& packet, bool reliable = false);
 ## 🎁 Recognition
 
 Contributors are recognized in:
-- **CONTRIBUTORS.md** file
 - **GitHub Contributors** page
-- Release notes (for significant contributions)
-- Project documentation (for doc contributors)
+- Release notes, `CHANGELOG.md`, for significant contributions
+- Project documentation, for doc contributors
 
 ---
 
@@ -539,7 +489,7 @@ See [LICENSE.md](LICENSE.md) for details.
 
 ## ❓ Questions?
 
-Not sure about something? Ask in an issue ! or dm me on discord at davedevils ? 
+Not sure about something? Ask in an issue, or dm me on discord at davedevils
 
 ---
 
@@ -550,4 +500,3 @@ Not sure about something? Ask in an issue ! or dm me on discord at davedevils ?
 *Every contribution, no matter how small, helps preserve gaming history and educates others.*
 
 </div>
-

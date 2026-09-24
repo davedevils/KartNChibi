@@ -1,7 +1,3 @@
-/**
- * @file Database.cpp
- * @brief MariaDB connection pool
- */
 
 #include "db/Database.h"
 #include "logging/Logger.h"
@@ -56,7 +52,6 @@ MYSQL* Database::getConnection() {
     MYSQL* conn = m_pool.front();
     m_pool.pop();
     
-    // Check connection still valid
     if (mysql_ping(conn) != 0) {
         mysql_close(conn);
         conn = mysql_init(nullptr);
@@ -107,9 +102,11 @@ std::vector<std::map<std::string, std::string>> Database::query(const std::strin
         
         MYSQL_ROW row;
         while ((row = mysql_fetch_row(res))) {
+            // real lengths else a blob with an embedded null truncates at strlen
+            unsigned long* lens = mysql_fetch_lengths(res);
             std::map<std::string, std::string> rowMap;
             for (int i = 0; i < numFields; ++i) {
-                rowMap[fields[i].name] = row[i] ? row[i] : "";
+                rowMap[fields[i].name] = row[i] ? std::string(row[i], lens[i]) : "";
             }
             results.push_back(rowMap);
         }
@@ -120,14 +117,10 @@ std::vector<std::map<std::string, std::string>> Database::query(const std::strin
     return results;
 }
 
-// =============================================================================
-// SECURE METHODS - SQL Injection Prevention
-// =============================================================================
-
 std::string Database::escapeString(const std::string& input) {
     MYSQL* conn = getConnection();
     if (!conn) {
-        // Fallback: basic escaping without connection
+        // fallback basic escaping without a connection
         std::string result;
         result.reserve(input.size() * 2);
         for (char c : input) {
@@ -145,7 +138,6 @@ std::string Database::escapeString(const std::string& input) {
         return result;
     }
     
-    // Use MySQL's proper escaping function
     std::vector<char> buffer(input.size() * 2 + 1);
     unsigned long len = mysql_real_escape_string(conn, buffer.data(), input.c_str(), 
                                                   static_cast<unsigned long>(input.size()));
@@ -153,8 +145,7 @@ std::string Database::escapeString(const std::string& input) {
     return std::string(buffer.data(), len);
 }
 
-bool Database::executePrepared(const std::string& sql, const std::vector<std::string>& params) {
-    // Build query by replacing ? placeholders with escaped values
+bool Database::executePreparedRaw(const std::string& sql, const std::vector<std::string>& params) {
     std::string finalSql;
     finalSql.reserve(sql.size() + params.size() * 32);
     
@@ -178,11 +169,10 @@ bool Database::executePrepared(const std::string& sql, const std::vector<std::st
     return execute(finalSql);
 }
 
-std::vector<std::map<std::string, std::string>> Database::queryPrepared(
+std::vector<std::map<std::string, std::string>> Database::queryPreparedRaw(
     const std::string& sql, 
     const std::vector<std::string>& params
 ) {
-    // Build query by replacing ? placeholders with escaped values
     std::string finalSql;
     finalSql.reserve(sql.size() + params.size() * 32);
     
@@ -242,11 +232,11 @@ std::string Database::escapeString(const std::string& input) {
     return result;
 }
 
-bool Database::executePrepared(const std::string&, const std::vector<std::string>&) {
+bool Database::executePreparedRaw(const std::string&, const std::vector<std::string>&) {
     return false;
 }
 
-std::vector<std::map<std::string, std::string>> Database::queryPrepared(
+std::vector<std::map<std::string, std::string>> Database::queryPreparedRaw(
     const std::string&, const std::vector<std::string>&
 ) {
     return {};
@@ -254,5 +244,147 @@ std::vector<std::map<std::string, std::string>> Database::queryPrepared(
 
 #endif
 
-} // namespace knc
 
+namespace {
+std::string bindParams(const std::string& sql,
+                       const std::vector<std::string>& params,
+                       Database& db) {
+    std::string out;
+    out.reserve(sql.size() + params.size() * 32);
+    size_t p = 0;
+    for (char ch : sql) {
+        if (ch == '?' && p < params.size()) {
+            out += char(39);
+            out += db.escapeString(params[p]);
+            out += char(39);
+            ++p;
+        } else {
+            out += ch;
+        }
+    }
+    return out;
+}
+}
+
+Transaction Database::beginTransaction() {
+    Transaction tx;
+#ifdef KNC_HAS_MARIADB
+    MYSQL* conn = getConnection();
+    if (!conn) return tx;
+    if (mysql_real_query(conn, "START TRANSACTION", 17) != 0) {
+        LOG_ERROR("DB", std::string("START TRANSACTION failed: ") + mysql_error(conn));
+        releaseConnection(conn);
+        return tx;
+    }
+    tx.m_conn = conn;
+#endif
+    return tx;
+}
+
+Transaction::~Transaction() {
+    if (m_conn && !m_done) rollback();
+#ifdef KNC_HAS_MARIADB
+    if (m_conn) {
+        Database::instance().releaseConnection(static_cast<MYSQL*>(m_conn));
+        m_conn = nullptr;
+    }
+#endif
+}
+
+bool Transaction::execute(const std::string& sql, const DbParams& params) {
+#ifdef KNC_HAS_MARIADB
+    if (!m_conn) return false;
+    const std::string q = bindParams(sql, Database::flatten(params), Database::instance());
+    MYSQL* conn = static_cast<MYSQL*>(m_conn);
+    if (mysql_real_query(conn, q.c_str(), static_cast<unsigned long>(q.size())) != 0) {
+        LOG_ERROR("DB", std::string("tx execute failed: ") + mysql_error(conn) + " | " + q);
+        return false;
+    }
+    return true;
+#else
+    (void)sql; (void)params;
+    return false;
+#endif
+}
+
+std::vector<std::map<std::string, std::string>> Transaction::query(
+        const std::string& sql, const DbParams& params) {
+    std::vector<std::map<std::string, std::string>> rows;
+#ifdef KNC_HAS_MARIADB
+    if (!m_conn) return rows;
+    const std::string q = bindParams(sql, Database::flatten(params), Database::instance());
+    MYSQL* conn = static_cast<MYSQL*>(m_conn);
+    if (mysql_real_query(conn, q.c_str(), static_cast<unsigned long>(q.size())) != 0) {
+        LOG_ERROR("DB", std::string("tx query failed: ") + mysql_error(conn) + " | " + q);
+        return rows;
+    }
+    MYSQL_RES* res = mysql_store_result(conn);
+    if (!res) return rows;
+    const unsigned nf = mysql_num_fields(res);
+    MYSQL_FIELD* fields = mysql_fetch_fields(res);
+    MYSQL_ROW row;
+    while ((row = mysql_fetch_row(res))) {
+        unsigned long* lens = mysql_fetch_lengths(res);
+        std::map<std::string, std::string> r;
+        for (unsigned i = 0; i < nf; ++i)
+            r[fields[i].name] = row[i] ? std::string(row[i], lens[i]) : "";
+        rows.push_back(std::move(r));
+    }
+    mysql_free_result(res);
+#else
+    (void)sql; (void)params;
+#endif
+    return rows;
+}
+
+uint64_t Transaction::lastInsertId() {
+#ifdef KNC_HAS_MARIADB
+    if (!m_conn) return 0;
+    return static_cast<uint64_t>(mysql_insert_id(static_cast<MYSQL*>(m_conn)));
+#else
+    return 0;
+#endif
+}
+
+uint64_t Transaction::affectedRows() {
+#ifdef KNC_HAS_MARIADB
+    if (!m_conn) return 0;
+    const my_ulonglong n = mysql_affected_rows(static_cast<MYSQL*>(m_conn));
+    return n == static_cast<my_ulonglong>(-1) ? 0 : static_cast<uint64_t>(n);
+#else
+    return 0;
+#endif
+}
+
+bool Transaction::commit() {
+#ifdef KNC_HAS_MARIADB
+    if (!m_conn || m_done) return false;
+    m_done = true;
+    MYSQL* conn = static_cast<MYSQL*>(m_conn);
+    if (mysql_real_query(conn, "COMMIT", 6) != 0) {
+        LOG_ERROR("DB", std::string("COMMIT failed: ") + mysql_error(conn));
+        return false;
+    }
+    return true;
+#else
+    return false;
+#endif
+}
+
+void Transaction::rollback() {
+#ifdef KNC_HAS_MARIADB
+    if (!m_conn || m_done) return;
+    m_done = true;
+    MYSQL* conn = static_cast<MYSQL*>(m_conn);
+    mysql_real_query(conn, "ROLLBACK", 8);
+#endif
+}
+
+std::vector<std::string> Database::flatten(const DbParams& in) {
+    std::vector<std::string> out;
+    out.reserve(in.size());
+    for (const DbParam& p : in) out.push_back(p.s);
+    return out;
+}
+
+} // namespace knc

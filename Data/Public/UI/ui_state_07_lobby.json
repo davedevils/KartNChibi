@@ -1,0 +1,110 @@
+{
+  "version": "1.0",
+  "state": 7,
+  "name": "Lobby",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "image_0",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Lobby/Lobby_Back.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_1",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Lobby/Lobby_Chat_All.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_2",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Lobby/Lobby_Chat_Whisper.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_3",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Lobby/Lobby_Top.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "button_4",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Lobby/Lobby_Quick_S_Single_",
+      "position": [
+        406,
+        101
+      ]
+    },
+    {
+      "id": "button_5",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Lobby/Lobby_Quick_S_Team_",
+      "position": [
+        487,
+        101
+      ]
+    },
+    {
+      "id": "button_6",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Lobby/Lobby_Quick_I_Single_",
+      "position": [
+        596,
+        101
+      ]
+    },
+    {
+      "id": "button_7",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Lobby/Lobby_Quick_I_Team_",
+      "position": [
+        677,
+        101
+      ]
+    },
+    {
+      "id": "button_8",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Lobby/Common_Create_",
+      "position": [
+        895,
+        101
+      ]
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+# Client camera and kart visuals
+
+Read on 2026-09-15 in KnC.exe.raw (Ghidra project Reverse HBO, image base 0x400000). The race camera, the driver seat, the wheel matrices and the kart body matrix, each on the bytes, then what our client does with it. The port lives in `client/race/RaceView.cpp` (`ChaseCamera`), `client/race/RaceSim.cpp` (`RaceSim::pose`, the visual feed) and `tools/track_scene/ghost_car.cpp`.
+
+## The camera object
+
+One global camera at 0x5C8310, `camera_init` 0x4408D0 fills it, `camera_update` 0x43F040 runs it once per rendered frame (the stock ran at 60 frames a second, every per frame constant below is per 1/60 s), `camera_fov_update` 0x43E850 sets the frustum through the EngineDLL camera at camera+0x18 (vtable+0x14 takes fov, near, far, aspect), the look at goes through vtable+0x18 with camera+0x98 and camera+0xBC.
+
+| Field | Meaning |
+|---|---|
+| camera+0x8 | field of view radians, 1.05 at init (0x3F866666) |
+| camera+0xC camera+0x10 | near 0.001 (0x3A83126F) and far 5000, `camera_far_clip_set` 0x43E520 then sets far to the track fog far (0xC3 record 0x58) |
+| camera+0x14 camera+0x210 | aspect, `((w / h) - 0x5A32E0) * 0.5 + 0x5A32DC` |
+| camera+0x64 | mode, 1 chase, 2 3 5 6 7 8 9 0xB 0xC 0xD 0xF 0x10 the other views, 0 off |
+| camera+0x74 | heading degrees, `camera_heading_get` 0x43E7D0, the sound pan reads it |
+| camera+0x8C to 0x94 | the eye target of the frame |
+| camera+0x98 to 0xA0 | the eye, DAT_005C83A8 the sound listener and the boost effect anchor |
+| camera+0xB0 to 0xB8 | the look point target |
+| camera+0xBC to 0xC4 | the look point |
+| camera+0x1C0 | transition factor, 15 on a mode switch, times 0.972 (0x5A3248) per frame down to 1 |
+| camera+0x1E8 | shake, `camera_shake_kick` 0x43EAD0 raises it, times 0.84 (0x5A3240) per frame |
+| camera+0x1F0 | boost zoom, `camera_boost_zoom_update` 0x43E980, no writer sets its state DAT_02EB0390 to 1 in this build so it stays 0 |
+| camera+0x200 | the target car index |
+| camera+0x20C | the base field of view 1.05 |
+| camera+0x214 | one while the look back key is down, the reversed view |
+
+## Mode 1, the chase
+
+`camera_update` 0x43F040 from 0x43F40C. Every value below was read off the disassembly, the constants at their addresses.
+
+1. Position of the car `camera_car_position_get` 0x43E3D0 copies car+0x3244, the yaw is car+0x3220.
+2. Heading target = yaw + 90 (0x5A323C) minus the drift swing, 0x43F45A. The swing is `(DAT_02EB0238 + 0.6 (0x5A164C)) * gauge + (1 - DAT_02EB0228) * 0.2 (0x5A15EC) * gauge` with the raw drift gauge car+0x35A8, the two globals have no writer so it is 0.8 times the gauge, up to 36 degrees. Vehicle kinds 10 and 11 take the gauge itself.
+3. The heading eases: the wrapped delta moves it by a quarter (0x5A32D4) per frame past a tenth of a degree (0x5A2494 and 0x5A32D8), by 1/32 (0x5A32D0) while the start light DAT_01A20B21 is 2 or 6. Only the heading lags, the position snaps.
+4. Field of view `camera_fov_update` 0x43E850: `fov = ((zoom - 1) * 0.15 (0x5A3220) + 1) * speed * 0.003 (0x5A321C) + 1.05 (0x5A3218) - 0.1 (0x5A2494)` clamped to 1.05 .. 1.8 (0x5A3214) radians, the speed is car+0x3234 in units per second (km/h over 1.728). With the zoom at 0 the field starts widening past 39 units a second (68 km/h): 63 degrees at 100 km/h, 70 at 180, 76 at 250. Licence mode 0xD keeps 1.05, the look back view 0.85.
+5. Distance 0x43F4FB: `0.9 (0x5A32C8) * (stat14 - (fov - 1.05) * 12 (0x5A32CC) + zoom * 0.6 + DAT_02EB022C)`. stat14 is car+0x3480, the 0xC0 row float 14 (rec+0xDC), 9.0 on the shipped rows. 8.1 at rest, 7.6 at 100 km/h, 6.3 at 180.
+6. Pitch 0x43F54D: `stat15 - clamp(car pitch car+0x3224 * 2.5 (0x5A18B0), 0, 35 (0x5A32C4))` degrees, stat15 is car+0x3484, the row float 15, 37.0 shipped. A nose up car lowers the camera.
+7. Eye = car + `math_dir_from_heading_pitch` 0x44DD50 (heading, pitch) times the distance, the direction is (sin h cos p, cos h cos p, sin p), with h = yaw + 90 that is minus the car forward, the eye sits behind and above. Look point = car + (0, 0, stat16), car+0x3488, the row float 16, 3.5 shipped.
+8. Special theme row (`world_theme_is_special_row` 0x487230): distance minus 1 (0x59F480), pitch term plus 2 (0x5A24EC). Licence mode 0xD: distance at least 8.4 (0x5A32C0), pitch 37 (0x5A32BC), look height 3.5.
+9. 0x43F9D3: the eye goes to its target divided by `factor * camera+0x1C0`, factor 1 after the green, 2 for x y and 8 for z while the light is 2 or 6, so the countdown pans in.
+10. The look point copies its target in mode 1. The shake at camera+0x1E8 decays by 0.84 and while it is 1 or more `camera_shake_jitter` 0x43EAF0 adds `rand() % int(shake) * 0.0001 (0x5A8418)` to each look axis. The countdown kicks 8000 at the 3 and 5000 at the 2 1 and go (FUN_00486DF0), the landing kicks speed times 250 (0x5A6A34).
+
+The row tail proves the licence constants: 8.4 37 3.5 in the code, 9.0 37 3.5 on the wire, distance pitch height.
+
+Our port: `ChaseCamera::update` in `client/race/RaceView.cpp` with the same numbers, the per frame blends turned into `1 - (1 - k) ^ (dt * 60)`. The field goes to the scene renderer every frame through `set_field_of_view`, the distance is the stock one, no scaling. The shake of camera+0x1E8 is ported (`kick`, the 0.84 decay, the `rand() % shake * 0.0001` jitter on the look point). The special theme term is not wired. `KNC_CAMERA_LOG=1` prints the camera state every 25 frames. The sample server fills the 17 wire floats with placeholders near 0.5, so a sample race looks at car+0.5 instead of car+3.5, the real rows give 3.5.
+
+## The projection
+
+The exe never builds the projection itself. `camera_fov_update` hands `(fov, near, far, aspect)` to the EngineDLL camera object (`NK_instantiateClass` with the CLSID at 0x5A15BC, the class constructor is EngineDLL 0x10005870, its vtable 0x10202360). Slot 5 at 0x10005F70 builds a Gamebryo NiFrustum: `top = tan(fov / 2)`, `bottom = -top`, `right = tan(fov * aspect / 2)`, `left = -right` (the half angle constant 0.5 at 0x102041C8, `fptan` twice), then passes it on. So the fov is the vertical field, and the aspect parameter multiplies the ANGLE, not the tangent. The aspect parameter is `camera_init` 0x4408D0: `((w / h) - 1.778 (0x5A32E0)) * 0.5 + 1.35 (0x5A32DC)`, 1.128 on a 4 by 3 window, 1.35 on 16 by 9. On 4 by 3 the base field 1.05 gives 60.2 degrees vertical and 67.9 horizontal where a true 4 by 3 lens would give 75.5, the picture is 11 percent narrower than the window aspect. The near plane is 0.001 then 10, the far 5000 then the track fog far.
+
+Port: `stockHorizontalField` in `RaceView.cpp` applies the rule, `RaceView::present` sets both fields on the renderer before every draw, the orbit preview keeps the base 1.05. The fixed fields by mode from the jump table of `camera_fov_update` at 0x43E958 and 0x43E96C: modes 1 15 16 the speed formula, 4 and 12 take 0.8, 8 takes 0.65, 14 takes 0.5, every other mode 1.05.
+
+Checked on the captures: the stock race frame at 148 km/h and ours at 182 km/h give the same rear tyre span within 12 percent (276 against 308 px at 1024 wide, the karts differ), the podium frame puts the 2 and 3 digits of the podium at the same x as the stock frame.
+
+## Mode 9, the finish
+
+`sub_47A5C0`, the 0x3C handler, plays the win clip 9 on the driver, answers 0x58 state 9, plays the winner cue on rank 0 else the finish cue, then `FUN_0043ED70(9, -1, 1.0)`. Mode 9 at 0x44007C: heading = yaw - 90 + 15 (0x5A3230), eye = car + `FUN_0044DF00(heading, 6.0, 3.0)` that is 6 units along `(sin h, cos h)` and 3 up, in front of the car 15 degrees off the nose, look = car + (0, 0, 1.8 (0x5A3214)), the transition factor 1.0 so the eye snaps, field 1.05. The 0x46 handler `sub_47A760` stores the rows, sets the board flag, sets the finished flag and the clip 9 or 10 on the local driver and starts the race end at state 2000 of `FUN_00401D90`: 2000 sets mode 9 again and stamps the time, 2010 waits 6000 ms, then `FUN_0043D7E0(2, 300)` fades to black over 300 ms, 2020 waits for the fade, hides the board (`FUN_004B6820`), fades in over 300 ms, sets mode 8 and loads the podium, 2030 is the podium. The system line of the capture is the server's 0x00CE game message `MSG_LEVEL_UP`, the def trans line `%s levels up!!!` with the player name, drawn top right by the hud message area.
+
+Port: `ChaseCamera::finish`, `RaceView::drawFinish`, the race end in `RaceScreen::updateFinish` with the same timers, the hud goes away at the finish as the capture shows, the name plates and the system line stay, `RaceSession` parses 0x00CE.
+
+## Mode 8, the podium
+
+`FUN_0048A120` on the world object 0x1ADF810: the podium sits at the midpoint of the first and the last start row (+0x92D8), yaw the mean row heading minus 90 (+0x92E4, plus 90 on a special theme row), the nif `Effect/Podium/winer_02` or `winer_01` in team mode (0xB23182), placed by `FUN_00444790` as RotationZ of minus (yaw + 180). The five drop heights at +0x92F8 are 60 80 100 120 120 (team 80 80 80 80 100). State 2030 waits 1500 ms then lowers them by 50 (0x59F450) per second to 0, the karts fall on the steps. `FUN_0048A3E0` seats a finisher each frame from `cars_frame_update` while +0x92D4 is set: rank 0 (0.084, 0.023, 6.53), rank 1 (0.084, 6.14, 4.68), rank 2 (0.084, -6.14, 3.74), the ranks past three behind at (-6, 6.936 or 2.339 or -2.258 or -6.855, 0.5), team ranks 0 to 3 at (0.084, -6.6 or -2.2 or 2.2 or 6.6, 2.8), plus the drop height, kart yaw = podium yaw + 170 (0x5A66F0) - 90. Every offset is in world axes, every shipped start row has heading 0 so it works. Mode 8 camera: eye = podium + (-35.4, 10.3, 9.0), look = podium + (-15.7, 4.7, 8.0) (0x5A3264 0x5A3260 0x5A325C 0x5A3258 0x5A3254 0x5A15F0), field 0.65. The stage clock `FUN_00486DF0` on +0x9320 from the load time: 1601 ms shake 8000 and sound handle +0x9310, 2701 ms shake 5000 and +0x9314, 3101 ms and +0x9318, 3501 ms and +0x931C then stage 4 `drivers_play_result_clip`, 3901 ms +0x9310 again when ranks past three exist, then +0x930C; a stage past the finisher count jumps to the clips. The three thumps are the landings of the 60 80 100 drops (1.5 + 1.2, 1.6, 2.0 s). Name plates over the karts are raised by 50 px in podium mode (`FUN_00499180`), the own kart gets one too. Nothing in the exe leaves state 2030, the server's room screen ends it.
+
+The WIN sign of `winer_02.nif` is a 162 vertex plate under a NiNode whose NiTransformController flies it over 1.67 s from (0, -31.8, 20.3) to (0.11, -2.99, 4.65), its two wings flap on their own nodes. In the file frame that landing spot is the box face whose digits read mirrored, the readable face is the other one, and the capture shows the sign on the readable face. So the engine places node positions with x and y negated, the same wire rule the car body matrix follows, and the port negates x and y of the root level animated node translations of the podium before it uploads the model. The sign is also a blended part, so it needs the accumulator sort by the bound centre to draw after the box.
+
+The room screen camera is mode 14 in the eye and look numbers of `FUN_0043ED70` case 0xe, (-31.5, 10.3, 13.3) to (-17.5, 10.3, 8.3), the look point is the first Floor01 start row. With the mode 14 field 0.5 a kart at that row draws twice as big as the stock room frame shows, the 0.8 field of modes 4 and 12 fits it, and the stock kart centre sits 6.3 above its floor where ours sits 0.8, so `RoomScreen` keeps the eye and look 5.5 lower with the 0.8 field and turns the karts to face the eye. Which mode the room really runs stays open, no room NIF holds a `Camera01` node.
+
+Port: `client/race/PodiumScene.cpp` with the same numbers turned into the grid heading, `RaceScreen::updatePodium` plays `goal_drop_podium_snd`, `goal_drop_player_snd`, `goal_ceremony_snd` on the stage events and forces the win clip on the three steps and the lose clip behind, the podium nif goes through `RaceView::addProp` with its confetti emitters restarted, the client leaves by itself after 20 s of podium when no room screen came.
+
+## The result board
+
+`Panel/Result/Result_Item.png` is inited by `FUN_004B72B0`, drawn by `FUN_004B73F0` only while the game state 0xB2360C is 0xB, the visible flag +0x10DC is set by the 0x46 handler and cleared by state 2020 before the podium, and the record popup of 0x42 mode 5 (`FUN_004B6220`, the ghost mode `Result` box) hides it. The 0.4 s captures of a race never showed it before the room, our race draws no board any more, the rows of 0x46 stay on `RaceSession` for the room side.
+
+## The driver seat
+
+`driver_place_on_car` 0x48B800, every frame, this is the driver manager 0x1AF2BB0, records of 0x7C0 from manager+8. The body node record+0x108 and the nine accessory nodes from record+0x1A4 stride 0x9C all get `D3DXMatrixScaling(1, 1, 1)` at 0x48B860 times `D3DXMatrixTranslation(record+0xEC, +0xF0, +0xF4)` at 0x48B882 times the car matrix car+0x2FE0 at 0x48B93C (car+0x221C the body world matrix instead while car+0x36E0 is 1 and the lean state car+0x36DC is 7 to 9). No rotation, no scale, no per driver or per kart factor. The three floats are `driver_seat_ini_read` 0x48C480: `./Define/Driver/driver_pos_<driver>.ini`, section the kart model name (rec+0x20 of the 0xC0 row), keys x y z, read by `driver_attach_to_car` 0x48D050 when the driver goes on a car, a missing section fails the attach unless the vehicle kind is 1. The pet node record+0x72C gets `D3DXMatrixRotationZ(-pi/2)` times a translation with a hover (manager+0xE8A0 .. +0xE8B4 state machines, 0x5A68C4 .. 0x5A68D8) times the car matrix. `driver_manager_load_driver` 0x48CBB0 loads `Driver/Body/High/<name>/body` and the KFM with no scale, the NIF root and its `main` node carry scale 1. `nif_object_set_scale` 0x444670 has no caller in the driver or the car build.
+
+So the driver is a translation on the kart matrix, our `ghost_driver_instance` does exactly that. The pumpkin head over the roll hoop is the stock look, the kart 0xC0 row Basic_1 is an open frame with a 1.63 to 1.73 headrest arch and the seat pan at 0.63 to 0.81, the driver pelvis at z 0.862 sits on it.
+
+## The wheels
+
+Local car, the tick 0x49D650 to 0x49DBE8, one D3DX chain per wheel into car+0x3020 stride 0x40:
+
+- camber `d3dx_matrix_rotation_x` 0x504649 of plus 0.0873 (0x3DB2B8C2) on wheels 1 and 3 and minus on 0 and 2, vehicle kind 2 takes `-(stat7 + bonus) * car_suspension_shake * deg` instead
+- steer `d3dx_matrix_rotation_z` 0x50478E of car+0x32E4 times 6 (0x5A6A30), times 6 again in a drift, clamped to plus minus 0.5236 (0x5A6AC8 0x5A6ACC) on wheels 0 and 1, 0 on the rear pair
+- spin `d3dx_matrix_rotation_y` 0x5046EB of car+0x32A4 plus 4 i, the body wheel spin negated, a quarter of it while the wheel ground byte is 0
+- then the lean YPR of the wheel, the O_WHEEL node position car+0x3528 raised by the random bump minus car+0x3738, times the car matrix
+
+Remote and ghost cars, `car_visual_update` 0x48E6A0 from 0x48E7C4: the spin adds `speed * -0.01 (0x5A69A4)` per frame, negated while car+0x332D is set, the steer is car+0x32E4 as is, the remote mover eases that to plus minus 0.5236 by an eighth (0x5A32AC) per tick from the turn state bits, the camber is plus minus 0.1396 (0x3E0EFA35).
+
+Port: `ghost_wheels_from_physics` takes the port spin and front steer for the local car, `ghost_wheels_advance` is the remote rule, `ghost_car_instances` builds spin then steer then the O_WHEEL dummy then the car, the D3DX angles become `bx::mtxRotateY(-spin)` and `bx::mtxRotateZ(-steer)`. The camber and the bump are not ported.
+
+## The kart body matrix
+
+Local car, `car_effect_lean_update` 0x49B3D0: car+0x2FE0 = lean times car+0x35B0 times car+0x221C. car+0x221C is the body world matrix `body_finalize_wheels` 0x4EC570 builds with `d3dx_matrix_transformation` 0x504A8F from the orientation quaternion with x and y negated and the position with x and y negated, the wire frame. car+0x35B0 is `d3dx_matrix_rotation_z` of the drift slip, `clamp(stat11 * 0.6 + 1.2, 1.2, 1.8) * gauge smoothed` degrees (the tick 0x49D3C9), up to 73 degrees. The lean is `d3dx_matrix_rotation_yaw_pitch_roll` 0x504A59 (yaw = (stat8 + bonus) * lift * deg, pitch = -(stat9 + bonus) * side * deg, roll 0), lift the gauge size in a drift or `clamp(stat6 * 30, 0, 30)` on a boost, side the suspension shake plus the gauge in a drift. The stat indices here are the tick numbering, car+0x3440 + 4 i.
+
+Remote cars, `car_visual_update` 0x48E8F0: `d3dx_matrix_rotation_z(-(yaw - slip))` times the translation, then the pitch and roll from the ground. At 0x48E948 each of the four O_WHEEL node points car+0x352C goes through that yaw matrix into car+0x3274 stride 0xC and `world_ground_height_at` replaces its z by the ground under it (the ground byte car+0x2DF0 goes 1 when the wheel sits more than 1.2 (0x5A32B0) above it). At 0x48EAE4: front = mean of wheels 0 and 1, rear = mean of 2 and 3, left = 0 and 2, right = 1 and 3, `horizontal = hypot(rear - front)`, pitch target = `atan2deg(horizontal, rear z - front z) - 90`, roll target = `atan2deg(horizontal, right z - left z) - 90`, both eased into car+0x3224 and car+0x3228 by an eighth (0x5A32AC) per frame, flat ground gives 0. The drift and boost lean terms are added in degrees but scaled by the degree to radian constant 0x5A1E88, so they are invisible. The matrix at 0x48ECAF is `RotationYawPitchRoll(yaw = pitch * deg, pitch = -roll * deg, roll = 0)` times the yaw matrix, then car+0x3018 gets car+0x3524 plus car+0x3738 (the local tick adds the same pair at 0x49D4BF).
+
+Port: `RaceSim::pose` rebuilds the matrix from the port fields (`orientationR`, `driftSlipDeg`, `leanPitchDeg`, `leanRollDeg`) in the same order and hands it in the bx row order, `RaceView` uses it for the local car. A remote car goes through `RaceView::remoteLean`: the O_WHEEL points of the ghost car through the yaw matrix, `world_locate_piece_by_height` on the track collision under each, the same pitch and roll rule and easing, then `mtxRotateX(roll) * mtxRotateY(-pitch) * mtxRotateZ(yaw - slip) * T` (bx angles run the other way than D3DX). The car+0x3524 lift is not ported, the local kart draws right without it. The suspension shake part of the side lean is taken off, the port shake saturates at its clamp at rest and rolled the kart 13 degrees standing still.
+
+## The record tail and the stat numbering
+
+`car_apply_kart_loadout` 0x490A70 copies 0x50 dwords of the 0xC0 record from its byte 0 to car+0x33A4 (`LEA EDI,[EBP+0x33A4]; MOV ECX,0x50; MOVSD.REP` at 0x490AF0). The record stat block starts at rec+0xA4, so car+0x3448 is the row float 0 and car+0x3440 is the row skin key 6. The tick pairs car+0x344C with the part bonus at car+0xA7944, bonus index 1, and car+0x3478 with car+0xA7970, bonus index 12, so the exe numbers its stats from car+0x3448: max speed is the row float 1, grip the row float 12, and the camera reads the row floats 14 15 16 at car+0x3480 +0x3484 +0x3488. The port's `KartStatIndex` counts from car+0x3440, two behind, and the client fills `stats.base[i]` with the row float i, so the port runs each formula on the row float two places off (max speed from float 3, grip from float 14 which is the camera distance 9.0). Not touched here, the physics owner and the screen owner have to shift the feed by two and carry the camera tail separately.

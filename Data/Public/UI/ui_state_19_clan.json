@@ -1,0 +1,44 @@
+{
+  "version": "1.0",
+  "state": 19,
+  "name": "Clan",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "clan_panel",
+      "type": "panel",
+      "position": [
+        150,
+        100
+      ],
+      "size": [
+        724,
+        568
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "clan_members_list",
+      "type": "list",
+      "position": [
+        200,
+        200
+      ],
+      "size": [
+        600,
+        400
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_member_selected",
+      "properties": {
+        "itemHeight": 40,
+        "scrollbar": true
+      }
+    }
+  ]
+}

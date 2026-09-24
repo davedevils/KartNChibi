@@ -1,52 +1,38 @@
-/*******************************************************************************************
-*   KnC Shared - Windows Platform Wrapper
-*   Copyright (c) 2025 Kart N'Chibi Team
-*   
-*   Purpose: Centralized Windows.h inclusion with macro hygiene
-*   Usage: Include this instead of <Windows.h> in .cpp files (NEVER in public headers)
-*******************************************************************************************/
+// centralized Windows h inclusion with macro hygiene include this instead of Windows h in cpp files never in public headers
 
 #pragma once
 
 #ifdef _WIN32
 
-// ============================================================================
-// Step 1: Define hygiene macros BEFORE including Windows.h
-// ============================================================================
-
 #ifndef WIN32_LEAN_AND_MEAN
-    #define WIN32_LEAN_AND_MEAN  // Exclude rarely-used Windows APIs
+    #define WIN32_LEAN_AND_MEAN
 #endif
 
 #ifndef NOMINMAX
-    #define NOMINMAX  // Prevent min/max macros
+    #define NOMINMAX
 #endif
 
 #ifndef VC_EXTRALEAN
-    #define VC_EXTRALEAN  // Further reduce Windows.h bloat
+    #define VC_EXTRALEAN
 #endif
 
 #ifndef NOCOMM
-    #define NOCOMM  // No serial communication APIs
+    #define NOCOMM
 #endif
 
 #ifndef NOGDI
-    #define NOGDI  // No GDI (we use OpenGL)
+    #define NOGDI  // no GDI since OpenGL is used
 #endif
 
 #ifndef NOUSER
-    #define NOUSER  // No user APIs (we use GLFW)
+    #define NOUSER  // no user APIs since GLFW is used
 #endif
-
-// ============================================================================
-// Step 2: Save existing macros (if any) - We'll restore them after cleanup
-// ============================================================================
 
 #pragma push_macro("time")
 #pragma push_macro("min")
 #pragma push_macro("max")
 
-// Kill them BEFORE Windows.h inclusion so they don't pollute
+// kills them before Windows h inclusion so they do not pollute
 #ifdef time
     #undef time
 #endif
@@ -57,15 +43,7 @@
     #undef max
 #endif
 
-// ============================================================================
-// Step 3: Include Windows.h (now it can't define time/min/max macros)
-// ============================================================================
-
 #include <Windows.h>
-
-// ============================================================================
-// Step 4: Kill ANY remaining toxic macros that leaked from Windows.h
-// ============================================================================
 
 #ifdef min
     #undef min
@@ -119,20 +97,16 @@
     #undef GetCurrentDirectory
 #endif
 
-// THE BIG ONE: time() macro that breaks <ctime>
+// the big one the time macro that breaks ctime
 #ifdef time
     #undef time
 #endif
 
-// ============================================================================
-// Step 5: Restore pushed macros (for legacy code compatibility)
-// ============================================================================
-// NOTE: We restore the macros so legacy code that expects them still works,
-// but they're now "clean" and won't pollute STL headers like <ctime>
+// restores the pushed macros so legacy code that expects them still works cleanly
 
 #pragma pop_macro("max")
 #pragma pop_macro("min")
 #pragma pop_macro("time")
 
-#endif // _WIN32
+#endif // ends the WIN32 guard
 

@@ -1,0 +1,15 @@
+# gate: state garage
+# the garage Item tab of the sample server carries a dead row Delete sends 0x00B8 and the ack drops the row
+# run with --state garage the package server has no dead row on the test accounts
+waitfor garage 400
+wait 30
+click 735 112
+wait 10
+shot delete_items
+click 648 229
+wait 5
+click 736 692
+wait 10
+expect garage
+shot delete_done
+quit

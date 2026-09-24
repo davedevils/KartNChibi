@@ -12,7 +12,8 @@
         "pool_size": 3
     },
     "api": {
-        "token": "admin123"
+        "token": "",
+        "_comment": "admin api token set from an environment variable or fill in here never commit a real token"
     },
     "logging": {
         "level": "DEBUG",

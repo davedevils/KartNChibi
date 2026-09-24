@@ -1,0 +1,12 @@
+# gate: live
+# gate: args --stop-at lobby
+# the Quest button of the top bar is a grey image in the stock and in ours
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 120
+click 255 20
+waitfor lobby 400
+wait 30
+click 500 20
+wait 25
+expect lobby
+quit

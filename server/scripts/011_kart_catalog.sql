@@ -1,0 +1,24 @@
+-- empty catalog is fine it turns a query error into a clean miss warning
+CREATE TABLE IF NOT EXISTS kart_catalog (
+    kart_id INT UNSIGNED NOT NULL PRIMARY KEY,
+    unk00 INT UNSIGNED NOT NULL DEFAULT 0, unk04 INT UNSIGNED NOT NULL DEFAULT 0,
+    unk0c TINYINT UNSIGNED NOT NULL DEFAULT 0, class_code INT NOT NULL DEFAULT 0,
+    parts_enabled INT NOT NULL DEFAULT 1, unk18 INT NOT NULL DEFAULT 0, unk1c INT NOT NULL DEFAULT 0,
+    model_name VARCHAR(32) NOT NULL DEFAULT '', name2 VARCHAR(32) NOT NULL DEFAULT '',
+    name3 VARCHAR(33) NOT NULL DEFAULT '',
+    stat0_torque_trim FLOAT NOT NULL DEFAULT 0, stat1_speed FLOAT NOT NULL DEFAULT 0,
+    stat2_accel FLOAT NOT NULL DEFAULT 0, stat3_boost FLOAT NOT NULL DEFAULT 0,
+    stat4_boost_pitch FLOAT NOT NULL DEFAULT 0, stat5_handling FLOAT NOT NULL DEFAULT 0,
+    stat6_pitch_scale FLOAT NOT NULL DEFAULT 0, stat7_roll_scale FLOAT NOT NULL DEFAULT 0,
+    stat8_drift FLOAT NOT NULL DEFAULT 0, stat9_steer FLOAT NOT NULL DEFAULT 0,
+    stat10_drift_threshold FLOAT NOT NULL DEFAULT 0, stat11_drift_charge FLOAT NOT NULL DEFAULT 0,
+    stat12 FLOAT NOT NULL DEFAULT 0, stat13 FLOAT NOT NULL DEFAULT 0, stat14 FLOAT NOT NULL DEFAULT 0,
+    stat15 FLOAT NOT NULL DEFAULT 0, stat16 FLOAT NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS player_kart_parts (
+    character_id INT UNSIGNED NOT NULL, kart_id INT UNSIGNED NOT NULL,
+    slot_index TINYINT UNSIGNED NOT NULL COMMENT '0..6 seven slots',
+    part_id INT UNSIGNED NOT NULL DEFAULT 0, part_level INT NOT NULL DEFAULT 0,
+    PRIMARY KEY (character_id, kart_id, slot_index)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

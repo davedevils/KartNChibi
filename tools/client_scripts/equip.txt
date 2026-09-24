@@ -1,0 +1,25 @@
+# gate: live
+# gate: args --stop-at lobby
+# the garage Character tab installs another owned driver with 0x00B9 and the seat shows him
+# hltest owns Pumpkin Wolf and Moriko in that grid order the third cell is Moriko
+# the 0x00B9 and 0x00BC answers change the worn parts so the preview builds the body again
+# with its BODYSET head face and outfit merged on the O HEAD O FACE and O BODY nodes
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 120
+click 255 20
+waitfor lobby 400
+wait 30
+click 430 746
+waitfor garage 250
+wait 50
+click 529 110
+wait 30
+shot equip_character
+click 648 229
+wait 20
+shot equip_pick
+click 736 692
+wait 120
+shot equip_worn
+expect garage
+quit

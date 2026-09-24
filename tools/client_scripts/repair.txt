@@ -1,0 +1,20 @@
+# gate: state garage
+# the repair scroll of the garage Item tab a 0x00C1 use type 4 to 7 asks MSG REPAIR USE then sends
+# C2S 0x00B9 category 2 with the base key the ack carries the 16 byte kart period tail of 0x484770
+# run with --state garage the package server sells no durability kart so no live row can be repaired
+waitfor garage 400
+wait 30
+click 727 112
+wait 20
+shot repair_items
+click 567 229
+wait 20
+click 736 692
+waitfor confirm 120
+wait 20
+shot repair_confirm
+click 430 418
+wait 90
+shot repair_done
+expect garage
+quit

@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "state": 26,
+  "name": "Unknown26",
+  "description": "Unknown state",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "image_0",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "QuestMenu/quest_back_00.png"
+    }
+  ]
+}

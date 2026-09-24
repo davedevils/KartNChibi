@@ -1,7 +1,3 @@
-/**
- * @file Vec2.h
- * @brief 2D Vector math
- */
 
 #pragma once
 
@@ -11,18 +7,13 @@
 namespace KnC {
 namespace Math {
 
-/**
- * @brief 2D Vector
- */
 struct Vec2 {
     float x, y;
     
-    // Constructors
     Vec2() : x(0.0f), y(0.0f) {}
     Vec2(float x, float y) : x(x), y(y) {}
     Vec2(float scalar) : x(scalar), y(scalar) {}
     
-    // Operators
     Vec2 operator+(const Vec2& other) const {
         return Vec2(x + other.x, y + other.y);
     }
@@ -71,7 +62,6 @@ struct Vec2 {
         return !(*this == other);
     }
     
-    // Methods
     float Length() const {
         return std::sqrt(x * x + y * y);
     }
@@ -110,7 +100,6 @@ struct Vec2 {
         return (*this - other).LengthSquared();
     }
     
-    // Static methods
     static Vec2 Zero() { return Vec2(0.0f, 0.0f); }
     static Vec2 One() { return Vec2(1.0f, 1.0f); }
     static Vec2 UnitX() { return Vec2(1.0f, 0.0f); }
@@ -121,6 +110,6 @@ struct Vec2 {
     }
 };
 
-} // namespace Math
-} // namespace KnC
+}
+} // namespace Math KnC
 

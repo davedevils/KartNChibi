@@ -1,0 +1,24 @@
+# gate: live
+# gate: args --auto-race 90 --wait 18
+# the track pick box the three weather icons set the weather word of 0x0035 the room icon follows
+# run with --auto-race 90 --wait 20 so the pick rides into a real race on the night sky
+waitfor room 900
+wait 30
+# the Track button over the track picture at 217 577
+click 250 590
+wait 10
+expect trackpick
+shot weather_sun
+# the moon icon of the radio sits at 124 plus 557 on 120 plus 381
+click 713 533
+wait 10
+shot weather_night
+# OK half at 124 plus 282 on 120 plus 478
+click 450 610
+wait 40
+expect room
+shot weather_room
+waitfor race 900
+wait 200
+shot weather_race
+quit

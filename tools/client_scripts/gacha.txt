@@ -1,0 +1,39 @@
+# gate: live
+# gate: args --stop-at lobby
+# gate: needs gold
+# the gacha roll needs a coin so the shop sells one first then the box rolls it over the shop
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 60
+click 255 20
+waitfor lobby 400
+wait 25
+click 128 746
+waitfor shop 250
+wait 40
+click 680 112
+wait 30
+click 725 387
+waitfor shopitem 100
+shot gacha_coinbox
+click 482 565
+wait 50
+expect shop
+click 215 745
+waitfor gacha 100
+wait 40
+shot gacha_idle
+click 506 606
+wait 30
+shot gacha_spin
+wait 100
+shot gacha_spin2
+wait 125
+shot gacha_prize
+wait 60
+expect gacha
+click 731 607
+wait 5
+expect shop
+wait 10
+shot gacha_closed
+quit

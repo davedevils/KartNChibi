@@ -13,11 +13,10 @@ cmake-build-*/
 logs/*.log
 logs/*.log.*
 
-# Dependencies 
-lib/asio/include/asio/
-lib/asio/include/asio.hpp
-lib/json/include/nlohmann/
-lib/httplib/httplib.h
+# Environment / secrets (never commit credentials)
+.env
+.env.*
+!.env.example
 
 # OS
 .DS_Store

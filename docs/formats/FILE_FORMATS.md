@@ -1,267 +1,115 @@
-# Kart N'Chibi - File Formats
+# File Formats
 
-**Version**: 1.0  
-**Status**: Draft  
-**Date**: December 2025
+Mix of standard and proprietary formats. A reverse engineering pass on 2026-09-14 (KnC.exe, image base 0x400000) settled the collision file layout, the track gimmick csv files, the source of the car stats, and the NIF version facts. Those sections carry the new findings below, function addresses in `sub XXXXXX` form.
 
 ---
 
-## 1. Overview
+## Engine Formats (Gamebryo/NetImmerse)
 
-The KnC client uses a mix of standard and proprietary file formats.
+### NIF (`.nif`)
+
+NetImmerse File. 3D models, scenes, scene graphs.
+
+```
+Data/Public/Car/Body/     Vehicle bodies
+Data/Public/Driver/Body/  Character models
+Data/Public/World/        Track geometry
+Data/Public/Item/         Item models
+Data/Public/Effect/       Visual effects
+```
+
+Structure: header with version string, block type strings, object blocks (nodes, meshes, textures), root refs.
+
+Version facts, checked 2026-09-14 against the stock client tree: shipped data is Gamebryo 10.2.0.0, including `Data/Public/World/Light.nif` (header string `Gamebryo File Format, Version 10.2.0.0`). The 8 files under `Data/Public/Car/TestWheel/` are the odd ones out, at 10.0.1.0.
+
+Reader status: the engine's NIF reader (`engine/formats`, see `docs/engine/RENDER_MODULE.md`) handles versions 5.0.0.1 to 30.3.0.5. Against the stock client tree it decodes 2872 of 2880 files, the 8 unread are the TestWheel set above. Every car file it does parse rewrites byte identical (`tools/nif/nif_rewrite`). NiPointLight and NiSpotLight decoders were added to close part of the remaining gap.
+
+Tools: `tools/nif/nif_smoke`, `nif_rewrite`, `nif_export`, `nif_animate` (see `docs/tools/README.md`). NifSkope and PyNIFlib work for manual inspection of individual files.
+
+`Data/Public/World/Light.nif`, 764 bytes, is the one light rig every track loads: `world_track_init` (sub 4875C0) calls `light_file_load` (sub 443C10) with the fixed path `./Data/Public/World/light`. 7 blocks: NiNode "Scene Root", NiZBufferProperty, NiVertexColorProperty, NiNode "Direct01", NiDirectionalLight, NiNode "Direct01.Target", NiAmbientLight. One NiAmbientLight (RGB 200 200 200) and one NiDirectionalLight (RGB 255 246 235) light the whole scene. Lights embedded in car and track NIFs are exporter leftovers (`__MAX_Default_Light`) and are not used at runtime, guess, consistent with the dark render symptom that started this investigation. Full detail in `docs/reverse/CLIENT_SHADING.md`.
+
+### KF (`.kf`)
+
+Keyframe animation files. Status: well-documented.
+
+```
+Data/Public/Driver/Body/*/  Character animations
+Data/Public/Car/Effect/     Vehicle animations
+```
+
+Animation sequences, keyframe data (position, rotation, scale), controller links.
+
+### KFM (`.kfm`)
+
+Keyframe Manager. Links multiple KF files to base NIF.
+
+### DDS (`.dds`)
+
+DirectDraw Surface textures. Standard format.
+
+```
+Data/Public/Car/Body/     Vehicle textures
+Data/Public/Driver/Body/  Character textures
+Data/Public/World/        Environment textures
+Data/Public/Image/        UI textures
+```
+
+Compression: DXT1 (RGB, 1-bit alpha), DXT3 (RGBA, 4-bit alpha), DXT5 (RGBA, interpolated alpha).
 
 ---
 
-## 2. Engine Formats (Gamebryo/NetImmerse)
+## Game-Specific Formats
 
-### 2.1 NIF Files (`.nif`)
+### CAR (`.car`)
 
-**Description**: NetImmerse File - 3D models, scenes, and scene graphs
+`Data/Car/*.car`, 48 files, 416 bytes each: a 0x140 byte block of floats and ints, then a torque curve (count, xmin, xmax, scale, 20 floats).
 
-**Status**: ✅ Well-documented (NifTools)
+Read by the client, corrected on 2026-09-14 night. `car_physics_setup` 0x494D50 builds `./Data/Car/default.car` from an obfuscated char array (no plain string in the exe, which is why the string search of the earlier pass found nothing), extracts it through the ini cache into `dx8_rlg.dll` and reads it with `catalogue_read_file` 0x4EFF20 into the spawn catalogue block car+0x2EA0. `car_apply_kart_loadout` 0x490A70 does the same with the kart record name, `Data/Car/<kart>.car`, and falls back to default.car. After the read the setup writes dampers 6000 and tyre springs 100000 over the file values.
 
-**Locations**:
-```
-Data/Public/Car/Body/       - Vehicle bodies
-Data/Public/Driver/Body/    - Character models
-Data/Public/World/          - Track geometry
-Data/Public/Item/           - Item models
-Data/Public/Effect/         - Visual effects
-```
+The block is the chassis and drivetrain, nothing in it comes from the 17 stats: chassis box and mass at 0x00, lower box at 0x10, wheel radius width mass at 0x28, axle positions at 0x40, spin axes at 0x58, travel directions at 0x70, max steer 0x94, drive mode 0x98, clutch 0x9c, gear count 0xa0 and ratios 0xa4, final drive 0xbc, shift speeds 0xc4, engine drag and inertia 0xcc, torque curve header 0xd8, brake torques 0xf0, springs 0x100, dampers 0x108, anti roll 0x110, disc curve 0x118, tyre spring 0x128, tyre grips 0x130. The full table with the default.car values is in `docs/reverse/physics/RIGID_BODY.md` under Catalogue, the port reads the file with `catalogue_load_car_file`.
 
-**Structure**:
-- Header with version info
-- Block type strings
-- Object blocks (nodes, meshes, textures)
-- Root references
+The 17 runtime kart stats (car+0x3440..0x3480) still come over the wire: the S2C 0xC0 KartDefinition packet, handler `stat_catalog_recv_0xc0` (sub 47F4F0), see `docs/packets/PACKET_REGISTRY.md`.
 
-**Tools**:
-- NifSkope - View/edit NIF files
-- PyNIFlib - Python library
-- NifTools - Open-source toolset
+### REP (`.rep`)
 
-**Loading**: Handled by EngineDLL via `NiStream`
+Replay/recording files. Partially documented. In `DevClient/` (License_Track_*.rep).
 
-### 2.2 KF Files (`.kf`)
+Hypothesis: header (magic, track ID, player count, duration) + timestamped position/rotation frames + input events + item usage.
 
-**Description**: Keyframe animation files
+### PAK (`.dat`)
 
-**Status**: ✅ Well-documented (NifTools)
+Packed resource archive. `DevClient/pak001.dat`. Unpacker exists (`KNC Un-Packer.exe`).
 
-**Locations**:
-```
-Data/Public/Driver/Body/*/  - Character animations
-Data/Public/Car/Effect/     - Vehicle animations
-```
+Structure: file table header, entries (name, offset, size), compressed/raw data.
 
-**Structure**:
-- Animation sequences
-- Keyframe data (position, rotation, scale)
-- Controller links
+### INI Files
 
-**Tools**:
-- NifSkope - View animations
-- Blender + NIF plugin
-
-### 2.3 KFM Files (`.kfm`)
-
-**Description**: Keyframe Manager - animation sequence definitions
-
-**Status**: ✅ Documented
-
-**Usage**: Links multiple KF files to a base NIF
-
-### 2.4 DDS Files (`.dds`)
-
-**Description**: DirectDraw Surface - texture format
-
-**Status**: ✅ Standard format
-
-**Locations**:
-```
-Data/Public/Car/Body/       - Vehicle textures
-Data/Public/Driver/Body/    - Character textures
-Data/Public/World/          - Environment textures
-Data/Public/Image/          - UI textures
-```
-
-**Compression**:
-- DXT1 - RGB, 1-bit alpha
-- DXT3 - RGBA, 4-bit alpha
-- DXT5 - RGBA, interpolated alpha
-
-**Tools**:
-- NVIDIA Texture Tools
-- DirectXTex
-- Any image editor with DDS plugin
+| File | Purpose | Encrypted |
+|------|---------|-----------|
+| `Input.ini` | Keybindings | No |
+| `Option2.ini` | Game options | No |
+| `Network2.ini` | Server config | Yes (use Network2 Decrypt.exe) |
+| `launcher.ini` | Launcher config | No |
 
 ---
 
-## 3. Game-Specific Formats
+## Image Formats
 
-### 3.1 CAR Files (`.car`)
+- PNG (`.png`): UI elements in `Data/Eng/Image/`
+- TGA (`.tga`): alpha-channel textures for effects
+- BMP (`.bmp`): legacy textures
+- IFL (`.ifl`): animated texture sequence (text file listing frames)
 
-**Description**: Vehicle definition files
+## Audio
 
-**Status**: 🔶 Partially documented
-
-**Location**: `Data/Car/`
-
-**Sample Files**: 48 vehicle definitions
-
-**Structure Analysis**:
-
-```
-File: basic_1.car (example)
-Offset  Size    Type        Description
-------  ----    ----        -----------
-0x0000  4       char[4]     Magic? / Version?
-0x0004  4       int32       Unknown
-0x0008  N       string      Model path (NIF)
-...
-[Physics parameters]
-[Stats: speed, accel, handling, etc.]
-[Visual customization slots]
-```
-
-**Reverse Strategy**:
-1. Hex dump all 48 .car files
-2. Compare similar vehicles
-3. Identify common patterns
-4. Map to decompiled vehicle loading code
-5. Cross-reference with VehicleData structure (44 bytes)
-
-**Tool to Build**: CAR file viewer/editor
-
-### 3.2 REP Files (`.rep`)
-
-**Description**: Replay/recording files
-
-**Status**: 🔶 Partially documented
-
-**Location**: `DevClient/` (License_Track_*.rep)
-
-**Structure Hypothesis**:
-```
-Header:
-  - Magic/version
-  - Track ID
-  - Player count
-  - Duration
-  
-Data:
-  - Timestamped position/rotation frames
-  - Input events
-  - Item usage
-```
-
-**Reverse Strategy**:
-1. Capture new replays at known tracks
-2. Compare binary differences
-3. Identify position data patterns
-4. Map timestamps to frame data
-
-### 3.3 PAK Files (`.dat`)
-
-**Description**: Packed resource archive
-
-**Status**: ✅ Unpacker exists
-
-**Location**: `DevClient/pak001.dat`
-
-**Tool**: `KNC Un-Packer.exe` already extracts these
-
-**Structure**:
-- File table header
-- File entries (name, offset, size)
-- Compressed/raw file data
-
-### 3.4 INI Files (`.ini`)
-
-**Description**: Configuration files
-
-**Status**: ✅ Standard format with quirks
-
-**Files**:
-| File | Purpose | Encryption |
-|------|---------|------------|
-| `Input.ini` | Keybindings | None |
-| `Option2.ini` | Game options | None |
-| `Network2.ini` | Server config | ⚠️ Encrypted |
-| `launcher.ini` | Launcher config | None |
-
-**Network2.ini Decryption**:
-- Tool exists: `Network2 Decrypt.exe`
-- Simple XOR or substitution cipher
+WAV (`.wav`): PCM, ~232 sound effects in `Data/Public/Sound/High/`.
 
 ---
 
-## 4. Image Formats
+## Text/Data Formats
 
-### 4.1 PNG Files (`.png`)
+### Definition Files (`Define/Eng/`)
 
-**Status**: ✅ Standard
-
-**Location**: `Data/Eng/Image/` - UI elements
-
-**Usage**: UI buttons, icons, backgrounds
-
-### 4.2 TGA Files (`.tga`)
-
-**Status**: ✅ Standard
-
-**Location**: Various effect directories
-
-**Usage**: Alpha-channel textures for effects
-
-### 4.3 BMP Files (`.bmp`)
-
-**Status**: ✅ Standard
-
-**Location**: Various
-
-**Usage**: Legacy textures
-
-### 4.4 IFL Files (`.ifl`)
-
-**Description**: Image File List - animated texture sequences
-
-**Status**: ✅ Simple text format
-
-**Example**:
-```
-texture_frame_01.dds
-texture_frame_02.dds
-texture_frame_03.dds
-```
-
----
-
-## 5. Audio Formats
-
-### 5.1 WAV Files (`.wav`)
-
-**Status**: ✅ Standard PCM
-
-**Location**: `Data/Public/Sound/High/`
-
-**Count**: ~232 sound effects
-
-**Usage**:
-- Engine sounds
-- Impact sounds
-- UI sounds
-- Item effects
-
----
-
-## 6. Text/Data Formats
-
-### 6.1 Definition Files (`def_*.txt`)
-
-**Location**: `Define/Eng/`
-
-**Files**:
 | File | Purpose |
 |------|---------|
 | `def_emotion_*.txt` | Emote definitions |
@@ -271,217 +119,157 @@ texture_frame_03.dds
 | `def_trans_index.txt` | Translation index |
 | `def_trans_message.txt` | Localized text |
 
-**Format**: Tab-separated or custom delimited
+Tab-separated or custom delimited.
 
-### 6.2 Driver Position Files (`driver_pos_*.ini`)
+### Driver Position (`Define/Driver/`)
 
-**Location**: `Define/Driver/`
+`driver_pos_*.ini`: character position/offset per vehicle. Standard INI with position vectors.
 
-**Purpose**: Character position/offset for different vehicles
+### Track Gimmick Files (`Data/Public/World/{map}/{track}/`)
 
-**Format**: Standard INI with position vectors
+Reversed 2026-09-14 (`docs/reverse/physics/EFFECTS_AND_GEAR.md`, `docs/reverse/physics/GROUND_AND_RESPAWN.md`). None of these use INI key=value sections despite the extension: every one is headerless CSV, one record per line, `\r\n` terminated, read with a fixed `fscanf` format.
 
-### 6.3 Map Configuration Files
+All are staged the same way before parsing: `gimmick_ini_cache_extract` (sub 48A710) pulls the file's bytes out of the game's packed asset store and rewrites them to a plain disk file literally named `dx8_rlg.dll`, capped at 0xA000 (40960) bytes. The loader then `fopen`s that staged file and `fscanf`s it. Despite the `.dll` name this is plain text, never loaded as a library.
 
-**Location**: `Data/Public/World/{Category}/{MapName}/`
+| File | Format | Fields | Max lines | Loader address |
+|---|---|---|---|---|
+| start.ini | `%f,%f,%f,%f` | x, y, z, heading in degrees, zero drives toward minus x like the 0x40 yaw | 100 | gimmick_load_start, sub 48A800 |
+| boost.ini | `%d,%f,%f,%f,%f` | kind (int), 4 floats | 100 | gimmick_load_boost, sub 48AB10 |
+| itembox.ini | `%f,%f,%f` | x, y, z | 100 | gimmick_load_itembox, sub 48AC20 |
+| itembite.ini | `%f,%f,%f` | x, y, z | 100 | gimmick_load_itembite, sub 48AD20 |
+| | | Cookie 01 ships it empty, a track without bites | | |
+| itemdrum.ini | `%f,%f,%f,%f` | x, y, z, yaw in degrees, the drum gimmick rows, see Track Gimmick NIFs below | 80 | gimmick_load_itemdrum, sub 48AF20 |
+| follow_01.ini .. follow_04.ini | `%f,%f,%f,%f` | 4 floats | 400 per file | gimmick_load_follow, sub 489730 |
+| regen.ini | `%f,%f,%f,%f\r\n` | x, y, z, radius (guess) | 100 | world_load_regen_zones, sub 48A910 |
 
-| File | Format | Purpose |
-|------|--------|---------|
-| `regen.ini` | `x,y,z,rotation` (1 line) | Respawn/camera position |
-| `start.ini` | `x,y,z,rotation` (8-16 lines) | Starting grid positions |
-| `itembox.ini` | Groups of `x,y,z` | Item box positions |
-| `boost.ini` | `x,y,z,w,h` | Boost zone positions |
-| `follow_01.ini` | Waypoints | AI pathfinding |
-| `minimap.ini` | Config | Minimap settings |
-| `itembite.ini` | Positions | Item bite zones |
-| `itemdrum.ini` | Positions | Item drum positions |
+All 6 loaders above (not regen.ini) are called from `world_track_init` (sub 4875C0). `regen.ini` is staged and parsed the same way but by its own loader, `world_load_regen_zones` (sub 48A910), which formats `./Data/Public/World/%s/%s/regen.ini` before the extract/stage step. Field meaning beyond column order is settled for start (heading), for itemdrum (yaw, see Track Gimmick NIFs below) and for boost kind 3 (`docs/reverse/physics/EFFECTS_AND_GEAR.md`), the other boost kinds are a guess.
 
-**Example `start.ini`**:
-```
--78.3,43.442,-8.521,0.00
--78.141,49.484,-8.872,0.00
--77.983,55.525,-9.126,0.00
-...
-```
+`minimap.ini` exists alongside these but was not part of this pass, format unverified.
 
-### 6.4 Gimmick Files
+### Track Gimmick NIFs (`Data/Public/World/{map}/{track}/Gimmick/`)
 
-**Location**: `Data/Public/World/{Category}/{MapName}/Gimmick/`
+Reversed 2026-09-15 in KnC.exe (image base 0x400000), see `docs/reverse/physics/EFFECTS_AND_GEAR.md`, Gimmick placement. No csv row and no ini names these NIFs. The exe names them per track id in `world_gimmick_load_by_track` (sub 4D4180, called by `world_track_init` right after the ini loaders), a switch on the track record field +4, the id the server sends in 0xC3 (theme id plus the folder suffix minus one, Cookie_01 is 20). Every format string is obfuscated as an int array, char i is `v[i] / D - i - 1` with one divisor per function, and decodes to `World/%s/%s/Gimmick/<name>`, loaded through `nif_object_load` (sub 444A20) as `./Data/<pak>/<name>.nif` then `./Data/Public/<name>.nif`, case insensitive.
 
-**Contents**: Animated objects/monsters on the track
+| Track id | Folder | Loader | NIFs loaded | Placement |
+|---|---|---|---|---|
+| 11 | Forest_02 | gimmick_load_forest02_mushman, sub 4DBBE0 | mushman, three copies | exe table 0x5F1AC0, three x y z, yaw 180, scale 0.2, z minus 0.8 |
+| 12 | Forest_03 | sub 4DF9E0 | tree_fairy_01 | baked |
+| 13 | Forest_04 | sub 4DF460, sub 4DAEC0 | tree_door_01, mole_01 | baked |
+| 20 | Cookie_01 | sub 4D4780, sub 4DC420 | Ant_01, Pierrot_01, Pierrot_02 | baked |
+| 21 | Cookie_02 | sub 4D59F0 | CookieMan_01 | baked |
+| 22 | Cookie_03 | sub 4D4DB0 | Chef_01 | baked |
+| 31 | Desert_02 | sub 4DCAF0 | scorpion_01 | baked |
+| 40 | Toy_01 | sub 4DEDB0 | toybox_01, toybox_02 | baked |
+| 56 | Devil_07 | sub 4D7C40 | lavaman_01 | baked |
+| 60 | Snow_01 | sub 4DD150 | Sheep_01 | baked |
+| 70 | Palace_01 | sub 4D53E0 | cobra | baked |
+| 71 | Palace_02 | sub 4D7610, sub 4E01D0, sub 4D6070 | Glass_01, Glass_02, Turnstile_01, Door_01 | baked |
+| 72 | Palace_03 | sub 4E01D0, sub 4D6F90, sub 4D68D0 | Turnstile_01, Frame_01, fountain_01 | baked |
+| 80, 82 | Swamp_01, Swamp_03 | gimmick_load_swamp_spider, sub 4DDA90 | swa_spider, six copies | exe tables 0x5F1B18 and 0x5F1B60 (x y z), yaws 0x5F1AE8 and 0x5F1B00, scale 1, z minus 0.8 |
+| 20000000 | Rally, no folder shipped | sub 4E0B40 then sub 4DCAF0 | twister, scorpion_01 | baked |
 
-| File | Purpose |
-|------|---------|
-| `ant_01.nif` | Giant ant monster |
-| `pierrot_01.nif` | Clown character |
-| `*.dds` | Textures for gimmicks |
+Baked means the NIF is attached to the scene root as it is: `nif_object_attach_scene` (sub 4443F0) hands the root node to the scene with no transform, `nif_object_anim_start` (sub 444370) starts its controllers, and the hit tests read the world translation of the `POS_%02d` nodes inside the NIF (`nif_object_find_node_translate`, sub 444850, `gimmick_ant_hit_test` sub 4D49B0, `gimmick_pierrot_hit_test` sub 4DC680). So the artist placed them in world space inside the NIF. Cookie_01 proves it: `pierrot_01.nif` root interpolator pose is `-228.6 -70.0 1.75`, beside the road between follow rows 13 and 14 of `follow_01.ini` (`-268.0 -87.7` and `-207.8 -85.9`), and its keys hop it over the road every 6.67 s, the same 6666 ms cycle the pierrot update restarts. Any other track id loads nothing and succeeds, so the extra NIFs in the folders (Cookie_03 ant_01, Cookie_04 train, Desert_02 scorpion_02, Palace_02 Bill Pot skewer RevolvingDoor, every Desert_03 Desert_04 Devil_01 Devil_04 Snow_02 Snow_04 Swamp_02 Toy_02 Toy_03 Toy_04 file) never load in this build. A track with a case fails the whole track load when one named NIF is missing.
 
----
+The mushman and the spiders are the two gimmicks that chase the car, so they keep their pose in the exe: `gimmick_mushman_update` (sub 4DB500) and `gimmick_spider_update` (sub 4DE580) build scale times `D3DXMatrixRotationZ(-yaw)` times translation (x, y, z - 0.8) every tick and set it on the node, the rest pose above is where they wait.
 
-## 7. Collision Format (`.COL`)
+**Drums.** The `itemdrum.ini` rows are the only ini rows that place a gimmick NIF, and the model comes from `Data/Public/Item/ItemDrum/`, not from the track folder. `itemdrum_models_load` (sub 4BF3F0) loads two NIFs per row by the track id: 10..12 `FOR_Gimmick_02_1` and `_2`, 20..22 `cheese_01` and `_02`, 30..32 `de_Gimmick_01` and `_02`, 40..41 `TOY_Gimmick_01` and `_02`, 50..52 `bone_head_01` and `_02`, 60..61 `SN_Gimmick_02_1` and `_2`, every other id (Forest_04, Cookie_04, Desert_04, Toy_03, Toy_04, Devil_04, Devil_07, Snow_03, Snow_04, Palace, Swamp, Race) the desert crate `de_Gimmick_01`. Node scale 1.0 for forest cookie devil snow ids, 1.5 for toy, 2.5 for the rest. `_01` is the standing drum with its `POS_01` hit node, `_02` the smash animation. `itemdrum_place_row` (sub 4BF2B0) snaps z to the col ground under x y (`world_place_probe_local` then `world_ground_height_at`), then `itemdrum_slot_place` (sub 4BEA90) sets translation (x, y, z - 0.2) and rotation `D3DXMatrixRotationZ(-(yaw + 270))` through `nif_object_set_rotation_xyz` (sub 444560, called with 0, 0, yaw + 90 and adding 180 inside), the same clockwise rule as the car yaw with a 270 degree model offset. The loader keeps a three column row: the fscanf returns 3, the loop only stops on EOF, the count still grows, and the yaw slot keeps whatever it held, zero on a fresh process. Race_01, Cookie_02, Cookie_03 and Desert_04 ship such rows. A drum hit at speed above the threshold at 0x5A3298 smashes it (`itemdrum_hit_test` sub 4BED40), a slow car bounces off it.
 
-### 7.1 Track Collision Files (`track.COL`)
-
-**Status**: ✅ Reversed (December 2024)
-
-**Location**: `Data/Public/World/{Category}/{MapName}/track.COL`
-
-**Structure**:
-```cpp
-struct COLHeader {
-    int32_t version;      // Usually 17
-    int32_t vertexCount;  // Number of vertices
-    int32_t faceCount;    // Number of triangles
-    int32_t zoneCount;    // Number of zones
-};
-
-// After header:
-// - Vertices: vertexCount * (float x, float y, float z) = 12 bytes each
-// - Faces: faceCount * (uint16_t i0, i1, i2) = 6 bytes each
-// - Zones: zoneCount * 56 bytes each (includes name like "START", "BOOST")
-```
-
-**Zone Structure** (56 bytes):
-```cpp
-struct COLZone {
-    float data[12];       // Position/bounds data
-    uint16_t flags[2];    // Type flags
-    char name[8];         // Zone name (null-terminated)
-    uint8_t padding[8];   // Padding to 56 bytes
-};
-```
-
-**Zone Names**:
-- `START` - Starting grid positions
-- `BOOST` - Speed boost zones
-- `ITEM` - Item pickup zones
-- Other zones TBD
+The `itembite.ini` rows work the same way with `Item/Bite/item04` at each row (sub 4B9B30, sub 4B9A80), one pickup effect `Item/itembox/itembox_02` shared.
 
 ---
 
-## Unknown/Proprietary Formats
+## Collision (`.COL`)
 
-### OGP Files (`.ogp`)
+Track collision: `Data/Public/World/{map}/{track}/track.col` for the base piece, `track1.col` .. `track8.col` for up to 8 extra pieces. Reversed 2026-09-14 (`docs/reverse/physics/WORLD_COLLISION.md`, `docs/reverse/physics/GROUND_AND_RESPAWN.md`), replacing the vertex/face/zone struct this section used to describe, which does not match the bytes.
 
-**File**: `clientinfo.ogp`
+Loading: `world_track_init` (sub 4875C0) calls `world_load_track_pieces` (sub 485580), which loads `track.col` into piece slot 0 and `track1..8.col` into slots 1-8, stopping at the first missing file or after 8 extra pieces. Each `.col` file is read by `world_load_col_piece` (sub 4ECE90). The in-memory piece descriptor is 56 bytes, one per loaded file, kept in a fixed array.
 
-**Status**: Unknown (lazy dave)
+### File layout
 
-**Hypothesis**: OGPlanet platform metadata
+Header, 4 int32 LE counts, then 4 variable length arrays back to back:
 
-**Reverse Strategy**:
-1. Hex dump and pattern analysis
-2. Compare with other OGPlanet games
-3. May not be needed for clone
+| Read order | Count | Records that follow | Record size | Content |
+|---|---|---|---|---|
+| 1 | n1 | n1 | 12 bytes | zone anchors, 3 floats x y z, one per named zone in file order, not read by the exe |
+| 2 | n2 | n2 | 56 bytes | cell array, the BSP/triangle cells |
+| 3 | n3 | n3 | 20 bytes | edge array, half plane equations shared by cells |
+| 4 | n4 | n4 | 12 bytes | mesh vertices, 3 floats x y z, indexed by the two uint16 at edge +0x10 and +0x12, not read by the exe |
 
----
+The 4 counts are read first, in the order n1, n2, n3, n4, then the 4 arrays are allocated and freed in that same order. Proven by direct disassembly of `world_load_col_piece` (sub 4ECE90).
 
-## 8. File Format Tools to Build
+### Cell record, 56 bytes
 
-### 8.1 CAR File Tools
+Fully accounted, no unknown bytes remain.
 
-**Priority**: High
+| Offset | Size | Content |
+|---|---|---|
+| +0x00 | float | height plane A |
+| +0x04 | float | height plane B |
+| +0x08 | float | height plane C, read but never multiplied by a nonzero value on the one path traced |
+| +0x0c | float | height plane D (constant) |
+| +0x10 | uint16 | edge index 1 of the cell's 3 boundary edges |
+| +0x12 | uint16 | edge index 2 |
+| +0x14 | uint16 | edge index 3 |
+| +0x16 | 34 bytes, ASCII, null terminated | surface material name, upper cased on read |
 
-```cpp
-// car_viewer.cpp
-struct CarFile {
-    char magic[4];
-    int32_t version;
-    // ... fields to discover
-};
+Ground height at a query point: `y = -(A*x + B*z + D)`, the cell's own C term drops out because the query vector's third component is always 0. Proven by `world_locate_piece_by_height` (sub 4857A0). Surface name read by `world_query_surface_name` (sub 4EC0B0), from cell+0x16.
 
-bool LoadCarFile(const char* path);
-void DumpCarFile(const CarFile& car);
-void SaveCarFile(const CarFile& car, const char* path);
-```
+### Edge record, 20 bytes
 
-### 8.2 REP File Tools
+| Offset | Size | Content |
+|---|---|---|
+| +0x00 | uint16 | BSP child index when the query point is behind the plane |
+| +0x02 | uint16 | BSP child index when in front |
+| +0x04 | float | half plane A |
+| +0x08 | float | half plane B |
+| +0x0c | float | half plane C, the 2D equation `A*x + B*z + C` |
+| +0x10 | 4 bytes | not read by any traced function, guess: padding or an unused 4th coefficient |
 
-**Priority**: Medium
+A 16 bit edge index carries its sign in the top bit (`index & 0x7fff`), so one edge is shared by two cells with either orientation.
 
-```cpp
-// rep_viewer.cpp
-struct ReplayFile {
-    // Header
-    // Frame data
-};
+### Point location and surfaces
 
-bool LoadReplayFile(const char* path);
-void PlayReplay(const ReplayFile& replay);
-```
+- `world_bsp_locate_point` (sub 4EBFC0): walks the tree from the cell array root using the child links in the edge record, capped at 1024 steps. The fast path.
+- `world_bsp_set_piece` (sub 4EBCF0): linear scan of every cell, tests all 3 edges per cell. Fallback and initial locate.
+- `world_bsp_edge_sweep` (sub 4EBDD0): segment test used to find which edge a moving point crosses between two ticks.
+- `world_surface_name_to_index` (sub 4866D0): maps a cell's name string to one of 9 surface indices: DUST (also the REGEN alias), ASPHALT, WATER, GRASS, SNOW, ICE, BOARD, WATER_REG, GRASS_L. Friction, air penalty and grip per surface are read from a fixed table at 0x5EA880 by `world_surface_friction` (sub 486D40), `world_surface_air_penalty` (sub 486D70) and `world_surface_grip` (sub 486DA0).
 
-### 8.3 Asset Browser
+### Still unknown
 
-**Priority**: Medium
-
-A unified tool to browse all game assets:
-- Tree view of Data/ folder
-- Preview panel (NIF viewer, texture viewer, audio player)
-- Export functionality
-
----
-
-## 9. Resource Loading Pipeline
-
-### 9.1 Current Loading Flow
-
-```
-Game Startup
-    │
-    ├── Load PAK files (if packed)
-    │   └── Extract to memory/cache
-    │
-    ├── Load configuration
-    │   ├── Input.ini
-    │   ├── Option2.ini
-    │   └── Network2.ini (decrypt)
-    │
-    └── On-demand loading
-        ├── NIF models (EngineDLL)
-        ├── Textures (EngineDLL)
-        ├── Sounds (EngineDLL or custom)
-        └── UI images (D3D9 textures)
-```
-
-### 9.2 Clone Loading Strategy
-
-```cpp
-class ResourceManager {
-public:
-    // Pre-load essential resources
-    void Initialize();
-    
-    // On-demand loading
-    NiNode* LoadModel(const std::string& path);
-    NiTexture* LoadTexture(const std::string& path);
-    
-    // Caching
-    void PreloadCategory(ResourceCategory category);
-    void FlushCache();
-    
-private:
-    std::map<std::string, NiNode*> m_modelCache;
-    std::map<std::string, NiTexture*> m_textureCache;
-};
-```
+Array C (n1 records, 12 bytes) and array D (n4 records, 12 bytes) are allocated and freed by `world_load_col_piece` (sub 4ECE90) and its destructor (sub 4ECDB0) but never dereferenced by any traced collision or physics function, checked across every function that takes a piece pointer. 12 bytes is consistent with 3 floats (a vertex) or 3 int32 (a triangle's vertex indices). Content is unknown, guess only: editor data, an unused triangle index list, or a consumer outside the traced call graph.
 
 ---
 
-## 10. File Path Conventions
+## Unknown Formats
 
-### 10.1 Model Paths
+### OGP (`.ogp`)
+
+File: `clientinfo.ogp`. OGPlanet platform metadata. May not be needed for clone.
+
+---
+
+## File Path Conventions
+
+### Models
 
 ```
-Vehicle body:     Data/Public/Car/Body/{name}/{name}.nif
-Vehicle texture:  Data/Public/Car/Body/{name}/{name}.dds
-Character body:   Data/Public/Driver/Body/{name}/{name}.nif
-Character anim:   Data/Public/Driver/Body/{name}/*.kf
-Track:            Data/Public/World/{track}/*.nif
-Item:             Data/Public/Item/{item}.nif
-Effect:           Data/Public/Effect/{effect}.nif
+Vehicle body:       Data/Public/Car/Body/High/{name}/BODY.nif
+Vehicle wheels:      Data/Public/Car/Body/High/{name}/WHEEL1.nif .. WHEEL4.nif
+Vehicle colour:      Data/Public/Car/Body/High/{name}/BODYCOLOR/{COLOUR}/*.dds
+Character body:      Data/Public/Driver/Body/{name}/*.nif
+Track geometry:      Data/Public/World/{map}/{track}/track.nif, sky.nif, sky_night.nif
+Helper mesh:         Data/Public/World/{map}/{track}/geometry.nif, one placeholder texture Geometry.BMP that ships nowhere, not the visible road. world_track_init loads track.nif into the scene holder at world+8 (0x1ADF818) through scene_holder_load_nif (sub 445250, vtable slot 1 with the texture folder), then geometry.nif into the same holder through scene_holder_load_extra_nif (sub 4450D0, vtable slot 4, no texture folder). scene_holder_query_height (sub 4451A0, vtable slot 5 of the same object, x y in, z out) answers the ground height under dropped items and gimmick objects (sub 4C4790 item drop, sub 4BB900 hazard placer), so the mesh is the pick surface of the scene object, the car physics never touches it, it uses the .col. Whether the renderer draws it was not traced, the class name strings at 0x5A3670 are obfuscated
+Track collision:     Data/Public/World/{map}/{track}/track.COL, track1.COL .. track8.COL
+Track gimmick data:  Data/Public/World/{map}/{track}/*.ini (see Track Gimmick Files)
+Track textures:      Data/Public/World/{map}/Texture/High/*.dds, Texture/Low/*.dds
+World light:         Data/Public/World/Light.nif (one file, shared by every track)
+Item:                Data/Public/Item/{item}.nif
+Effect:              Data/Public/Effect/{effect}.nif
 ```
 
-### 10.2 UI Paths
+The shipped basic kart data has 9 colour folders under `BODYCOLOR/`: BLACK, BLUE, GREEN, ORANGE, PINK, PURPPLE, RED, SILVER, YELLOW (PURPPLE is a typo in the shipped tree, not introduced here). No code path selecting this folder was located in KnC.exe (`docs/reverse/CLIENT_SHADING.md`), the path is confirmed by the files on disk, not by a traced loader.
+
+### UI
 
 ```
 Buttons:          Data/Eng/Image/Buttons/*.png
@@ -494,11 +282,8 @@ Room:             Data/Eng/Image/Room/*.png
 Shop:             Data/Eng/Image/Shop/*.png
 ```
 
-### 10.3 Audio Paths
+### Audio
 
 ```
 Sound effects:    Data/Public/Sound/High/*.wav
 ```
-
----
-

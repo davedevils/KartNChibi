@@ -1,0 +1,39 @@
+# gate: live
+# gate: args --stop-at lobby
+# gate: needs gold
+# the pet verbs the shop Pet tab buys one then the garage Character tab Pet sub tab equips it
+# run on hltest or hltest2 the cheapest pet option is one day for 1800 gold the keys are 10 20 30 40
+# the equip is 0x00B9 category 4 with the base key the unequip 0x00BA category 4
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 120
+click 255 20
+waitfor lobby 400
+wait 30
+click 128 746
+waitfor shop 250
+wait 50
+click 910 147
+wait 30
+shot pets_shop_tab
+click 500 385
+waitfor shopitem 100
+wait 20
+shot pets_price_box
+click 436 551
+wait 120
+shot pets_bought
+click 430 746
+waitfor garage 250
+wait 60
+click 529 110
+wait 20
+click 910 147
+wait 30
+shot pets_garage_tab
+click 486 229
+wait 20
+click 736 692
+wait 120
+shot pets_equipped
+expect garage
+quit

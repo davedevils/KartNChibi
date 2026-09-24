@@ -1,0 +1,108 @@
+{
+  "version": "1.0",
+  "state": 14,
+  "name": "TutorialMenu",
+  "description": "Tutorial selection",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "image_0",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "LicenseMenu/license_background_00.PNG"
+    },
+    {
+      "id": "image_1",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "LicenseMenu/license_background_01.PNG"
+    },
+    {
+      "id": "image_2",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "LicenseMenu/license_back_003.PNG"
+    },
+    {
+      "id": "image_3",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "LicenseMenu/license_Top.png"
+    },
+    {
+      "id": "image_4",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "LicenseMenu/Common_Clear.png"
+    },
+    {
+      "id": "image_5",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "LicenseMenu/license_Bonus_00.PNG"
+    },
+    {
+      "id": "image_6",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "LicenseMenu/license_lock.PNG"
+    },
+    {
+      "id": "image_7",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "ScenarioMenu/Quest_Back.png"
+    },
+    {
+      "id": "image_8",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "ScenarioMenu/Quest_Top.png"
+    },
+    {
+      "id": "button_11",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "ScenarioMenu/Common_Start_",
+      "position": [
+        793,
+        438
+      ],
+      "index": 2
+    },
+    {
+      "id": "image_12",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "ScenarioMenu/Common_Clear.png"
+    },
+    {
+      "id": "image_13",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "ScenarioMenu/UI_Quest_locked.png"
+    },
+    {
+      "id": "image_14",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "ScenarioMenu/Quest_Back_00.png"
+    }
+  ]
+}

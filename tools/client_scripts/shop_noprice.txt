@@ -1,0 +1,18 @@
+# gate: live
+# gate: args --stop-at lobby
+# the shop Item tab on the package server item 1000 has a shop definition and no price option
+# shop tile draw 0x419CC0 reads price option zero and skips the row so no tile shows for it
+# run on hltest the log lists the tiles of the tab and the slot changer is not among them
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 120
+click 255 20
+waitfor lobby 400
+wait 30
+click 128 746
+waitfor shop 250
+wait 40
+click 680 112
+wait 40
+shot shop_item_tab
+expect shop
+quit

@@ -1,0 +1,104 @@
+{
+  "version": "1.0",
+  "type": "popup",
+  "name": "InputConfig",
+  "resolution": [
+    700,
+    500
+  ],
+  "modal": true,
+  "elements": [
+    {
+      "id": "bg_input",
+      "type": "image",
+      "asset": "Popup/Input/Input_Back.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_key",
+      "type": "image",
+      "asset": "Popup/Input/Input_Key.png",
+      "position": [
+        50,
+        100
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_keyset_back",
+      "type": "image",
+      "asset": "Popup/Input/UI_keyset_key_back.png",
+      "position": [
+        50,
+        150
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_paduse",
+      "type": "image",
+      "asset": "Popup/Input/Input_PadUse.png",
+      "position": [
+        400,
+        100
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "tab_key",
+      "type": "button",
+      "asset": "Popup/Input/Input_Tab_Key_",
+      "position": [
+        100,
+        50
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_input_tab_key"
+    },
+    {
+      "id": "tab_pad",
+      "type": "button",
+      "asset": "Popup/Input/Input_Tab_Pad_",
+      "position": [
+        250,
+        50
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_input_tab_pad"
+    },
+    {
+      "id": "btn_default",
+      "type": "button",
+      "asset": "Popup/Input/Common_Degault_",
+      "position": [
+        200,
+        450
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_reset_to_default"
+    },
+    {
+      "id": "checkbox_back",
+      "type": "checkbox",
+      "asset": "Popup/Input/Common_back_Check",
+      "position": [
+        500,
+        450
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_toggle_back"
+    }
+  ]
+}

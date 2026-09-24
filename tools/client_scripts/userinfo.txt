@@ -1,0 +1,26 @@
+# gate: live
+# gate: args --stop-at lobby
+# the friend row menu User Info item sends 0x0072 and the card of the 0x68 blob shows under the rows
+# the Invite item sends 0x006C with the friend name the server answers on the friend side
+# run on hltest which has HlTestTwo on its friend list
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 120
+click 255 20
+waitfor lobby 400
+wait 40
+key f
+waitfor messenger 200
+wait 40
+click 380 232
+wait 20
+shot userinfo_menu
+click 400 248
+wait 60
+shot userinfo_card
+click 380 232
+wait 20
+click 400 268
+wait 60
+shot invite_sent
+expect messenger
+quit

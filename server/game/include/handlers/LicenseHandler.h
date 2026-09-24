@@ -1,7 +1,4 @@
-/**
- * @file LicenseHandler.h
- * @brief Handles license/tutorial packets
- */
+/// the licence screen and the licence test pass
 #pragma once
 #include "net/Session.h"
 #include "net/Packet.h"
@@ -13,19 +10,10 @@ class GameServer;
 
 class LicenseHandler {
 public:
-    // Tutorial/License requests
-    static void handleStartTutorial(Session::Ptr session, Packet& packet, GameServer* server);
-    static void handleTutorialComplete(Session::Ptr session, Packet& packet, GameServer* server);
-    static void handleLicenseTest(Session::Ptr session, Packet& packet, GameServer* server);
-    static void handleLicenseResult(Session::Ptr session, Packet& packet, GameServer* server);
-    
-    // Progress queries
-    static void handleGetLicenseProgress(Session::Ptr session, GameServer* server);
-    
-    // Helper functions
-    static void sendTutorialInfo(Session::Ptr session, int tutorialId);
-    static void sendLicenseProgress(Session::Ptr session, int characterId);
-    static bool updateLicenseLevel(int characterId, int newLevel);
+    /// C2S 0x16 licence screen open the test definitions the progress rows then the ack
+    static void handleOpenLicenseScreen(Session::Ptr session, GameServer* server);
+    /// C2S 0xA3 test pass the definition row sets the pay and each key pays once
+    static void handleLicenseComplete(Session::Ptr session, Packet& packet, GameServer* server);
 };
 
 } // namespace knc

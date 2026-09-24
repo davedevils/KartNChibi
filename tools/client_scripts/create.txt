@@ -1,0 +1,18 @@
+# gate: live
+# gate: args --stop-at lobby
+# the create flow from the lobby the button at the stock spot then the box then OK
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 120
+click 255 20
+waitfor lobby 400
+wait 30
+shot create_lobby
+click 907 115
+wait 5
+expect makeroom
+shot create_box
+click 453 488
+waitfor room 250
+expect room
+shot create_room
+quit

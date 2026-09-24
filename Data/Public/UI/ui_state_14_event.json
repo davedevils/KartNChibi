@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "state": 14,
+  "name": "Event",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "event_panel",
+      "type": "panel",
+      "position": [
+        150,
+        100
+      ],
+      "size": [
+        724,
+        568
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "dynamicContent": true
+      }
+    },
+    {
+      "id": "btn_participate",
+      "type": "button",
+      "asset": "Buttons/Common_Confirm_",
+      "position": [
+        400,
+        650
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_event_participate"
+    }
+  ]
+}

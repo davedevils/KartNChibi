@@ -1,0 +1,59 @@
+{
+  "version": "1.0",
+  "state": 24,
+  "name": "Inventory",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "inventory_panel",
+      "type": "panel",
+      "position": [
+        100,
+        100
+      ],
+      "size": [
+        824,
+        568
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "inventory_grid",
+      "type": "panel",
+      "position": [
+        150,
+        150
+      ],
+      "size": [
+        724,
+        400
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "gridColumns": 8,
+        "gridRows": 5,
+        "itemSize": [
+          80,
+          80
+        ]
+      }
+    },
+    {
+      "id": "btn_use_item",
+      "type": "button",
+      "asset": "Buttons/Common_Use_",
+      "position": [
+        400,
+        650
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_use_item"
+    }
+  ]
+}

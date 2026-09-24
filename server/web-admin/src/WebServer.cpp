@@ -1,7 +1,3 @@
-/**
- * @file WebServer.cpp
- * @brief HTTP server for admin panel using cpp-httplib
- */
 
 // Must define Windows version before including httplib
 #ifdef _WIN32
@@ -70,13 +66,13 @@ void WebServer::updateStats(const ServerStats& stats) {
 }
 
 bool WebServer::checkAuth(const std::string& authHeader) {
-    // Format: "Bearer <token>"
+    // expects the header formatted as Bearer token
     if (authHeader.substr(0, 7) != "Bearer ") return false;
     return authHeader.substr(7) == m_apiToken;
 }
 
 void WebServer::setupRoutes() {
-    // Serve static files - try multiple paths
+    // serve static files try multiple paths
     bool mounted = false;
     for (const auto& dir : {m_staticDir, std::string("./static"), std::string("static")}) {
         if (m_server->set_mount_point("/", dir)) {
@@ -89,7 +85,7 @@ void WebServer::setupRoutes() {
         LOG_WARN("WEB", "Could not mount static files directory");
     }
     
-    // Explicit index route as fallback
+    // explicit index route as fallback
     m_server->Get("/", [this](const httplib::Request&, httplib::Response& res) {
         std::ifstream file(m_staticDir + "/index.html");
         if (!file.is_open()) {
@@ -108,9 +104,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Status
-    // ============================================================
     m_server->Get("/api/status", [this](const httplib::Request&, httplib::Response& res) {
         json response = {
             {"players", m_stats.playersOnline},
@@ -121,7 +114,6 @@ void WebServer::setupRoutes() {
             {"serverName", m_stats.serverName}
         };
         
-        // Get account count from DB
         auto results = Database::instance().query("SELECT COUNT(*) as cnt FROM accounts");
         if (!results.empty()) {
             response["accounts"] = std::stoi(results[0]["cnt"]);
@@ -130,9 +122,6 @@ void WebServer::setupRoutes() {
         res.set_content(response.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Accounts
-    // ============================================================
     m_server->Get("/api/accounts", [this](const httplib::Request& req, httplib::Response& res) {
         int limit = 50;
         int offset = 0;
@@ -162,9 +151,6 @@ void WebServer::setupRoutes() {
         res.set_content(json{{"accounts", accounts}}.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Characters
-    // ============================================================
     m_server->Get("/api/characters", [](const httplib::Request& req, httplib::Response& res) {
         int limit = 50;
         if (req.has_param("limit")) limit = std::stoi(req.get_param_value("limit"));
@@ -191,11 +177,7 @@ void WebServer::setupRoutes() {
         res.set_content(json{{"characters", characters}}.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Ban account
-    // ============================================================
     m_server->Post("/api/ban", [this](const httplib::Request& req, httplib::Response& res) {
-        // Check auth
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
             res.set_content(R"({"error":"Unauthorized"})", "application/json");
@@ -224,9 +206,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Unban account
-    // ============================================================
     m_server->Delete(R"(/api/ban/(\d+))", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -246,9 +225,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Recent logs
-    // ============================================================
     m_server->Get("/api/logs", [](const httplib::Request& req, httplib::Response& res) {
         int limit = 100;
         if (req.has_param("limit")) limit = std::stoi(req.get_param_value("limit"));
@@ -272,9 +248,6 @@ void WebServer::setupRoutes() {
         res.set_content(json{{"logs", logs}}.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Server config
-    // ============================================================
     m_server->Get("/api/config", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -293,9 +266,6 @@ void WebServer::setupRoutes() {
         res.set_content(config.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Online players (from sessions table)
-    // ============================================================
     m_server->Get("/api/online", [](const httplib::Request&, httplib::Response& res) {
         std::string sql = "SELECT s.id, s.account_id, s.ip_address, s.created_at, a.username, c.name as character_name "
                          "FROM sessions s "
@@ -321,15 +291,10 @@ void WebServer::setupRoutes() {
         res.set_content(json{{"players", players}, {"count", players.size()}}.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Active rooms
-    // ============================================================
     m_server->Get("/api/rooms", [this](const httplib::Request&, httplib::Response& res) {
-        // Rooms are managed by GameServer - return stats from WebServer tracking
-        // Direct room access would require GameServer reference injection
+        // rooms managed by GameServer only tracked stats returned activeRooms updates via stats callbacks
         json rooms = json::array();
-        
-        // Return statistics we track (activeRooms is updated via stats callbacks)
+
         res.set_content(json{
             {"rooms", rooms}, 
             {"count", m_stats.activeRooms},
@@ -337,9 +302,6 @@ void WebServer::setupRoutes() {
         }.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Give gold to character
-    // ============================================================
     m_server->Post("/api/give/gold", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -368,9 +330,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Give cash to character
-    // ============================================================
     m_server->Post("/api/give/cash", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -399,9 +358,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Give item to character
-    // ============================================================
     m_server->Post("/api/give/item", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -434,9 +390,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Give vehicle to character
-    // ============================================================
     m_server->Post("/api/give/vehicle", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -449,9 +402,11 @@ void WebServer::setupRoutes() {
             int charId = body["character_id"];
             int templateId = body["template_id"];
             
-            std::string sql = "INSERT INTO vehicles (character_id, template_id, durability, max_durability) VALUES (" +
+            // owned kart is the only kart truth a grant here shows in the garage and the shop tab
+            std::string sql = "INSERT IGNORE INTO owned_kart (character_id, base_key, period_mode, "
+                             "period_value, active_flag) VALUES (" +
                              std::to_string(charId) + ", " +
-                             std::to_string(templateId) + ", 100, 100)";
+                             std::to_string(templateId) + ", 0, 0, 1)";
             
             if (Database::instance().execute(sql)) {
                 LOG_INFO("WEB", "Gave vehicle " + std::to_string(templateId) + " to char " + std::to_string(charId));
@@ -466,9 +421,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Reset character stats
-    // ============================================================
     m_server->Post("/api/reset/stats", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -496,9 +448,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Delete character
-    // ============================================================
     m_server->Delete(R"(/api/character/(\d+))", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -508,9 +457,9 @@ void WebServer::setupRoutes() {
         
         std::string charId = req.matches[1];
         
-        // Delete associated data first (foreign keys)
+        // deletes associated data first to satisfy foreign keys
         Database::instance().execute("DELETE FROM items WHERE character_id = " + charId);
-        Database::instance().execute("DELETE FROM vehicles WHERE character_id = " + charId);
+        Database::instance().execute("DELETE FROM owned_kart WHERE character_id = " + charId);
         Database::instance().execute("DELETE FROM accessories WHERE character_id = " + charId);
         
         if (Database::instance().execute("DELETE FROM characters WHERE id = " + charId)) {
@@ -522,9 +471,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Server broadcast message (placeholder)
-    // ============================================================
     m_server->Post("/api/broadcast", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -536,11 +482,9 @@ void WebServer::setupRoutes() {
             auto body = json::parse(req.body);
             std::string message = body["message"];
             
-            // Broadcast stored for GameServer to poll/process
-            // Direct broadcast requires GameServer reference
+            // broadcast stored for GameServer to poll since no direct reference
             LOG_INFO("WEB", "Broadcast requested: " + message);
-            
-            // Store in database for GameServer to pick up
+
             try {
                 auto& db = Database::instance();
                 db.execute("INSERT INTO admin_broadcasts (message, created_at) VALUES ('" + 
@@ -555,9 +499,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Anti-cheat logs
-    // ============================================================
     m_server->Get("/api/anticheat", [](const httplib::Request& req, httplib::Response& res) {
         int limit = 100;
         if (req.has_param("limit")) limit = std::stoi(req.get_param_value("limit"));
@@ -587,9 +528,6 @@ void WebServer::setupRoutes() {
         res.set_content(json{{"logs", logs}}.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Missions list
-    // ============================================================
     m_server->Get("/api/missions", [](const httplib::Request&, httplib::Response& res) {
         std::string sql = "SELECT id, name, description, reward_gold, reward_xp, "
                          "required_races, required_wins, is_active "
@@ -614,9 +552,6 @@ void WebServer::setupRoutes() {
         res.set_content(json{{"missions", missions}}.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Create/Update mission
-    // ============================================================
     m_server->Post("/api/missions", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -651,9 +586,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Ghost records (leaderboards)
-    // ============================================================
     m_server->Get("/api/ghosts", [](const httplib::Request& req, httplib::Response& res) {
         int mapId = 0;
         int limit = 50;
@@ -697,9 +629,6 @@ void WebServer::setupRoutes() {
         res.set_content(json{{"ghosts", ghosts}}.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Invalidate ghost record (anti-cheat)
-    // ============================================================
     m_server->Post("/api/ghosts/invalidate", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -726,9 +655,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Scenario progress
-    // ============================================================
     m_server->Get("/api/scenario/progress", [](const httplib::Request& req, httplib::Response& res) {
         int charId = 0;
         if (req.has_param("character_id")) charId = std::stoi(req.get_param_value("character_id"));
@@ -759,9 +685,6 @@ void WebServer::setupRoutes() {
         res.set_content(json{{"progress", progress}}.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Maps list
-    // ============================================================
     m_server->Get("/api/maps", [](const httplib::Request&, httplib::Response& res) {
         std::string sql = "SELECT id, name, difficulty, lap_count, is_enabled FROM maps ORDER BY id";
         
@@ -781,9 +704,6 @@ void WebServer::setupRoutes() {
         res.set_content(json{{"maps", maps}}.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Toggle map enabled
-    // ============================================================
     m_server->Post("/api/maps/toggle", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -812,9 +732,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Shop items management
-    // ============================================================
     m_server->Get("/api/shop", [](const httplib::Request&, httplib::Response& res) {
         std::string sql = "SELECT id, template_id, category, name, price_gold, price_cash, "
                          "is_available, discount_percent FROM shop_items ORDER BY category, id";
@@ -838,9 +755,6 @@ void WebServer::setupRoutes() {
         res.set_content(json{{"items", items}}.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Update shop item
-    // ============================================================
     m_server->Put("/api/shop", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -875,47 +789,35 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Statistics dashboard
-    // ============================================================
     m_server->Get("/api/stats/dashboard", [this](const httplib::Request&, httplib::Response& res) {
         auto& db = Database::instance();
         
         json stats;
         
-        // Total accounts
         auto r1 = db.query("SELECT COUNT(*) as cnt FROM accounts");
         stats["total_accounts"] = r1.empty() ? 0 : std::stoi(r1[0]["cnt"]);
-        
-        // Total characters
+
         auto r2 = db.query("SELECT COUNT(*) as cnt FROM characters");
         stats["total_characters"] = r2.empty() ? 0 : std::stoi(r2[0]["cnt"]);
-        
-        // Active today
+
         auto r3 = db.query("SELECT COUNT(*) as cnt FROM accounts WHERE DATE(last_login) = CURDATE()");
         stats["active_today"] = r3.empty() ? 0 : std::stoi(r3[0]["cnt"]);
-        
-        // Banned accounts
+
         auto r4 = db.query("SELECT COUNT(*) as cnt FROM accounts WHERE is_banned = 1");
         stats["banned_accounts"] = r4.empty() ? 0 : std::stoi(r4[0]["cnt"]);
-        
-        // Total races (from characters.total_races)
+
         auto r5 = db.query("SELECT SUM(total_races) as total FROM characters");
         stats["total_races"] = (r5.empty() || r5[0]["total"].empty()) ? 0 : std::stoi(r5[0]["total"]);
-        
-        // Total gold in economy
+
         auto r6 = db.query("SELECT SUM(gold) as total FROM characters");
         stats["economy_gold"] = (r6.empty() || r6[0]["total"].empty()) ? 0 : std::stoll(r6[0]["total"]);
-        
-        // Anti-cheat violations (last 24h)
+
         auto r7 = db.query("SELECT COUNT(*) as cnt FROM anticheat_logs WHERE created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)");
         stats["anticheat_24h"] = r7.empty() ? 0 : std::stoi(r7[0]["cnt"]);
-        
-        // Ghost records count
+
         auto r8 = db.query("SELECT COUNT(*) as cnt FROM ghost_records WHERE is_valid = 1");
         stats["ghost_records"] = r8.empty() ? 0 : std::stoi(r8[0]["cnt"]);
-        
-        // Server uptime
+
         stats["uptime_seconds"] = m_stats.uptime;
         stats["players_online"] = m_stats.playersOnline;
         stats["active_rooms"] = m_stats.activeRooms;
@@ -923,15 +825,11 @@ void WebServer::setupRoutes() {
         res.set_content(stats.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Top players leaderboard
-    // ============================================================
     m_server->Get("/api/leaderboard", [](const httplib::Request& req, httplib::Response& res) {
         std::string sortBy = req.has_param("sort") ? req.get_param_value("sort") : "wins";
         int limit = 50;
         if (req.has_param("limit")) limit = std::stoi(req.get_param_value("limit"));
         
-        // Validate sort column
         if (sortBy != "wins" && sortBy != "level" && sortBy != "gold" && sortBy != "total_races") {
             sortBy = "wins";
         }
@@ -964,13 +862,9 @@ void WebServer::setupRoutes() {
         res.set_content(json{{"leaderboard", players}}.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Character details
-    // ============================================================
     m_server->Get(R"(/api/character/(\d+))", [](const httplib::Request& req, httplib::Response& res) {
         std::string charId = req.matches[1];
         
-        // Get character info
         auto charResult = Database::instance().query(
             "SELECT c.*, a.username FROM characters c "
             "JOIN accounts a ON c.account_id = a.id "
@@ -999,22 +893,25 @@ void WebServer::setupRoutes() {
             {"created_at", ch["created_at"]}
         };
         
-        // Get vehicles
+        // Get karts the durability is the period value when the period mode is 3
         auto vehicles = Database::instance().query(
-            "SELECT id, vehicle_type_id, durability, equipped FROM vehicles WHERE character_id = " + charId
+            "SELECT k.id, k.base_key, "
+            "COALESCE(CASE WHEN k.period_mode = 3 THEN k.period_value END, 500) AS durability, "
+            "CASE WHEN c.selected_kart_instance_id = k.id THEN 1 ELSE 0 END AS equipped "
+            "FROM owned_kart k JOIN characters c ON c.id = k.character_id "
+            "WHERE k.character_id = " + charId + " ORDER BY k.id"
         );
         json vehicleList = json::array();
         for (auto& v : vehicles) {
             vehicleList.push_back({
                 {"id", std::stoi(v["id"])},
-                {"type_id", std::stoi(v["vehicle_type_id"])},
+                {"type_id", std::stoi(v["base_key"])},
                 {"durability", std::stoi(v["durability"])},
                 {"equipped", v["equipped"] == "1"}
             });
         }
         character["vehicles"] = vehicleList;
         
-        // Get items
         auto items = Database::instance().query(
             "SELECT id, template_id, quantity, equipped FROM items WHERE character_id = " + charId
         );
@@ -1032,9 +929,6 @@ void WebServer::setupRoutes() {
         res.set_content(json{{"character", character}}.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: All game items (template list)
-    // ============================================================
     m_server->Get("/api/items/all", [](const httplib::Request& req, httplib::Response& res) {
         std::string category = req.has_param("category") ? req.get_param_value("category") : "";
         
@@ -1062,9 +956,6 @@ void WebServer::setupRoutes() {
         res.set_content(json{{"items", items}}.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Richest players
-    // ============================================================
     m_server->Get("/api/richest", [](const httplib::Request& req, httplib::Response& res) {
         int limit = 50;
         if (req.has_param("limit")) limit = std::stoi(req.get_param_value("limit"));
@@ -1095,9 +986,6 @@ void WebServer::setupRoutes() {
         res.set_content(json{{"players", players}}.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Game logs (security)
-    // ============================================================
     m_server->Get("/api/logs/game", [](const httplib::Request& req, httplib::Response& res) {
         int limit = 200;
         std::string eventType = "";
@@ -1149,9 +1037,6 @@ void WebServer::setupRoutes() {
         res.set_content(json{{"logs", logs}, {"event_types", eventTypes}}.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Transaction logs
-    // ============================================================
     m_server->Get("/api/logs/transactions", [](const httplib::Request& req, httplib::Response& res) {
         int limit = 200;
         if (req.has_param("limit")) limit = std::stoi(req.get_param_value("limit"));
@@ -1182,9 +1067,6 @@ void WebServer::setupRoutes() {
         res.set_content(json{{"logs", logs}}.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Add/Remove currency (with logging)
-    // ============================================================
     m_server->Post("/api/currency/modify", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -1195,18 +1077,17 @@ void WebServer::setupRoutes() {
         try {
             auto body = json::parse(req.body);
             int charId = body["character_id"];
-            std::string currency = body["currency"];  // "gold" or "cash"
-            int amount = body["amount"];  // Positive = add, Negative = remove
+            // currency is "gold" or "cash" amount positive adds negative removes
+            std::string currency = body["currency"];
+            int amount = body["amount"];
             std::string reason = body.value("reason", "Admin modification");
             
-            // Validate currency type
             if (currency != "gold" && currency != "cash") {
                 res.status = 400;
                 res.set_content(R"({"error":"Invalid currency type"})", "application/json");
                 return;
             }
-            
-            // Get current balance
+
             auto current = Database::instance().query(
                 "SELECT " + currency + " FROM characters WHERE id = " + std::to_string(charId)
             );
@@ -1226,12 +1107,10 @@ void WebServer::setupRoutes() {
                 return;
             }
             
-            // Update balance
             std::string sql = "UPDATE characters SET " + currency + " = " + std::to_string(newBalance) +
                              " WHERE id = " + std::to_string(charId);
-            
+
             if (Database::instance().execute(sql)) {
-                // Log the transaction
                 Database::instance().execute(
                     "INSERT INTO transaction_logs (character_id, type, amount, currency, reason, admin_id) "
                     "VALUES (" + std::to_string(charId) + ", '" + 
@@ -1258,9 +1137,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: GM Management (promote/demote)
-    // ============================================================
     m_server->Post("/api/gm/set", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -1271,7 +1147,7 @@ void WebServer::setupRoutes() {
         try {
             auto body = json::parse(req.body);
             int accountId = body["account_id"];
-            int gmLevel = body["gm_level"];  // 0=player, 1=GM, 2=Admin, 3=SuperAdmin
+            int gmLevel = body["gm_level"];  // 0 is player 1 is GM 2 is Admin 3 is SuperAdmin
             
             if (gmLevel < 0 || gmLevel > 3) {
                 res.status = 400;
@@ -1283,10 +1159,9 @@ void WebServer::setupRoutes() {
                              " WHERE id = " + std::to_string(accountId);
             
             if (Database::instance().execute(sql)) {
-                // Log the action
                 Database::instance().execute(
                     "INSERT INTO game_logs (character_id, event_type, event_data) "
-                    "VALUES (0, 'GM_CHANGE', 'Account " + std::to_string(accountId) + 
+                    "VALUES (0, 'GM_CHANGE', 'Account " + std::to_string(accountId) +
                     " set to GM level " + std::to_string(gmLevel) + "')"
                 );
                 
@@ -1304,9 +1179,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Get GM list
-    // ============================================================
     m_server->Get("/api/gm/list", [](const httplib::Request&, httplib::Response& res) {
         std::string sql = "SELECT id, username, email, gm_level, created_at, last_login "
                          "FROM accounts WHERE gm_level > 0 ORDER BY gm_level DESC, username";
@@ -1337,9 +1209,6 @@ void WebServer::setupRoutes() {
         res.set_content(json{{"gms", gms}}.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Send item to character (with logging)
-    // ============================================================
     m_server->Post("/api/items/send", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -1354,7 +1223,6 @@ void WebServer::setupRoutes() {
             int quantity = body.value("quantity", 1);
             std::string reason = body.value("reason", "Admin gift");
             
-            // Check character exists
             auto charCheck = Database::instance().query(
                 "SELECT id FROM characters WHERE id = " + std::to_string(charId)
             );
@@ -1363,15 +1231,13 @@ void WebServer::setupRoutes() {
                 res.set_content(R"({"error":"Character not found"})", "application/json");
                 return;
             }
-            
-            // Insert item
+
             std::string sql = "INSERT INTO items (character_id, template_id, quantity, source) VALUES (" +
                              std::to_string(charId) + ", " +
                              std::to_string(templateId) + ", " +
                              std::to_string(quantity) + ", 'ADMIN')";
-            
+
             if (Database::instance().execute(sql)) {
-                // Log the action
                 Database::instance().execute(
                     "INSERT INTO game_logs (character_id, event_type, event_data) "
                     "VALUES (" + std::to_string(charId) + ", 'ITEM_SENT', "
@@ -1393,9 +1259,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Send vehicle to character
-    // ============================================================
     m_server->Post("/api/vehicles/send", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -1409,9 +1272,10 @@ void WebServer::setupRoutes() {
             int templateId = body["template_id"];
             std::string reason = body.value("reason", "Admin gift");
             
-            std::string sql = "INSERT INTO vehicles (character_id, vehicle_type_id, durability, max_durability, source) "
-                             "VALUES (" + std::to_string(charId) + ", " +
-                             std::to_string(templateId) + ", 100, 100, 'ADMIN')";
+            std::string sql = "INSERT IGNORE INTO owned_kart (character_id, base_key, period_mode, "
+                             "period_value, active_flag) VALUES (" +
+                             std::to_string(charId) + ", " +
+                             std::to_string(templateId) + ", 0, 0, 1)";
             
             if (Database::instance().execute(sql)) {
                 Database::instance().execute(
@@ -1434,9 +1298,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Gacha system - Get available gachas
-    // ============================================================
     m_server->Get("/api/gacha", [](const httplib::Request&, httplib::Response& res) {
         std::string sql = "SELECT id, name, description, cost_gold, cost_cash, is_active, "
                          "start_date, end_date FROM gacha_banners "
@@ -1462,9 +1323,6 @@ void WebServer::setupRoutes() {
         res.set_content(json{{"gachas", gachas}}.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Gacha items (pool)
-    // ============================================================
     m_server->Get(R"(/api/gacha/(\d+)/items)", [](const httplib::Request& req, httplib::Response& res) {
         std::string gachaId = req.matches[1];
         
@@ -1492,9 +1350,6 @@ void WebServer::setupRoutes() {
         res.set_content(json{{"items", items}}.dump(), "application/json");
     });
     
-    // ============================================================
-    // API: Create/Update gacha banner
-    // ============================================================
     m_server->Post("/api/gacha", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -1528,9 +1383,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Add item to gacha pool
-    // ============================================================
     m_server->Post("/api/gacha/item", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -1562,9 +1414,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Shop editor - Create/Update item
-    // ============================================================
     m_server->Post("/api/shop/item", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -1582,7 +1431,6 @@ void WebServer::setupRoutes() {
             int discount = body.value("discount_percent", 0);
             bool available = body.value("is_available", true);
             
-            // Check if exists
             auto existing = Database::instance().query(
                 "SELECT id FROM shop_items WHERE template_id = " + std::to_string(templateId)
             );
@@ -1614,9 +1462,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Delete shop item
-    // ============================================================
     m_server->Delete(R"(/api/shop/(\d+))", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -1635,9 +1480,6 @@ void WebServer::setupRoutes() {
         }
     });
     
-    // ============================================================
-    // API: Mass currency event (give to all)
-    // ============================================================
     m_server->Post("/api/event/currency", [this](const httplib::Request& req, httplib::Response& res) {
         if (!checkAuth(req.get_header_value("Authorization"))) {
             res.status = 401;
@@ -1660,7 +1502,6 @@ void WebServer::setupRoutes() {
             std::string sql = "UPDATE characters SET " + currency + " = " + currency + " + " + std::to_string(amount);
             
             if (Database::instance().execute(sql)) {
-                // Log event
                 Database::instance().execute(
                     "INSERT INTO game_logs (character_id, event_type, event_data) "
                     "VALUES (0, 'MASS_CURRENCY', 'All players +" + std::to_string(amount) + " " + currency + 

@@ -1,50 +1,53 @@
-/**
- * @file GhostHandler.h
- * @brief Handles ghost mode packets (time attack with ghost replays)
- */
+/// ghost records replays and stage 15 and 17 ghosts rewritten after a bad checkout took the header
 #pragma once
+
+#include <cstdint>
+#include <string>
+#include <vector>
+
 #include "net/Session.h"
 #include "net/Packet.h"
-#include <memory>
-#include <vector>
-#include <string>
+#include "packets/gen/GhostPackets.h"
 
 namespace knc {
 
 class GameServer;
 
-struct GhostRecord {
-    int32_t id;
-    int32_t characterId;
-    int32_t mapId;
-    int32_t time;          // Time in milliseconds
-    std::string replayData; // Replay file path or encoded data
-    std::string playerName;
-    int32_t vehicleId;
-    int32_t driverId;
-};
-
 class GhostHandler {
 public:
-    // Ghost Mode menu
-    static void handleOpenGhostMenu(Session::Ptr session, GameServer* server);
-    static void handleSelectMap(Session::Ptr session, Packet& packet, GameServer* server);
-    
-    // Ghost race
-    static void handleStartGhostRace(Session::Ptr session, Packet& packet, GameServer* server);
-    static void handleGhostRaceComplete(Session::Ptr session, Packet& packet, GameServer* server);
-    static void handleSaveGhost(Session::Ptr session, Packet& packet, GameServer* server);
-    
-    // Ghost data
-    static void handleGetGhostList(Session::Ptr session, Packet& packet, GameServer* server);
-    static void handleDownloadGhost(Session::Ptr session, Packet& packet, GameServer* server);
-    
-    // Helpers
-    static std::vector<GhostRecord> getGhostsForMap(int32_t mapId, int limit = 10);
-    static GhostRecord getBestGhost(int32_t mapId);
-    static bool saveGhostRecord(int32_t characterId, int32_t mapId, int32_t time, 
-                                const std::string& replayData, int32_t vehicleId, int32_t driverId);
+    // opcode probes the dispatcher asks before routing
+    static bool isBoardRequest(const Packet& packet);
+    static bool isGhostEnter(const Packet& packet);
+    static bool isStageEvent(const Packet& packet);
+    static bool isSubmit(Session::Ptr session, const Packet& packet);
+    static bool isQuestGhostStart(const Packet& packet);
+
+    static void handleMenuSelect(Session::Ptr session, Packet& packet, GameServer* server);
+    static void handleGhostEnter(Session::Ptr session, Packet& packet, GameServer* server);
+    static void handleStageBegin(Session::Ptr session, Packet& packet, GameServer* server);
+    static void handleFinalLap(Session::Ptr session, Packet& packet, GameServer* server);
+    static void handleUploadCount(Session::Ptr session, Packet& packet, GameServer* server);
+    static void handleUploadChunk(Session::Ptr session, Packet& packet, GameServer* server);
+    static void handleSubmit(Session::Ptr session, Packet& packet, GameServer* server);
+    static void handleQuestGhostStart(Session::Ptr session, Packet& packet, GameServer* server);
+
+    // the board is about 30kb for 43 tracks the client buffer is 0x2000 so it must go through GameServer sendDripped
+    static void sendRecordBoard(Session::Ptr session, bool withPopup = false,
+                                GameServer* server = nullptr);
+    static size_t sendQuestGhost(Session::Ptr session, uint32_t questIndex);
+
+    static void onDisconnect(Session::Ptr session);
+
+    static std::vector<int32_t> boardTrackOrder();
+    static std::string replayDir();
+    static std::string exportDir();
+    static bool exportRepFile(const std::string& path,
+                              const std::vector<ReplayFrame>& frames);
+    static bool exportRecordReplay(int32_t trackId, uint32_t charId);
+    static bool importRepFile(const std::string& path, int32_t trackId, uint32_t charId,
+                              const std::u16string& name, uint32_t totalTimeMs);
+    static size_t seedShippedReplays(const std::string& devClientDir);
+    static void seedShippedReplaysOnce();
 };
 
-} // namespace knc
-
+}  // namespace knc

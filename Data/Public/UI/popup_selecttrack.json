@@ -1,0 +1,97 @@
+{
+  "version": "1.0",
+  "type": "popup",
+  "name": "SelectTrack",
+  "resolution": [
+    800,
+    600
+  ],
+  "modal": true,
+  "elements": [
+    {
+      "id": "track_preview",
+      "type": "image",
+      "asset": "Popup/SelectTrack/track_{name}.png",
+      "position": [
+        50,
+        50
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "dynamic": true
+      }
+    },
+    {
+      "id": "theme_preview",
+      "type": "image",
+      "asset": "Popup/SelectTrack/thema_{name}.png",
+      "position": [
+        50,
+        200
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "dynamic": true
+      }
+    },
+    {
+      "id": "weather_sun",
+      "type": "image",
+      "asset": "Popup/SelectTrack/Track_Weather_Sun_00.png",
+      "position": [
+        400,
+        50
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "weather_rain",
+      "type": "image",
+      "asset": "Popup/SelectTrack/Track_Weather_Rain_00.png",
+      "position": [
+        500,
+        50
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "weather_night",
+      "type": "image",
+      "asset": "Popup/SelectTrack/Track_Weather_Night_00.PNG",
+      "position": [
+        600,
+        50
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "btn_arrow_left",
+      "type": "button",
+      "asset": "Popup/SelectTrack/UI_system_arrow_left_",
+      "position": [
+        100,
+        500
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_track_prev"
+    },
+    {
+      "id": "btn_arrow_right",
+      "type": "button",
+      "asset": "Popup/SelectTrack/UI_system_arrow_right_",
+      "position": [
+        700,
+        500
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_track_next"
+    }
+  ]
+}

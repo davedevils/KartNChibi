@@ -1,0 +1,220 @@
+{
+  "version": "1.0",
+  "state": 8,
+  "name": "Room",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "image_0",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Room/UI_Waitingroom_player_ready.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_1",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Room/UI_Waitingroom_player_master.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_2",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Icon/ping_good.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_3",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Icon/ping_normal.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_4",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Icon/ping_bad.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_5",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Room/UI_Waitingroom_player_out_d.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_6",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Room/redTeam.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_7",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Room/blueTeam.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_8",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Room/player_back.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_9",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Room/WaitingRoom_Red.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_10",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Room/WaitingRoom_Yellow.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "image_11",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Room/WaitingRoom_Green.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "button_12",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Room/WaitingRoom_Track_",
+      "position": [
+        217,
+        577
+      ]
+    },
+    {
+      "id": "button_13",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Room/blueTeam_",
+      "position": [
+        722,
+        509
+      ]
+    },
+    {
+      "id": "button_14",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Room/redTeam_",
+      "position": [
+        873,
+        509
+      ]
+    },
+    {
+      "id": "button_15",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Room/WaitingRoom_Ready_",
+      "position": [
+        3,
+        432
+      ]
+    },
+    {
+      "id": "button_16",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Room/WaitingRoom_Start_",
+      "position": [
+        3,
+        432
+      ]
+    },
+    {
+      "id": "button_17",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Room/blueTeam_",
+      "position": [
+        722,
+        609
+      ]
+    },
+    {
+      "id": "button_18",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "Room/redTeam_",
+      "position": [
+        873,
+        609
+      ]
+    }
+  ]
+}

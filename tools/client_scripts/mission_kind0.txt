@@ -1,0 +1,10 @@
+# gate: live
+# gate: account hltest
+# gate: args --auto-mission 0 --race-seconds 300
+# mission 0 of kind 0 on Mission 01 the time items move the clock the FINISH faces end it
+# the auto driver takes the run the 0x008C answer pays a first clear the finish board then the menu again
+waitfor mission 900
+expect mission
+waitfor missions 7500
+expect missions
+quit

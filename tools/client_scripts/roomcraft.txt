@@ -1,0 +1,50 @@
+# gate: live
+# gate: account hltest2
+# gate: args --stop-at lobby
+# gate: needs gold
+# the room craft editor buys an object then places moves turns and removes it and saves with 0x010F
+# run on hltest2 a one day fortree01 costs 300 gold the stage opens with 0x010E
+# the strip lists the owned 0x010D rows a tile then a click on the field places one
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 120
+click 255 20
+waitfor lobby 400
+wait 30
+click 128 746
+waitfor shop 250
+wait 50
+click 780 112
+wait 20
+click 728 147
+wait 30
+shot roomcraft_shop_tab
+click 540 385
+waitfor shopitem 100
+wait 20
+click 436 551
+wait 120
+shot roomcraft_bought
+click 665 746
+waitfor roomcraft 300
+wait 90
+shot roomcraft_open
+click 590 106
+wait 20
+click 241 132
+wait 20
+shot roomcraft_tile
+click 500 560
+wait 60
+shot roomcraft_placed
+key e
+key e
+key e
+key e
+key e
+wait 20
+shot roomcraft_turned
+click 850 152
+wait 120
+shot roomcraft_saved
+expect roomcraft
+quit

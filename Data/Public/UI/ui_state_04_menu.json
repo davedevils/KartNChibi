@@ -1,0 +1,57 @@
+{
+  "version": "1.0",
+  "state": 4,
+  "name": "Menu",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "bg_wallpaper",
+      "type": "image",
+      "asset": "WallPaper/intro_bg.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "base",
+      "type": "image",
+      "asset": "Menu/base.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "btn_multiplayer",
+      "type": "button",
+      "asset": "Menu/multi_Bt_",
+      "position": [
+        35,
+        679
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_multiplayer"
+    },
+    {
+      "id": "btn_close",
+      "type": "button",
+      "asset": "Menu/x_button_",
+      "position": [
+        971,
+        26
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "ui_close"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+# gate: live
+# gate: account hltest
+# gate: args --stop-at lobby
+# the mission menu of stage 24 on the 0x0088 rows five slots the lock the clear and the NEW plate
+# a locked row picks but hides Start the open row Start asks MISSION ENTER whose Cancel stays on the menu
+# run on hltest whose licence grade opens the top bar Mission button past the sub 42BCE0 gate
+waitfor licence 60
+click 255 20
+waitfor lobby 400
+wait 25
+click 730 20
+waitfor missions 200
+expect missions
+wait 20
+shot missions_menu
+click 90 628
+wait 5
+shot missions_locked
+click 90 250
+wait 5
+click 489 617
+wait 5
+expect confirm
+shot missions_confirm
+click 561 419
+wait 5
+expect missions
+quit

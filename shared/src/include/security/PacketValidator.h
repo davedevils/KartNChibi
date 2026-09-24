@@ -1,7 +1,4 @@
-/**
- * @file PacketValidator.h
- * @brief Packet validation and state checking
- */
+/// frame checks run before dispatch and the list of frames allowed before login
 
 #pragma once
 #include "net/Packet.h"
@@ -19,15 +16,17 @@ enum class ValidationResult {
 
 class PacketValidator {
 public:
-    // Validate packet structure
+    static constexpr size_t kMaxC2SPayload = PACKET_MAX_C2S_PAYLOAD;
+
     static ValidationResult validate(const Packet& packet);
-    
-    // Check if command is valid for current state
-    static bool isValidForState(uint8_t cmd, int currentState);
-    
-    // Get human-readable error
+
+    /// true for the few frames a socket may send before 0x07 or 0xA7 binds an account
+    static bool allowedBeforeAuth(uint16_t opcode);
+
+    /// true when the payload holds a password a token or the inter server key so no log may dump it
+    static bool payloadIsSecret(uint16_t opcode);
+
     static std::string resultToString(ValidationResult result);
 };
 
-} // namespace knc
-
+}

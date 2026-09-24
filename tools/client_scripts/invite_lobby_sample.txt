@@ -1,0 +1,21 @@
+# gate: state lobby
+# the Invite item of the friend row menu from the lobby the stock FUN 00467A70 id 0xD sends 0x006C out of a room too
+# the server answers the refusal on 0x0126 MSG_UNSUPPORT and the lobby chat prints Not available as sub 47EC00 does
+# run with --state lobby the sample server answers the way our server does since 2026-09-23
+waitfor lobby 400
+wait 40
+key f
+waitfor messenger 200
+wait 40
+click 380 232
+wait 20
+shot invite_menu
+click 400 268
+wait 40
+shot invite_refused_messenger
+expect messenger
+key escape
+wait 30
+shot invite_refused_lobby
+expect lobby
+quit

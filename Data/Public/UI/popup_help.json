@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "type": "popup",
+  "name": "Help",
+  "resolution": [
+    800,
+    600
+  ],
+  "modal": true,
+  "elements": [
+    {
+      "id": "bg_help",
+      "type": "image",
+      "asset": "Popup/Help/help.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "help_content",
+      "type": "panel",
+      "position": [
+        50,
+        50
+      ],
+      "size": [
+        700,
+        500
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "scrollable": true
+      }
+    }
+  ]
+}

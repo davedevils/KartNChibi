@@ -1,0 +1,17 @@
+# gate: live
+# gate: account hltest2
+# gate: args --stop-at licence
+# gate: env KNC_AUTO_LICENCE=0
+# tutorial 1 the licence test 0 driving practice run with KNC AUTO LICENCE 0 and stop at licence
+# the minimap the gauge board and the item slot window are the panel set of stage 13 FUN 004A8D80
+waitfor licence 400
+waitfor licencerun 500
+expect licencerun
+# the board holds the run one and a half seconds then the countdown so shoot the panels after the go
+wait 200
+shot tutorial1_run
+wait 150
+shot tutorial1_panels
+waitfor licence 4000
+expect licence
+quit

@@ -1,0 +1,9 @@
+# gate: state mission
+# gate: env KNC_SAMPLE_CLEARED=4
+# gate: args --auto-mission 4 --race-seconds 300
+# the sample server row 4 of kind 2 on Mission 05 no gimmick the lap wins the kart reward
+waitfor mission 900
+expect mission
+waitfor missions 7500
+expect missions
+quit

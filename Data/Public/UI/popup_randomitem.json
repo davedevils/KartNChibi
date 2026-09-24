@@ -1,0 +1,59 @@
+{
+  "version": "1.0",
+  "type": "popup",
+  "name": "RandomItem",
+  "resolution": [
+    500,
+    300
+  ],
+  "modal": true,
+  "notes": "Level up et objets aléatoires",
+  "elements": [
+    {
+      "id": "bg_levelup",
+      "type": "image",
+      "asset": "Popup/RandomItem/levelup message_01.PNG",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "bg_levelup_back",
+      "type": "image",
+      "asset": "Popup/RandomItem/levelup message_01_back.PNG",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "item_info",
+      "type": "text",
+      "position": [
+        100,
+        120
+      ],
+      "size": [
+        300,
+        80
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "fontSize": 16,
+        "color": [
+          255,
+          255,
+          0,
+          255
+        ],
+        "align": "center"
+      }
+    }
+  ]
+}

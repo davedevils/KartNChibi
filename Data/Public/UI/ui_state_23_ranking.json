@@ -1,0 +1,44 @@
+{
+  "version": "1.0",
+  "state": 23,
+  "name": "Ranking",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "ranking_panel",
+      "type": "panel",
+      "position": [
+        150,
+        100
+      ],
+      "size": [
+        724,
+        568
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "ranking_list",
+      "type": "list",
+      "position": [
+        200,
+        150
+      ],
+      "size": [
+        600,
+        450
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "itemHeight": 45,
+        "scrollbar": true,
+        "showRank": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+# gate: live
+# gate: account hltest2
+# gate: args --stop-at lobby
+# gate: needs gold
+# the shop item box of a bottom row tile stays open the release of the opening click closed it before
+# run on hltest2 gold only never on admin the Car tab Antenna sub tab sells the ANT rows
+# a Character tab part is refused with MSG UNKNOWN ERROR the server has no shop definition row for it
+# the game log prints why UnknownDefinition on those keys the kart parts 9001 9101 9301 have their rows
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 120
+click 255 20
+waitfor lobby 400
+wait 30
+click 128 746
+waitfor shop 250
+wait 50
+click 578 110
+wait 30
+click 592 147
+wait 30
+shot buy_antenna_tab
+click 558 616
+waitfor shopitem 100
+wait 20
+shot buy_box_open
+expect shopitem
+click 436 551
+wait 90
+shot buy_done
+expect shop
+quit

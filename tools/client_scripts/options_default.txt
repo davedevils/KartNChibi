@@ -1,0 +1,27 @@
+# gate: live
+# gate: args --stop-at lobby
+# the Default button of both panels then OK puts the two ini files back to the stock values
+waitfor licence 60
+click 255 20
+waitfor lobby 400
+wait 25
+click 942 748
+wait 3
+click 460 338
+wait 3
+click 527 221
+wait 3
+click 405 530
+wait 3
+click 452 580
+wait 5
+click 942 748
+wait 3
+click 460 374
+wait 3
+click 405 502
+wait 3
+click 435 550
+wait 5
+expect lobby
+quit

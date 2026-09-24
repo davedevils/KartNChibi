@@ -1,0 +1,86 @@
+{
+  "state": 2,
+  "name": "Login",
+  "elements": [
+    {
+      "id": "bg_layer1",
+      "type": "image",
+      "asset": "Login/Login01.png",
+      "position": [0, 0],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "input_username",
+      "type": "input",
+      "position": [450, 310],
+      "size": [184, 20],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "maxLength": 16,
+        "placeholder": "ID"
+      }
+    },
+    {
+      "id": "input_password",
+      "type": "input",
+      "position": [450, 339],
+      "size": [184, 20],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "maxLength": 16,
+        "password": true,
+        "placeholder": "PW"
+      }
+    },
+    {
+      "id": "btn_confirm",
+      "type": "button",
+      "asset": "Login/confirm_",
+      "position": [393, 403],
+      "visible": true,
+      "enabled": true,
+      "action": "login"
+    },
+    {
+      "id": "btn_cancel",
+      "type": "button",
+      "asset": "Login/cancel_",
+      "position": [520, 403],
+      "visible": true,
+      "enabled": true,
+      "action": "cancel"
+    },
+    {
+      "id": "btn_find",
+      "type": "button",
+      "asset": "Login/find_",
+      "position": [393, 438],
+      "visible": true,
+      "enabled": true,
+      "action": "find_id"
+    },
+    {
+      "id": "btn_register",
+      "type": "button",
+      "asset": "Login/register_",
+      "position": [520, 438],
+      "visible": true,
+      "enabled": true,
+      "action": "register"
+    },
+    {
+      "id": "chk_remember",
+      "type": "checkbox",
+      "asset": "Login/remember",
+      "position": [659, 370],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "checked": false
+      }
+    }
+  ]
+}

@@ -1,7 +1,4 @@
-/**
- * @file Logger.cpp
- * @brief Thread-safe logging with file rotation and ANSI colors
- */
+/// thread safe logging with file rotation and ANSI colors
 
 #include "logging/Logger.h"
 #include <filesystem>
@@ -15,7 +12,6 @@
 
 namespace knc {
 
-// ANSI color codes
 namespace color {
     const char* reset   = "\033[0m";
     const char* bold    = "\033[1m";
@@ -66,7 +62,6 @@ void Logger::init(const std::string& filepath, LogLevel minLevel) {
     
     EnableAnsiColors();
     
-    // Create directory if needed
     auto dir = std::filesystem::path(filepath).parent_path();
     if (!dir.empty()) {
         std::filesystem::create_directories(dir);
@@ -84,11 +79,9 @@ void Logger::log(LogLevel level, const std::string& category, const std::string&
     std::lock_guard<std::mutex> lock(m_mutex);
     rotateIfNeeded();
     
-    // Build plain text for file
     std::ostringstream fileLine;
     fileLine << timestamp() << " [" << levelToString(level) << "] [" << category << "] " << message;
-    
-    // Build colored text for console
+
     std::ostringstream consoleLine;
     const char* levelColor = color::gray;
     const char* catColor = GetCategoryColor(category);
@@ -109,14 +102,13 @@ void Logger::log(LogLevel level, const std::string& category, const std::string&
         consoleLine << fileLine.str();
     }
     
-    // Console output
     if (level == LogLevel::LVL_ERROR) {
         std::cerr << consoleLine.str() << std::endl;
     } else {
         std::cout << consoleLine.str() << std::endl;
     }
     
-    // File output (no colors)
+    // file output has no colors
     if (m_file.is_open()) {
         m_file << fileLine.str() << std::endl;
         m_file.flush();
@@ -129,8 +121,7 @@ void Logger::rotateIfNeeded() {
     m_file.seekp(0, std::ios::end);
     if (static_cast<size_t>(m_file.tellp()) > m_maxFileSize) {
         m_file.close();
-        
-        // Rename old file with timestamp
+
         auto now = std::chrono::system_clock::now();
         auto time = std::chrono::system_clock::to_time_t(now);
         std::ostringstream oss;
@@ -166,7 +157,7 @@ std::string Logger::timestamp() {
 void PrintServerHeader(const char* serverName, const char* version) {
     EnableAnsiColors();
     
-    // center the server name - YES i lose my time on this xD
+    // centers the server name
     std::string name(serverName);
     int padding = (45 - (int)name.length()) / 2;
     std::string padLeft(padding > 0 ? padding : 0, ' ');
@@ -183,4 +174,4 @@ void PrintServerHeader(const char* serverName, const char* version) {
               << color::reset << std::endl;
 }
 
-} // namespace knc
+}

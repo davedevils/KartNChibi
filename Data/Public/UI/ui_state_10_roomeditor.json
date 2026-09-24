@@ -1,0 +1,90 @@
+{
+  "version": "1.0",
+  "state": 10,
+  "name": "RoomEditor",
+  "resolution": [
+    1024,
+    768
+  ],
+  "renderMode": "mixed_3d_2d",
+  "notes": "Éditeur de salle customisable - vue 3D avec overlay 2D",
+  "elements": [
+    {
+      "id": "bg_roomeditor",
+      "type": "image",
+      "asset": "RoomEditer/Factory_Room_Back.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_roomeditor_top",
+      "type": "image",
+      "asset": "RoomEditer/Factory_Room_Top.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_setup_item",
+      "type": "image",
+      "asset": "RoomEditer/UI_SetupItem.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_iconbox_unuse",
+      "type": "image",
+      "asset": "RoomEditer/UI_iconbox_unuse.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_room_tip",
+      "type": "image",
+      "asset": "RoomEditer/Factory_Room_Tip.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_iteminfo_back",
+      "type": "image",
+      "asset": "RoomEditer/Factory_Room_ItemInfo_Back.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_object_select",
+      "type": "image",
+      "asset": "RoomEditer/UI_object_select.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    }
+  ]
+}

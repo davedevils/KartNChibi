@@ -1,0 +1,130 @@
+{
+  "version": "1.0",
+  "type": "popup",
+  "name": "MakeRoom",
+  "resolution": [
+    500,
+    400
+  ],
+  "modal": true,
+  "elements": [
+    {
+      "id": "bg_makeroom",
+      "type": "image",
+      "asset": "Popup/MakeRoom/CreatRoom_Back.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_itemslot_s",
+      "type": "image",
+      "asset": "Popup/MakeRoom/CreatRoom_I_S.png",
+      "position": [
+        50,
+        100
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_itemslot_t",
+      "type": "image",
+      "asset": "Popup/MakeRoom/CreatRoom_I_T.png",
+      "position": [
+        50,
+        150
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_speed_s",
+      "type": "image",
+      "asset": "Popup/MakeRoom/CreatRoom_S_S.png",
+      "position": [
+        250,
+        100
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_speed_t",
+      "type": "image",
+      "asset": "Popup/MakeRoom/CreatRoom_S_T.png",
+      "position": [
+        250,
+        150
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_boost",
+      "type": "image",
+      "asset": "Popup/MakeRoom/CreatRoom_B.png",
+      "position": [
+        150,
+        200
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_public",
+      "type": "image",
+      "asset": "Popup/MakeRoom/CreatRoom_Public.png",
+      "position": [
+        50,
+        250
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_private",
+      "type": "image",
+      "asset": "Popup/MakeRoom/CreatRoom_Private.png",
+      "position": [
+        250,
+        250
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "input_roomname",
+      "type": "input",
+      "position": [
+        50,
+        50
+      ],
+      "size": [
+        400,
+        30
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "placeholder": "Room Name",
+        "maxLength": 20
+      }
+    },
+    {
+      "id": "btn_create",
+      "type": "button",
+      "asset": "Buttons/Common_Create_",
+      "position": [
+        150,
+        350
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_create_room"
+    }
+  ]
+}

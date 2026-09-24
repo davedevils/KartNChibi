@@ -1,0 +1,51 @@
+{
+  "version": "1.0",
+  "state": 15,
+  "name": "Mission",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "mission_panel",
+      "type": "panel",
+      "position": [
+        200,
+        100
+      ],
+      "size": [
+        624,
+        568
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "dynamicContent": true
+      }
+    },
+    {
+      "id": "mission_title",
+      "type": "text",
+      "position": [
+        300,
+        120
+      ],
+      "size": [
+        424,
+        40
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "fontSize": 24,
+        "color": [
+          255,
+          255,
+          255,
+          255
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "version": "1.0",
+  "type": "popup",
+  "name": "GhostModeResult",
+  "resolution": [
+    700,
+    500
+  ],
+  "modal": true,
+  "elements": [
+    {
+      "id": "bg_result",
+      "type": "image",
+      "asset": "Popup/GhostModeResult/Ghost_Result.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "result_panel",
+      "type": "panel",
+      "position": [
+        100,
+        100
+      ],
+      "size": [
+        500,
+        300
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "dynamicContent": true
+      }
+    }
+  ]
+}

@@ -1,69 +1,29 @@
-# Third-Party Libraries
+# Third party
 
-This directory contains third-party libraries used by the KartNChibi Engine.
-All libraries are MIT/BSD licensed and cross-platform compatible.
+What is in this folder and how it comes in.
 
-## Libraries
+| Folder | What | How |
+|---|---|---|
+| `bgfx/` | bgfx.cmake with bgfx, bimg and bx, the renderer of the client rewrite | git submodules, pinned, `git submodule update --init --recursive` |
+| `glad/` | generated OpenGL loader | source, checked in |
+| `glfw/` | Windows, Linux and macOS windows and input | source, built static |
+| `stb/` | stb_image and stb_truetype | headers |
+| `tinyddsloader/` | DDS decode fallback for the old texture path | header |
+| `tinygltf/` `tinyobj/` `ufbx/` | glTF, OBJ and FBX loaders of the old model path | headers |
+| `tinyfiledialogs/` | native file dialogs for the tools | one C file |
+| `lua54/` | Lua 5.4 scripting | source |
+| `recast/` | Recast and Detour navigation | source |
+| `miniaudio/` | audio playback | header |
+| `libjpeg/` | JPEG decode fallback, off by default | source |
+| `mariadb-connector-c/` | MariaDB client for the Windows server build | source and prebuilt lib, see DOWNLOAD_LIBS.md |
 
-### tinyddsloader
-- **Purpose**: DDS texture loading (DXT1-5, BC1-7 compressed formats)
-- **License**: MIT
-- **Source**: https://github.com/benikabocha/tinyddsloader
-- **Type**: Header-only
+Everything is MIT, BSD, zlib, public domain or the IJG licence, except
+`mariadb-connector-c/` which is LGPL 2.1, the only copyleft component here.
 
-Used as fallback when built-in DDS support doesn't handle
-GameBryo-specific DDS formats.
-
-### libjpeg 9f (IJG)
-- **Purpose**: Fallback JPEG decoder for exotic formats
-- **License**: IJG License (BSD-like)
-- **Source**: http://www.ijg.org/files/jpegsr9f.zip
-- **Type**: Source files (.c/.h)
-- **Version**: 9f (2024-01-14)
-
-**This software is based in part on the work of the Independent JPEG Group.**
-
-Included files are the decompression subset only (no compression).
-Most JPEG files work with Raylib's stb_image. Only needed for CMYK 
-color space or unusual encodings.
-
-To enable: Define `KNC_USE_LIBJPEG_FALLBACK` and compile the .c files.
-
-## Texture Loading Chain
-
-The engine uses this fallback chain:
-
-1. **Raylib/stb_image** (built into Raylib)
-   - PNG, JPEG, BMP, TGA, HDR, GIF
-   - Common DDS formats
-   - Fast, well-tested
-
-2. **tinyddsloader**
-   - DDS files that stb_image can't handle
-   - BC1-BC7 compressed textures
-   - Legacy DXT formats from GameBryo
-
-3. **libjpeg** (if enabled)
-   - Exotic JPEG encodings
-   - CMYK color space
-   - Unusual subsampling
-
-## License Notices
-
-### tinyddsloader
-```
-Copyright (c) 2019 benikabocha
-MIT License - see tinyddsloader/LICENSE
-```
-
-### libjpeg (if used)
-```
-This software is based in part on the work of the Independent JPEG Group.
-See libjpeg/README.md for license details.
-```
-
-### stb_image 
-```
-Public Domain - https://github.com/nothings/stb
-```
-
+A real licence file sits in only 3 folders, `bgfx/` (and its nested `bgfx/bgfx/`,
+`bgfx/bimg/`, `bgfx/bx/`), `glfw/`, `tinyddsloader/`, plus `mariadb-connector-c/`
+now carries `COPYING.LIB`. The rest carry their licence text inline in the source
+header, `lua54/`, `miniaudio/`, `stb/`, `tinygltf/`, `tinyobj/`, `tinyfiledialogs/`,
+`libjpeg/` (its own `LICENSE_IJG.txt`). `glad/` and `recast/` carry no licence text
+in this tree at all, see their upstream repository. The full list with upstream
+URLs sits in [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md) at the repo root.

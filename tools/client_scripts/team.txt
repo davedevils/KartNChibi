@@ -1,0 +1,25 @@
+# gate: live
+# gate: args --stop-at lobby --mode 1
+# the item team room the two plates carry their own column the rows sit under them
+# run with --mode 1 so the make room box creates an item team room
+waitfor licence 120
+click 255 20
+waitfor lobby 400
+wait 30
+click 907 115
+wait 5
+expect makeroom
+click 453 488
+waitfor room 250
+expect room
+wait 40
+shot team_red
+# the blue plate of the item team row sits at 722 609 the click sends 0x0064 with 1
+click 760 620
+wait 40
+shot team_blue
+# back to the red side at 873 609
+click 910 620
+wait 40
+shot team_back
+quit

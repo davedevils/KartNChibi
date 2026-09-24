@@ -1,26 +1,100 @@
-version: '3.8'
-
 services:
   mariadb:
-    image: mariadb:10.11
+    image: mariadb:11.1
     container_name: knc-mariadb
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: knc_emu
-      MYSQL_USER: knc
-      MYSQL_PASSWORD: knc_password
-    ports:
-      - "3306:3306"
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-knc_root_2025}
+      MYSQL_DATABASE: ${DB_NAME:-knc_emu}
+      MYSQL_USER: ${DB_USER:-knc}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-knc_password}
     volumes:
       - mariadb_data:/var/lib/mysql
-      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      # every sql file here runs once in name order on a fresh database
+      - ./scripts:/docker-entrypoint-initdb.d:ro
+    networks:
+      - knc-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "knc", "-pknc_password"]
-      interval: 10s
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 20
+      start_period: 20s
+
+  login-server:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    image: knc-server:dev
+    container_name: knc-login
+    restart: unless-stopped
+    command: ["login"]
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-knc_emu}
+      DB_USER: ${DB_USER:-knc}
+      DB_PASSWORD: ${DB_PASSWORD:-knc_password}
+      KNC_WEB_PORT: 8080
+      KNC_SITE_NAME: ${SITE_NAME:-Kart N Chibi}
+      KNC_INTERNAL_KEY: ${KNC_INTERNAL_KEY:-change_this_to_a_random_string}
+    ports:
+      - "${LOGIN_PORT:-50017}:50017"
+      - "${WEB_PORT:-8080}:8080"
+    networks:
+      - knc-network
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/knc-entrypoint.sh", "healthcheck", "50017"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+  game-server:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    image: knc-server:dev
+    container_name: knc-game
+    restart: unless-stopped
+    command: ["game"]
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-knc_emu}
+      DB_USER: ${DB_USER:-knc}
+      DB_PASSWORD: ${DB_PASSWORD:-knc_password}
+      KNC_LOG_LEVEL: ${KNC_LOG_LEVEL:-INFO}
+      KNC_CARPART_CATALOG: ${KNC_CARPART_CATALOG:-1}
+      KNC_PART_UICAT: ${KNC_PART_UICAT:-1}
+      # 1 opens the /getmoney /getastro /getexp chat commands to every player keep 0 on a public server
+      KNC_DEV_COMMANDS: ${KNC_DEV_COMMANDS:-0}
+      KNC_INTERNAL_KEY: ${KNC_INTERNAL_KEY:-change_this_to_a_random_string}
+    volumes:
+      # the server reads track collision files here to score a race, see docs
+      - ../client:/app/DevClient:ro
+      - ./data/reference_login_burst.bin:/app/reference_login_burst.bin:ro
+    ports:
+      - "${GAME_PORT:-50018}:50018"
+    networks:
+      - knc-network
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/knc-entrypoint.sh", "healthcheck", "50018", "/app/logs/gameserver.alive"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
 
 volumes:
   mariadb_data:
+    driver: local
 
+networks:
+  knc-network:
+    driver: bridge

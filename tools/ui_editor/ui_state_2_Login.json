@@ -1,0 +1,107 @@
+{
+  "version": "1.0",
+  "state": 2,
+  "name": "Login",
+  "resolution": [1024, 768],
+  "elements": [
+    {
+      "id": "bg_layer1",
+      "type": "image",
+      "asset": "Login/login_back.png",
+      "position": [350, 225],
+      "size": [350, 300],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "input_username",
+      "type": "input",
+      "properties": {
+        "maxLength": 16,
+        "password": false
+        ,"placeholder": "ID"
+      },
+      "position": [438, 307],
+      "size": [184, 20],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "input_password",
+      "type": "input",
+      "properties": {
+        "maxLength": 16,
+        "password": true
+        ,"placeholder": "PW"
+      },
+      "position": [438, 344],
+      "size": [184, 20],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "btn_confirm",
+      "type": "button",
+      "asset": "Login/confirm_",
+      "hoverAsset": "./Data/Eng/Image/Login/confirm_01.png",
+      "pressedAsset": "./Data/Eng/Image/Login/confirm_02.png",
+      "disabledAsset": "./Data/Eng/Image/Login/confirm_03.png",
+      "action": "login",
+      "position": [393, 403],
+      "size": [131, 28],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "btn_cancel",
+      "type": "button",
+      "asset": "Login/cancel_",
+      "hoverAsset": "./Data/Eng/Image/Login/cancel_01.png",
+      "pressedAsset": "./Data/Eng/Image/Login/cancel_02.png",
+      "disabledAsset": "./Data/Eng/Image/Login/cancel_03.png",
+      "action": "cancel",
+      "position": [520, 403],
+      "size": [131, 28],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "btn_find",
+      "type": "button",
+      "asset": "Login/find_",
+      "hoverAsset": "./Data/Eng/Image/Login/find_01.png",
+      "pressedAsset": "./Data/Eng/Image/Login/find_02.png",
+      "disabledAsset": "./Data/Eng/Image/Login/find_03.png",
+      "action": "find_id",
+      "position": [393, 438],
+      "size": [131, 28],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "btn_register",
+      "type": "button",
+      "asset": "Login/register_",
+      "hoverAsset": "./Data/Eng/Image/Login/register_01.png",
+      "pressedAsset": "./Data/Eng/Image/Login/register_02.png",
+      "disabledAsset": "./Data/Eng/Image/Login/register_03.png",
+      "action": "register",
+      "position": [520, 438],
+      "size": [131, 28],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "chk_remember",
+      "type": "checkbox",
+      "asset": "Login/remember",
+      "properties": {
+        "checked": false
+      },
+      "position": [610, 370],
+      "size": [35, 26],
+      "visible": true,
+      "enabled": true
+    }
+  ]
+}

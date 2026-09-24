@@ -1,7 +1,4 @@
-/**
- * @file AdminAPI.h
- * @brief REST API helper functions
- */
+/// REST API helper functions
 
 #pragma once
 #include <string>
@@ -9,20 +6,17 @@
 
 namespace knc {
 
-// Helper functions for API responses
 namespace AdminAPI {
-    
-    // Create JSON error response
+
     inline nlohmann::json error(const std::string& message, int code = 400) {
         return {{"error", message}, {"code", code}};
     }
-    
-    // Create JSON success response
+
     inline nlohmann::json success(const std::string& message = "OK") {
         return {{"success", true}, {"message", message}};
     }
     
-    // Escape SQL string (basic - use prepared statements in production!)
+    // escapes a SQL string use prepared statements in production instead
     inline std::string escapeSql(const std::string& input) {
         std::string output;
         output.reserve(input.size() * 2);

@@ -5,7 +5,6 @@
 #include <wrl.h>
 #include <string>
 
-// Forward declarations
 struct ICoreWebView2;
 struct ICoreWebView2Controller;
 struct ICoreWebView2Environment;
@@ -19,7 +18,7 @@ public:
     void navigate(const std::wstring& url);
     void executeScript(const std::wstring& script);
     
-    // Message handler for JS -> C++
+    // message handler for JS to C plus plus
     void setMessageHandler(std::function<void(const std::string&)> handler) {
         m_messageHandler = handler;
     }

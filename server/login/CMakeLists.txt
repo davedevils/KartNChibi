@@ -1,13 +1,9 @@
-# =============================================================================
-# Login Server Executable
-# =============================================================================
 
-add_executable(LoginServer
-    src/main.cpp
-    src/LoginServer.cpp
-    src/handlers/AuthHandler.cpp
-    src/handlers/HandshakeHandler.cpp
+# globbed see the note in shared src CMakeLists txt
+file(GLOB_RECURSE LOGIN_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
 )
+add_executable(LoginServer ${LOGIN_SOURCES})
 
 target_include_directories(LoginServer PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -15,16 +11,15 @@ target_include_directories(LoginServer PRIVATE
 
 target_link_libraries(LoginServer PRIVATE
     knc-common
+    httplib          # header only carries the signup page
 )
 
-# Copy config file to output
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/config/login.json
     ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/config/login.json
     COPYONLY
 )
 
-# Copy MariaDB DLL on Windows (post-build)
 if(WIN32 AND MARIADB_FOUND)
     get_filename_component(MARIADB_BIN_DIR "${MARIADB_LIB}" DIRECTORY)
     add_custom_command(TARGET LoginServer POST_BUILD

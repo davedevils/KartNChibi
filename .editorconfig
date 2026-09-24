@@ -1,0 +1,78 @@
+# KnC Project - EditorConfig
+# https://editorconfig.org
+
+root = true
+
+# Default for all files
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# C/C++ source files
+[*.{h,hpp,c,cpp,cc,cxx,mm}]
+indent_style = space
+indent_size = 4
+max_line_length = 120
+
+# CMake files
+[CMakeLists.txt]
+indent_style = space
+indent_size = 4
+
+[*.cmake]
+indent_style = space
+indent_size = 4
+
+# GLSL shaders
+[*.{glsl,vert,frag,geom,comp,hlsl}]
+indent_style = space
+indent_size = 4
+
+# JSON
+[*.json]
+indent_style = space
+indent_size = 2
+
+# Markdown
+[*.md]
+trim_trailing_whitespace = false
+indent_size = 2
+
+# YAML / Docker
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# Batch scripts
+[*.{bat,cmd}]
+end_of_line = crlf
+
+# PowerShell
+[*.ps1]
+end_of_line = crlf
+indent_size = 4
+
+# Shell scripts
+[*.sh]
+end_of_line = lf
+indent_size = 4
+
+# Python (tools)
+[*.py]
+indent_style = space
+indent_size = 4
+max_line_length = 100
+
+# INI files
+[*.ini]
+indent_style = space
+indent_size = 4
+
+# XML / vcxproj 
+[*.{xml,vcxproj}]
+indent_style = space
+indent_size = 2

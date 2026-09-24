@@ -1,0 +1,114 @@
+{
+  "version": "1.0",
+  "type": "popup",
+  "name": "Gacha",
+  "resolution": [
+    800,
+    600
+  ],
+  "modal": true,
+  "renderMode": "mixed_3d_2d",
+  "notes": "Gacha/lootbox system avec machine 3D et overlay 2D",
+  "elements": [
+    {
+      "id": "bg_gacha",
+      "type": "image",
+      "asset": "Popup/Gacha/Gacha_Back.png",
+      "position": [
+        0,
+        0
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "gacha_machine_3d",
+      "type": "panel",
+      "position": [
+        200,
+        150
+      ],
+      "size": [
+        400,
+        400
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "model": "Image/Popup/Gacha/Machine/gacha_machinenormal_02",
+        "camera": "Image/Popup/Gacha/Machine/gacha_camera_01",
+        "render3D": true
+      }
+    },
+    {
+      "id": "img_coin",
+      "type": "image",
+      "asset": "Popup/Gacha/UI_shop_gacha_coin.png",
+      "position": [
+        50,
+        500
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "img_coin2",
+      "type": "image",
+      "asset": "Popup/Gacha/UI_shop_gacha_coin2.png",
+      "position": [
+        100,
+        500
+      ],
+      "visible": true,
+      "enabled": true
+    },
+    {
+      "id": "btn_play",
+      "type": "button",
+      "asset": "Popup/Gacha/UI_shop_gacha_play_",
+      "position": [
+        300,
+        530
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_gacha_play"
+    },
+    {
+      "id": "btn_play_b",
+      "type": "button",
+      "asset": "Popup/Gacha/UI_shop_gacha_play_b.png",
+      "position": [
+        450,
+        530
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_gacha_play_multi"
+    },
+    {
+      "id": "tab_cash",
+      "type": "button",
+      "asset": "Popup/Gacha/Gacha_tab_C_",
+      "position": [
+        100,
+        50
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_gacha_tab_cash"
+    },
+    {
+      "id": "tab_point",
+      "type": "button",
+      "asset": "Popup/Gacha/Gacha_tab_P_",
+      "position": [
+        250,
+        50
+      ],
+      "visible": true,
+      "enabled": true,
+      "action": "on_gacha_tab_point"
+    }
+  ]
+}

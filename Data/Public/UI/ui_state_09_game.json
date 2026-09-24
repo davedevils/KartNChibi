@@ -1,0 +1,165 @@
+{
+  "version": "1.0",
+  "state": 9,
+  "name": "Game",
+  "resolution": [
+    1024,
+    768
+  ],
+  "renderMode": "mixed_3d_2d",
+  "notes": "HUD 2D overlay on 3D gameplay viewport",
+  "elements": [
+    {
+      "id": "hud_speedometer",
+      "type": "panel",
+      "position": [
+        820,
+        600
+      ],
+      "size": [
+        180,
+        150
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "dynamicContent": true
+      }
+    },
+    {
+      "id": "hud_minimap",
+      "type": "panel",
+      "position": [
+        20,
+        20
+      ],
+      "size": [
+        200,
+        200
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "dynamicContent": true
+      }
+    },
+    {
+      "id": "hud_position",
+      "type": "text",
+      "position": [
+        480,
+        20
+      ],
+      "size": [
+        64,
+        48
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "fontSize": 36,
+        "color": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "align": "center",
+        "dynamicContent": "${player.position}"
+      }
+    },
+    {
+      "id": "hud_lap",
+      "type": "text",
+      "position": [
+        480,
+        70
+      ],
+      "size": [
+        64,
+        24
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "fontSize": 18,
+        "color": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "align": "center",
+        "dynamicContent": "Lap ${race.currentLap}/${race.totalLaps}"
+      }
+    },
+    {
+      "id": "hud_timer",
+      "type": "text",
+      "position": [
+        850,
+        30
+      ],
+      "size": [
+        150,
+        32
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "fontSize": 24,
+        "color": [
+          255,
+          255,
+          0,
+          255
+        ],
+        "align": "right",
+        "dynamicContent": "${race.time}"
+      }
+    },
+    {
+      "id": "hud_item_slot",
+      "type": "panel",
+      "position": [
+        20,
+        650
+      ],
+      "size": [
+        100,
+        100
+      ],
+      "visible": true,
+      "enabled": true,
+      "properties": {
+        "dynamicContent": true,
+        "showItemIcon": true
+      }
+    },
+    {
+      "id": "hud_countdown",
+      "type": "text",
+      "position": [
+        412,
+        300
+      ],
+      "size": [
+        200,
+        100
+      ],
+      "visible": false,
+      "enabled": true,
+      "properties": {
+        "fontSize": 72,
+        "color": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "align": "center",
+        "dynamicContent": "${race.countdown}"
+      }
+    }
+  ]
+}

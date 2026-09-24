@@ -1,6 +1,6 @@
 # Server Messages Reference
 
-Messages sent in packet payloads (ASCII, null-terminated).
+Messages sent in packet payloads (ASCII null terminated).
 
 ## Authentication
 
@@ -14,8 +14,8 @@ Messages sent in packet payloads (ASCII, null-terminated).
 | `MSG_INVALID_ID` | User ID not found |
 | `MSG_DUPLOGIN` | Duplicate login |
 | `MSG_LIMIT_CONN_PER_IP` | Too many connections from IP |
-| `MSG_BANNED_IP` | IP is banned |
-| `MSG_BANNED_USER` | User is banned |
+| `MSG_BANNED_IP` | IP banned |
+| `MSG_BANNED_USER` | User banned |
 | `MSG_SESSION_EXPIRED` | Session timeout |
 
 ## Game / Room
@@ -24,8 +24,8 @@ Messages sent in packet payloads (ASCII, null-terminated).
 |---------|-------------|
 | `MSG_DURABILITY_ZERO` | Item durability = 0 |
 | `MSG_DURABILITY_LOW` | Low durability warning |
-| `MSG_MAX_ROOM_USER_8` | 8-player room full |
-| `MSG_MAX_ROOM_USER_16` | 16-player room full |
+| `MSG_MAX_ROOM_USER_8` | 8 player room full |
+| `MSG_MAX_ROOM_USER_16` | 16 player room full |
 | `MSG_TEAM_CHANGE_FAIL` | Cannot change team |
 | `MSG_START_FAIL_MINIMUM` | Not enough players |
 | `MSG_START_FAIL_NOT_READY` | Players not ready |
@@ -59,19 +59,19 @@ Messages sent in packet payloads (ASCII, null-terminated).
 From `HandleLoginResponse` (0x01):
 
 ```c
-// Client checks these with strstr():
+// client checks with strstr():
 if (strstr(message, "MSG_SERVER_NOT_READY")) { /* error */ }
-if (strstr(message, "MSG_DB_ACCESS_FAIL"))   { /* error */ }
-if (strstr(message, "MSG_REINPUT_IDPASS"))   { /* wrong creds */ }
-if (strstr(message, "MSG_INVALID_ID"))       { /* user not found */ }
+if (strstr(message, "MSG_DB_ACCESS_FAIL")) { /* error */ }
+if (strstr(message, "MSG_REINPUT_IDPASS")) { /* wrong creds */ }
+if (strstr(message, "MSG_INVALID_ID")) { /* user not found */ }
 ```
 
 ## Usage in Packets
 
 ```c
-// Example: Login failed
+// login failed example
 struct LoginResponse {
-    char message[256];  // "MSG_REINPUT_IDPASS"
-    int32 serverCode;   // 1
+ char message[256]; // "MSG_REINPUT_IDPASS"
+ int32 serverCode;  // 1
 };
 ```

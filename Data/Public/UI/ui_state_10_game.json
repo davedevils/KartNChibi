@@ -1,0 +1,39 @@
+{
+  "version": "1.0",
+  "state": 10,
+  "name": "Game",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "input_0",
+      "type": "input",
+      "visible": true,
+      "enabled": true,
+      "position": [
+        542,
+        735
+      ],
+      "size": [
+        286,
+        20
+      ]
+    },
+    {
+      "id": "input_1",
+      "type": "input",
+      "visible": true,
+      "enabled": true,
+      "position": [
+        380,
+        735
+      ],
+      "size": [
+        120,
+        20
+      ]
+    }
+  ]
+}

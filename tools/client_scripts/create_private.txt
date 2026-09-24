@@ -1,0 +1,31 @@
+# gate: live
+# gate: args --stop-at lobby
+# a private room the Privacy right arrow the password then OK then Escape in the room
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 120
+click 255 20
+waitfor lobby 400
+wait 30
+click 907 115
+wait 5
+expect makeroom
+click 670 413
+wait 3
+text abc
+wait 3
+click 670 343
+wait 3
+click 670 378
+wait 3
+shot create_private
+click 453 488
+waitfor room 250
+expect room
+key escape
+wait 3
+expect escmenu
+shot room_escmenu
+key escape
+wait 3
+expect room
+quit

@@ -1,7 +1,4 @@
-/**
- * @file PacketValidator.cpp
- * @brief Packet validation and state checking
- */
+/// frame checks and the before login opcode list
 
 #include "security/PacketValidator.h"
 #include "net/Protocol.h"
@@ -9,51 +6,47 @@
 namespace knc {
 
 ValidationResult PacketValidator::validate(const Packet& packet) {
-    // Check size bounds
     if (packet.totalSize() < PACKET_HEADER_SIZE) {
         return ValidationResult::INVALID_SIZE;
     }
-    
-    if (packet.totalSize() > PACKET_MAX_SIZE) {
+
+    if (packet.payload().size() > kMaxC2SPayload) {
         return ValidationResult::INVALID_SIZE;
     }
-    
-    // CMD 0x00 is invalid
-    if (packet.cmd() == 0x00) {
+
+    // the low byte alone dropped 0x0100 the quest discard
+    if (packet.opcode() == 0x0000) {
         return ValidationResult::INVALID_CMD;
     }
-    
+
     return ValidationResult::OK;
 }
 
-bool PacketValidator::isValidForState(uint8_t cmd, int currentState) {
-    // States: 0=disconnected, 1=connecting, 2=connected, 3=authenticating, 
-    //         4=authenticated, 5=menu, 6=garage, 7=shop, 8=lobby, 9=room, 
-    //         10=loading, 11=racing, 12=results
-    
-    switch (cmd) {
-        // Always allowed
+bool PacketValidator::allowedBeforeAuth(uint16_t opcode) {
+    switch (opcode) {
         case CMD::C_HEARTBEAT:
-        case CMD::C_DISCONNECT:
-            return true;
-        
-        // Only during connection/auth
-        case CMD::C_FULL_STATE:
         case CMD::C_CLIENT_AUTH:
-            return currentState <= 4;
-        
-        // Only when authenticated
-        case CMD::C_CHAT_MESSAGE:
-        case CMD::C_WHISPER:
-            return currentState >= 4;
-        
-        // Shop packets only in shop
-        case CMD::C_SHOP_ENTER:
-        case CMD::C_SHOP_EXIT:
-            return currentState == 7 || currentState >= 4;
-        
+        case CMD::C_FULL_STATE:
+        case CMD::C_CLIENT_INFO:
+        case CMD::S_SESSION_CONFIRM:     // C2S 0xA7 carries the redirect ticket
+        case CMD::C_LOBBY_TELEMETRY:
+        case 0x000B:                     // ping reply
+            return true;
         default:
-            return currentState >= 4;  // Default: must be authenticated
+            return false;
+    }
+}
+
+bool PacketValidator::payloadIsSecret(uint16_t opcode) {
+    switch (opcode) {
+        case CMD::C_CLIENT_AUTH:
+        case CMD::C_LAUNCHER_LOGIN:
+        case CMD::C_CLIENT_INFO:
+        case CMD::S_SESSION_CONFIRM:
+        case CMD::I_SERVER_REGISTER:
+            return true;
+        default:
+            return false;
     }
 }
 
@@ -68,4 +61,4 @@ std::string PacketValidator::resultToString(ValidationResult result) {
     }
 }
 
-} // namespace knc
+}

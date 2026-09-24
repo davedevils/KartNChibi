@@ -1,9 +1,7 @@
-/**
- * @file Database.h
- * @brief MariaDB connection pool
- */
+/// MariaDB connection pool
 
 #pragma once
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <queue>
@@ -16,6 +14,52 @@
 
 namespace knc {
 
+/// one bound value so a call site can mix ints and strings in one list
+struct DbParam {
+    std::string s;
+    DbParam(const std::string& v) : s(v) {}
+    DbParam(const char* v) : s(v ? v : "") {}
+    DbParam(bool v) : s(v ? "1" : "0") {}
+    DbParam(int v) : s(std::to_string(v)) {}
+    DbParam(unsigned v) : s(std::to_string(v)) {}
+    DbParam(long v) : s(std::to_string(v)) {}
+    DbParam(unsigned long v) : s(std::to_string(v)) {}
+    DbParam(long long v) : s(std::to_string(v)) {}
+    DbParam(unsigned long long v) : s(std::to_string(v)) {}
+    DbParam(double v) : s(std::to_string(v)) {}
+};
+
+using DbParams = std::vector<DbParam>;
+
+/// a pinned connection so a multi statement update cannot half apply since the pool hands out five connections
+class Transaction {
+public:
+    Transaction() = default;
+    ~Transaction();
+    Transaction(Transaction&& o) noexcept : m_conn(o.m_conn), m_done(o.m_done) {
+        o.m_conn = nullptr;
+        o.m_done = true;
+    }
+    Transaction(const Transaction&) = delete;
+    Transaction& operator=(const Transaction&) = delete;
+
+    bool valid() const { return m_conn != nullptr; }
+    bool execute(const std::string& sql, const DbParams& params = {});
+    std::vector<std::map<std::string, std::string>> query(const std::string& sql,
+                                                          const DbParams& params = {});
+    uint64_t lastInsertId();
+    /// rows the last statement touched an update that matched nothing is not an error
+    uint64_t affectedRows();
+    bool commit();
+    void rollback();
+
+private:
+    friend class Database;
+    void* m_conn = nullptr;
+    bool  m_done = false;
+};
+
+
 struct DBConfig {
     std::string host = "localhost";
     int port = 3306;
@@ -26,6 +70,8 @@ struct DBConfig {
 };
 
 class Database {
+    friend class Transaction;
+
 public:
     static Database& instance() {
         static Database inst;
@@ -35,29 +81,42 @@ public:
     bool init(const DBConfig& config);
     void shutdown();
     
-    // Execute query (INSERT, UPDATE, DELETE) - UNSAFE, use executePrepared instead!
+    // execute query INSERT UPDATE DELETE unsafe use executePrepared instead
     bool execute(const std::string& query);
     
-    // Execute query with results (SELECT) - UNSAFE, use queryPrepared instead!
+    // execute query with results SELECT unsafe use queryPrepared instead
     std::vector<std::map<std::string, std::string>> query(const std::string& sql);
     
-    // =========================================================================
-    // SECURE METHODS - Use these to prevent SQL injection
-    // =========================================================================
-    
-    // Escape a string for safe SQL usage
+    // secure methods use these to prevent SQL injection
+
     std::string escapeString(const std::string& input);
     
-    // Execute with prepared statement placeholders (? = placeholder)
-    // Example: executePrepared("INSERT INTO users (name) VALUES (?)", {"John"})
-    bool executePrepared(const std::string& sql, const std::vector<std::string>& params);
+    // execute with prepared statement placeholders example executePrepared insert into users name values with John
+    bool executePreparedRaw(const std::string& sql, const std::vector<std::string>& params);
     
-    // Query with prepared statement placeholders
-    // Example: queryPrepared("SELECT * FROM users WHERE name = ?", {"John"})
-    std::vector<std::map<std::string, std::string>> queryPrepared(
+    // query with prepared statement placeholders example queryPrepared select from users where name equals John
+    std::vector<std::map<std::string, std::string>> queryPreparedRaw(
         const std::string& sql, 
         const std::vector<std::string>& params
     );
+
+    /// one pinned connection see class Transaction below
+    Transaction beginTransaction();
+
+    /// auto increment id of the last insert on this connection
+    uint64_t lastInsertId();
+
+
+    static std::vector<std::string> flatten(const DbParams& in);
+
+    bool executePrepared(const std::string& sql, const DbParams& params) {
+        return executePreparedRaw(sql, flatten(params));
+    }
+
+    std::vector<std::map<std::string, std::string>> queryPrepared(
+        const std::string& sql, const DbParams& params) {
+        return queryPreparedRaw(sql, flatten(params));
+    }
 
 private:
     Database() = default;
@@ -74,5 +133,5 @@ private:
     bool m_initialized = false;
 };
 
-} // namespace knc
 
+}

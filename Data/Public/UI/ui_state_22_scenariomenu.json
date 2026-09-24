@@ -1,0 +1,147 @@
+{
+  "version": "1.0",
+  "state": 22,
+  "name": "ScenarioMenu",
+  "description": "Scenario selection",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "image_0",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "ScenarioMenu/Quest_Back.png"
+    },
+    {
+      "id": "image_1",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "ScenarioMenu/Quest_Top.png"
+    },
+    {
+      "id": "button_4",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "ScenarioMenu/Common_Start_",
+      "position": [
+        793,
+        438
+      ],
+      "index": 2
+    },
+    {
+      "id": "image_5",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "ScenarioMenu/Common_Clear.png"
+    },
+    {
+      "id": "image_6",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "ScenarioMenu/UI_Quest_locked.png"
+    },
+    {
+      "id": "image_7",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "ScenarioMenu/Quest_Back_00.png"
+    },
+    {
+      "id": "image_8",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "GhostMode/Ghost_Back.png"
+    },
+    {
+      "id": "image_9",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "GhostMode/Ghost_Top.png"
+    },
+    {
+      "id": "image_10",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "GhostMode/theme_select.png"
+    },
+    {
+      "id": "image_11",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "GhostMode/locked.png"
+    },
+    {
+      "id": "button_12",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "GhostMode/Common_Top_Left_",
+      "position": [
+        68,
+        120
+      ],
+      "index": 0
+    },
+    {
+      "id": "button_13",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "GhostMode/Common_Top_Right_",
+      "position": [
+        910,
+        120
+      ],
+      "index": 1
+    },
+    {
+      "id": "button_14",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "GhostMode/Common_Bottom_Left_",
+      "position": [
+        143,
+        289
+      ],
+      "index": 2
+    },
+    {
+      "id": "button_15",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "GhostMode/Common_Bottom_Right_",
+      "position": [
+        540,
+        289
+      ],
+      "index": 3
+    },
+    {
+      "id": "button_16",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "GhostMode/Common_Start_",
+      "position": [
+        808,
+        619
+      ],
+      "index": 4
+    }
+  ]
+}

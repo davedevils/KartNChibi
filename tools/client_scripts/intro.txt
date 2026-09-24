@@ -1,0 +1,21 @@
+# gate: live
+# the logo plates then the intro nif of the stock title stage
+# the two plates run 1 6 s each with their fades then the intro plays Title INTRO nif for 7 s
+# run with no host the stage needs no server
+wait 12
+shot intro_ogp
+wait 45
+shot intro_rnr
+wait 45
+expect intro
+shot intro_a
+wait 35
+shot intro_b
+wait 35
+shot intro_c
+wait 35
+shot intro_d
+waitfor login 300
+expect login
+shot intro_login
+quit

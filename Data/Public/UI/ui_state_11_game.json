@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "state": 11,
+  "name": "Game",
+  "description": "In-race HUD",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "image_0",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Game/quest_view_00.png"
+    }
+  ]
+}

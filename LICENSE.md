@@ -9,10 +9,10 @@
 
 ### ✅ You Are Free To:
 
-- **Share** — Copy and redistribute the material in any medium or format
-- **Adapt** — Remix, transform, and build upon the material
-- **Learn** — Use for educational and research purposes
-- **Host** — Run local server for non-commercial use
+- **Share**: Copy and redistribute the material in any medium or format
+- **Adapt**: Remix, transform, and build upon the material
+- **Learn**: Use for educational and research purposes
+- **Host**: Run local server for non-commercial use
 
 ### 📋 Under the Following Terms:
 
@@ -34,7 +34,7 @@ You may not apply legal terms or technological measures that legally restrict ot
 
 ### Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
 
-**Copyright (c) 2024-2025 Kart N'Chibi Contributors**
+**Copyright (c) 2024-2026 davedevils and the KartNChibi contributors**
 
 This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
 
@@ -230,12 +230,25 @@ This project may include third-party components with their own licenses:
 
 | Component | License | Location |
 |-----------|---------|----------|
-| Raylib | Zlib | `engine/render/backends/raylib/` |
-| Nifly | GPL 3.0 | `thirdparty/nifly/` |
-| stb_image | Public Domain | `thirdparty/stb/` |
-| Others | See files | `thirdparty/` |
+| bgfx, bimg, bx, git submodules, no source stored in this repo, only a pointer | BSD 2-Clause | `thirdparty/bgfx/bgfx/` `thirdparty/bgfx/bimg/` `thirdparty/bgfx/bx/` |
+| bgfx.cmake, the build wrapper around the submodules above | CC0 | `thirdparty/bgfx/` |
+| glad, generated OpenGL loader | Public Domain or MIT | `thirdparty/glad/` |
+| GLFW | Zlib | `thirdparty/glfw/` |
+| stb_image, stb_truetype | Public Domain | `thirdparty/stb/` |
+| asio | Boost Software License 1.0 | `server/lib/asio/` |
+| nlohmann json | MIT | `server/lib/json/` |
+| cpp-httplib | MIT | `server/lib/httplib/` |
+| MariaDB Connector/C | LGPL 2.1 | `thirdparty/mariadb-connector-c/` `server/lib/libmariadb.lib` |
+| Lua 5.4 | MIT | `thirdparty/lua54/` |
+| Recast and Detour | Zlib | `thirdparty/recast/` |
+| miniaudio | Public Domain or MIT-0 | `thirdparty/miniaudio/` |
+| tinygltf, tinyobjloader, ufbx, tinyddsloader | MIT | `thirdparty/` |
+| tinyfiledialogs | Zlib | `thirdparty/tinyfiledialogs/` |
+| libjpeg | IJG | `thirdparty/libjpeg/` |
 
-**Check individual components** for their specific license terms.
+**Check individual components** for their specific license terms. The full list
+with upstream URLs and where each license text sits is in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) at the repo root.
 
 ---
 
@@ -274,8 +287,8 @@ This project may include third-party components with their own licenses:
 
 For questions about licensing, commercial use, or clarifications:
 
-- **GitHub Issues:** Open an issue with the `license` tag
-- **Email:** [your-email@example.com]
+- **GitHub Issues:** Open an issue with the `license` tag at
+  https://github.com/davedevils/KartNChibi/issues
 - **Discussions:** GitHub Discussions for general questions
 
 ---

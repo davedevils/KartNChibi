@@ -1,7 +1,3 @@
-/**
- * @file Quat.h
- * @brief Quaternion for 3D rotations
- */
 
 #pragma once
 
@@ -12,19 +8,13 @@
 namespace KnC {
 namespace Math {
 
-/**
- * @brief Quaternion (x, y, z, w)
- * 
- * Used for 3D rotations. Avoids gimbal lock.
- */
+/// quaternion x y z w for 3D rotation avoids gimbal lock
 struct Quat {
     float x, y, z, w;
     
-    // Constructors
     Quat() : x(0.0f), y(0.0f), z(0.0f), w(1.0f) {}
     Quat(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
     
-    // Operators
     Quat operator*(const Quat& other) const {
         return Quat(
             w * other.x + x * other.w + y * other.z - z * other.y,
@@ -50,7 +40,6 @@ struct Quat {
         return !(*this == other);
     }
     
-    // Methods
     float Length() const {
         return std::sqrt(x * x + y * y + z * z + w * w);
     }
@@ -91,26 +80,18 @@ struct Quat {
         return x * other.x + y * other.y + z * other.z + w * other.w;
     }
     
-    /**
-     * @brief Rotate a vector by this quaternion
-     */
     Vec3 RotateVector(const Vec3& v) const {
-        // v' = q * v * q^-1
+        // vector rotation is q times v times q inverse
         Quat vecQuat(v.x, v.y, v.z, 0.0f);
         Quat result = (*this) * vecQuat * Conjugate();
         return Vec3(result.x, result.y, result.z);
     }
     
-    // Static methods
     static Quat Identity() {
         return Quat(0.0f, 0.0f, 0.0f, 1.0f);
     }
     
-    /**
-     * @brief Create quaternion from axis-angle
-     * @param axis Rotation axis (must be normalized)
-     * @param angle Angle in radians
-     */
+    /// builds a quaternion from an axis and angle axis must be normalized
     static Quat FromAxisAngle(const Vec3& axis, float angle) {
         float halfAngle = angle * 0.5f;
         float s = std::sin(halfAngle);
@@ -122,12 +103,7 @@ struct Quat {
         );
     }
     
-    /**
-     * @brief Create quaternion from Euler angles (in radians)
-     * @param pitch Rotation around X axis
-     * @param yaw Rotation around Y axis
-     * @param roll Rotation around Z axis
-     */
+    /// builds a quaternion from euler angles pitch yaw roll in radians
     static Quat FromEuler(float pitch, float yaw, float roll) {
         float cy = std::cos(yaw * 0.5f);
         float sy = std::sin(yaw * 0.5f);
@@ -144,25 +120,21 @@ struct Quat {
         );
     }
     
-    /**
-     * @brief Spherical linear interpolation
-     */
     static Quat Slerp(const Quat& a, const Quat& b, float t) {
         Quat qb = b;
         float cosTheta = a.Dot(b);
         
-        // If negative dot, negate one quaternion to take shorter path
+        // if negative dot negate one quaternion to take the shorter path
         if (cosTheta < 0.0f) {
             qb = Quat(-b.x, -b.y, -b.z, -b.w);
             cosTheta = -cosTheta;
         }
         
-        // If very close, use linear interpolation
+        // if very close use linear interpolation
         if (cosTheta > 0.9995f) {
             return (a * (1.0f - t) + qb * t).Normalized();
         }
         
-        // Calculate coefficients
         float theta = std::acos(cosTheta);
         float sinTheta = std::sin(theta);
         float wa = std::sin((1.0f - t) * theta) / sinTheta;
@@ -172,6 +144,6 @@ struct Quat {
     }
 };
 
-} // namespace Math
-} // namespace KnC
+}
+} // namespace Math KnC
 

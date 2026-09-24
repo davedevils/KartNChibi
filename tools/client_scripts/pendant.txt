@@ -1,0 +1,43 @@
+# gate: live
+# gate: account hltest
+# gate: args --stop-at lobby
+# gate: needs pendant
+# the pendant button of the char panel at 333 176 opens the box of the 0x0119 rows
+# a cell opens the detail its Install sends 0x0123 the ack puts the worn icon over the button
+# the User List tab shows the pendant column at 263 from 0x0132 and the room plate its Icon base s
+# the image of 2026-09-23 grants PENDANT 01 at login to a character with a licence grade
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 120
+click 255 20
+waitfor lobby 400
+wait 40
+click 356 199
+waitfor pendant 50
+expect pendant
+wait 10
+shot pendant_grid
+click 333 225
+waitfor pendantinfo 20
+wait 5
+shot pendant_info
+click 473 454
+wait 30
+shot pendant_worn
+click 569 454
+wait 5
+click 518 563
+wait 10
+expect lobby
+shot pendant_panel
+click 122 131
+wait 60
+shot pendant_userlist
+click 228 131
+wait 5
+click 907 115
+wait 5
+click 453 488
+waitfor room 250
+wait 60
+shot pendant_room
+quit

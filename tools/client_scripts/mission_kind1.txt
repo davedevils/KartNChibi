@@ -1,0 +1,10 @@
+# gate: live
+# gate: account hltest
+# gate: args --auto-mission 1 --race-seconds 300
+# mission 1 of kind 1 on Mission 02 the boxes count on the Mission Num glyphs
+# the START face with the lap flag under the goal of 50 fails the run with no packet
+waitfor mission 900
+expect mission
+waitfor missions 7500
+expect missions
+quit

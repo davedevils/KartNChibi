@@ -1,0 +1,117 @@
+{
+  "version": "1.0",
+  "state": 13,
+  "name": "Tutorial",
+  "description": "Tutorial mode",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "image_0",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Arrow/key_up_n.png"
+    },
+    {
+      "id": "image_1",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Arrow/key_right_n.png"
+    },
+    {
+      "id": "image_2",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Arrow/key_down_n.png"
+    },
+    {
+      "id": "image_3",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Arrow/key_left_n.png"
+    },
+    {
+      "id": "image_4",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Arrow/key_up_c.png"
+    },
+    {
+      "id": "image_5",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Arrow/key_right_c.png"
+    },
+    {
+      "id": "image_6",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Arrow/key_down_c.png"
+    },
+    {
+      "id": "image_7",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Arrow/key_left_c.png"
+    },
+    {
+      "id": "image_8",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "LicenseGame/key_up_r.PNG"
+    },
+    {
+      "id": "image_9",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Arrow/key_shift_n.png"
+    },
+    {
+      "id": "image_10",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Arrow/key_shift_c.png"
+    },
+    {
+      "id": "image_11",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Arrow/key_ctrl_n.png"
+    },
+    {
+      "id": "image_12",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Arrow/key_ctrl_c.png"
+    },
+    {
+      "id": "image_13",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Replay/Replay.png"
+    },
+    {
+      "id": "image_14",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Replay/Replay1.png"
+    }
+  ]
+}

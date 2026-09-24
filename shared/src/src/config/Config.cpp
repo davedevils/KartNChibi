@@ -1,7 +1,3 @@
-/**
- * @file Config.cpp
- * @brief JSON configuration loader
- */
 
 #include "config/Config.h"
 #include "logging/Logger.h"
@@ -36,5 +32,5 @@ bool Config::save(const std::string& filepath) {
     }
 }
 
-} // namespace knc
+}
 

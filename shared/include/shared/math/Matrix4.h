@@ -1,7 +1,3 @@
-/**
- * @file Matrix4.h
- * @brief 4x4 Matrix for 3D transformations
- */
 
 #pragma once
 
@@ -14,19 +10,10 @@
 namespace KnC {
 namespace Math {
 
-/**
- * @brief 4x4 Matrix (column-major order)
- * 
- * Layout:
- * [m00 m10 m20 m30]
- * [m01 m11 m21 m31]
- * [m02 m12 m22 m32]
- * [m03 m13 m23 m33]
- */
+/// 4x4 matrix stored column major
 struct Matrix4 {
-    std::array<float, 16> data; // Column-major: data[col * 4 + row]
+    std::array<float, 16> data; // column major layout is data at col times 4 plus row
     
-    // Constructors
     Matrix4() {
         Identity();
     }
@@ -41,7 +28,6 @@ struct Matrix4 {
         data[12] = m30; data[13] = m31; data[14] = m32; data[15] = m33;
     }
     
-    // Element access
     float& operator()(int row, int col) {
         return data[col * 4 + row];
     }
@@ -50,7 +36,6 @@ struct Matrix4 {
         return data[col * 4 + row];
     }
     
-    // Matrix operations
     Matrix4 operator*(const Matrix4& other) const {
         Matrix4 result;
         for (int col = 0; col < 4; col++) {
@@ -105,7 +90,6 @@ struct Matrix4 {
         return !(*this == other);
     }
     
-    // Matrix operations
     void Identity() {
         data.fill(0.0f);
         data[0] = data[5] = data[10] = data[15] = 1.0f;
@@ -138,13 +122,13 @@ struct Matrix4 {
     
     Matrix4 Inversed() const {
         float det = Determinant();
-        if (std::abs(det) < 0.0001f) {
+        if (std::abs(det) < 1e-7f) {
             return Matrix4(); // Return identity if not invertible
         }
         
         Matrix4 result;
         
-        // Calculate cofactor matrix and transpose
+        // cofactor matrix then transpose
         result(0, 0) =  (data[5] * (data[10] * data[15] - data[11] * data[14]) - data[9] * (data[6] * data[15] - data[7] * data[14]) + data[13] * (data[6] * data[11] - data[7] * data[10]));
         result(0, 1) = -(data[1] * (data[10] * data[15] - data[11] * data[14]) - data[9] * (data[2] * data[15] - data[3] * data[14]) + data[13] * (data[2] * data[11] - data[3] * data[10]));
         result(0, 2) =  (data[1] * (data[6]  * data[15] - data[7]  * data[14]) - data[5] * (data[2] * data[15] - data[3] * data[14]) + data[13] * (data[2] * data[7]  - data[3] * data[6]));
@@ -165,20 +149,25 @@ struct Matrix4 {
         result(3, 2) = -(data[0] * (data[5]  * data[14] - data[6]  * data[13]) - data[4] * (data[1] * data[14] - data[2] * data[13]) + data[12] * (data[1] * data[6]  - data[2] * data[5]));
         result(3, 3) =  (data[0] * (data[5]  * data[10] - data[6]  * data[9])  - data[4] * (data[1] * data[10] - data[2] * data[9])  + data[8]  * (data[1] * data[6]  - data[2] * data[5]));
         
-        // Divide by determinant
+        // transposes the cofactor matrix to get the adjugate
+        result = result.Transposed();
+
         float invDet = 1.0f / det;
         for (int i = 0; i < 16; i++) {
             result.data[i] *= invDet;
         }
-        
+
         return result;
     }
     
     void Invert() {
         *this = Inversed();
     }
+
+    Matrix4 Inverse() const { return Inversed(); }
+
+    Vec3 TransformPoint(const Vec3& v) const { return *this * v; }
     
-    // Extract components
     Vec3 GetTranslation() const {
         return Vec3(data[12], data[13], data[14]);
     }
@@ -233,7 +222,6 @@ struct Matrix4 {
         return q;
     }
     
-    // Static factory methods
     static Matrix4 MakeIdentity() {
         return Matrix4();
     }
@@ -313,6 +301,16 @@ struct Matrix4 {
         return result;
     }
     
+    static Matrix4 RotationAxis(const Vec3& axis, float angle) {
+        Vec3 n = axis.Normalized();
+        float c = std::cos(angle), s = std::sin(angle), t = 1.0f - c;
+        Matrix4 result;
+        result(0,0) = t*n.x*n.x + c;       result(0,1) = t*n.x*n.y - s*n.z; result(0,2) = t*n.x*n.z + s*n.y;
+        result(1,0) = t*n.x*n.y + s*n.z;   result(1,1) = t*n.y*n.y + c;     result(1,2) = t*n.y*n.z - s*n.x;
+        result(2,0) = t*n.x*n.z - s*n.y;   result(2,1) = t*n.y*n.z + s*n.x; result(2,2) = t*n.z*n.z + c;
+        return result;
+    }
+
     static Matrix4 TRS(const Vec3& translation, const Quat& rotation, const Vec3& scale) {
         return Translation(translation) * Rotation(rotation) * Scale(scale);
     }
@@ -361,6 +359,6 @@ struct Matrix4 {
     }
 };
 
-} // namespace Math
-} // namespace KnC
+}
+} // namespace Math KnC
 

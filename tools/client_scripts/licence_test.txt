@@ -1,0 +1,11 @@
+# gate: live
+# gate: args --stop-at licence
+# gate: env KNC_AUTO_LICENCE=3
+# KNC AUTO LICENCE picks a test of the open tier drives it and comes back to the menu on the 0x0016 ack
+# the menu opens first the run opens on the 0x0062 ack the menu again after the 0x00A3 answer
+waitfor licence 400
+waitfor licencerun 500
+expect licencerun
+waitfor licence 4000
+expect licence
+quit

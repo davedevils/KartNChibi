@@ -1,7 +1,4 @@
-/**
- * @file WebServer.h
- * @brief HTTP server for admin panel using cpp-httplib
- */
+/// HTTP server for the admin panel using cpp httplib
 
 #pragma once
 #include <string>
@@ -16,7 +13,7 @@ namespace httplib {
 
 namespace knc {
 
-// Server statistics (shared with game servers)
+// server statistics shared with game servers
 struct ServerStats {
     int playersOnline = 0;
     int activeRooms = 0;
@@ -31,16 +28,15 @@ public:
     WebServer();
     ~WebServer();
     
-    // Start server on port (blocking if async=false)
+    // start server on port blocking if async is false
     bool start(int port, bool async = true);
     void stop();
     bool isRunning() const { return m_running; }
     
-    // Update stats (called by game server)
+    // update stats called by the game server
     void updateStats(const ServerStats& stats);
     ServerStats getStats() const { return m_stats; }
     
-    // Set API token for authentication
     void setApiToken(const std::string& token) { m_apiToken = token; }
 
 private:
@@ -51,7 +47,7 @@ private:
     std::thread m_thread;
     std::atomic<bool> m_running{false};
     ServerStats m_stats;
-    std::string m_apiToken = "admin123";  // Default token
+    std::string m_apiToken;  // empty until setApiToken runs so checkAuth denies by default
     std::string m_staticDir = "static";
 };
 

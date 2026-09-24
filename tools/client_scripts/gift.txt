@@ -1,0 +1,30 @@
+# gate: live
+# gate: args --stop-at lobby
+# gate: needs gold
+# the Gift button of the Gacha Coin tile opens the gift box a friend is picked a note typed and 0x0098 goes out
+# the package server answers 0x0098 with the wallet the coin price leaves the gold on the card
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 60
+click 255 20
+waitfor lobby 400
+wait 25
+click 128 746
+waitfor shop 250
+wait 40
+click 680 112
+wait 30
+click 656 387
+waitfor shopgift 100
+expect shopgift
+click 634 312
+wait 3
+click 560 338
+wait 3
+text hello from the clone
+wait 3
+shot gift_box
+click 482 565
+wait 40
+expect shop
+shot gift_sent
+quit

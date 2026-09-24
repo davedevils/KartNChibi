@@ -1,8 +1,3 @@
-/**
- * @file Packet.cpp
- * @brief KnC packet parsing and serialization
- * @see docs/packets/ for protocol documentation
- */
 
 #include "net/Packet.h"
 #include <cstring>
@@ -10,9 +5,10 @@
 
 namespace knc {
 
-Packet::Packet(uint8_t cmd, uint8_t flag) {
-    m_header.cmd = cmd;
-    m_header.flag = flag;
+Packet::Packet(uint16_t cmd, uint8_t flag) {
+    // flag is the legacy name for cmd but a full opcode keeps its high byte
+    m_header.cmd = static_cast<uint8_t>(cmd & 0xFF);
+    m_header.flag = static_cast<uint8_t>(((cmd >> 8) & 0xFF) | flag);
     m_header.size = 0;
     m_header.reserved = 0;
 }
@@ -33,16 +29,15 @@ std::optional<Packet> Packet::parse(const uint8_t* data, size_t len) {
     
     Packet pkt;
     std::memcpy(&pkt.m_header, data, sizeof(PacketHeader));
-    
-    // Size field = payload size directly
+
+    // size field is the payload size directly
     size_t payloadSize = pkt.m_header.size;
     size_t totalSize = PACKET_HEADER_SIZE + payloadSize;
-    
+
     if (len < totalSize) {
         return std::nullopt;
     }
-    
-    // Copy payload
+
     if (payloadSize > 0) {
         pkt.m_payload.resize(payloadSize);
         std::memcpy(pkt.m_payload.data(), data + PACKET_HEADER_SIZE, payloadSize);
@@ -71,7 +66,6 @@ std::vector<uint8_t> Packet::serialize() const {
     return result;
 }
 
-// Writers
 Packet& Packet::writeInt8(int8_t val) {
     m_payload.push_back(static_cast<uint8_t>(val));
     return *this;
@@ -125,7 +119,7 @@ Packet& Packet::writeString(const std::string& str) {
     for (char c : str) {
         m_payload.push_back(static_cast<uint8_t>(c));
     }
-    m_payload.push_back(0);  // Null terminator
+    m_payload.push_back(0);
     return *this;
 }
 
@@ -139,7 +133,6 @@ Packet& Packet::writeWString(const std::u16string& str) {
     return *this;
 }
 
-// Readers
 int8_t Packet::readInt8() {
     if (m_readPos >= m_payload.size()) return 0;
     return static_cast<int8_t>(m_payload[m_readPos++]);
@@ -214,4 +207,4 @@ std::u16string Packet::readWString(size_t maxChars) {
     return result;
 }
 
-} // namespace knc
+}

@@ -1,0 +1,90 @@
+{
+  "version": "1.0",
+  "state": 24,
+  "name": "MissionMenu",
+  "description": "Mission selection",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "image_0",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "MissionMenu/Mission_Back.png"
+    },
+    {
+      "id": "image_1",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "MissionMenu/Mission_Top.png"
+    },
+    {
+      "id": "button_2",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "MissionMenu/Mission_up_",
+      "position": [
+        51,
+        167
+      ],
+      "index": 0
+    },
+    {
+      "id": "button_3",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "MissionMenu/Mission_down_",
+      "position": [
+        51,
+        666
+      ],
+      "index": 1
+    },
+    {
+      "id": "button_4",
+      "type": "button",
+      "visible": true,
+      "enabled": true,
+      "asset": "MissionMenu/Mission_start_",
+      "position": [
+        457,
+        587
+      ],
+      "index": 2
+    },
+    {
+      "id": "image_5",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "MissionMenu/Mission_clear.png"
+    },
+    {
+      "id": "image_6",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "MissionMenu/Mission_lock.PNG"
+    },
+    {
+      "id": "image_7",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "MissionMenu/Mission_cover.png"
+    },
+    {
+      "id": "image_8",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "MissionMenu/Mission_new.png"
+    }
+  ]
+}

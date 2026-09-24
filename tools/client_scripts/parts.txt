@@ -1,0 +1,75 @@
+# gate: live
+# gate: args --stop-at lobby
+# the kart preview of the garage wears the number plate on O NAME and the antenna on O ANT
+# the owned kart row of hltest holds paint 9007 plate 9100 antenna 9301 the default plate is NAMEBOX NORMAL
+# the right arrow turns the kart a click is one frame of hold so fifty of them make half a turn
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 120
+click 255 20
+waitfor lobby 400
+wait 30
+shot parts_lobby
+click 430 746
+waitfor garage 250
+wait 50
+shot parts_garage_car
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+click 372 380
+wait 10
+shot parts_garage_rear
+click 592 147
+wait 30
+shot parts_garage_antenna
+click 683 147
+wait 30
+shot parts_garage_plate
+expect garage
+quit

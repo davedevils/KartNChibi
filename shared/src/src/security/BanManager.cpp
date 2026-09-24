@@ -1,7 +1,4 @@
-/**
- * @file BanManager.cpp
- * @brief IP and account ban management
- */
+/// IP and account ban management
 
 #include "security/BanManager.h"
 #include "logging/Logger.h"
@@ -24,8 +21,6 @@ void BanManager::banIP(const std::string& ip, const std::string& reason,
     m_bannedIPs.insert(ip);
     LOG_INFO("BAN", "Banned IP: " + ip + " by " + by + " reason: " + reason);
     
-    // Note: DB persistence would add expiration tracking
-    // For now, bans are in-memory and cleared on restart
     (void)durationMinutes;
 }
 
@@ -35,7 +30,6 @@ void BanManager::banAccount(uint32_t accountId, const std::string& reason,
     m_bannedAccounts.insert(accountId);
     LOG_INFO("BAN", "Banned account: " + std::to_string(accountId) + " by " + by + " reason: " + reason);
     
-    // Note: DB persistence would add expiration tracking
     (void)durationMinutes;
 }
 
@@ -52,13 +46,11 @@ void BanManager::unbanAccount(uint32_t accountId) {
 }
 
 void BanManager::loadFromDB() {
-    // Note: Would load from 'bans' table - currently in-memory only
     LOG_INFO("BAN", "Ban manager initialized (in-memory)");
 }
 
 void BanManager::saveToDB() {
-    // Note: Would persist to 'bans' table - currently in-memory only
     LOG_DEBUG("BAN", "Ban save requested (in-memory mode)");
 }
 
-} // namespace knc
+}

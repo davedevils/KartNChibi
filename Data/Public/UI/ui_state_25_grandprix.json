@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "state": 25,
+  "name": "GrandPrix",
+  "description": "Grand Prix mode",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "image_0",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Mission/Mission_1024_768_blue.PNG"
+    },
+    {
+      "id": "image_1",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "Mission/Mission_1024_768_red.PNG"
+    }
+  ]
+}

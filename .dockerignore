@@ -1,0 +1,20 @@
+# whitelist only what the server image needs  repo root is 7 GB otherwise
+*
+
+!server
+!shared
+
+# build junk that would bust the layer cache on every local compile
+server/build
+server/build-*
+server/dist/bin
+server/logs
+server/tests/build
+server/**/*.exe
+server/**/*.pdb
+server/**/*.obj
+server/**/*.lib
+server/**/*.ilk
+**/.vs
+**/CMakeFiles
+**/CMakeCache.txt

@@ -1,0 +1,22 @@
+# gate: state carcraft
+# the car factory builds the factory car of the preset run with --state carcraft and no host
+# the sample preset seats the Circler chassis with its seven parts the stage draws them on the stage rect
+# the Cover tab lists the owned cover and Remove takes it off the car the right arrow turns the car
+waitfor carcraft 500
+wait 40
+shot carcraft_factory
+click 172 270
+wait 20
+shot carcraft_factory_cover
+click 250 687
+wait 40
+shot carcraft_factory_nocover
+click 120 460
+wait 20
+click 158 687
+wait 40
+drag 720 682 722 682 left 25
+wait 10
+shot carcraft_factory_turned
+expect carcraft
+quit

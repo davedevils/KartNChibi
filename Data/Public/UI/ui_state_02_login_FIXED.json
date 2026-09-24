@@ -1,0 +1,72 @@
+{
+  "state": 2,
+  "name": "Login",
+  "elements": [
+    {
+      "id": "bg_layer1",
+      "type": "image",
+      "asset": "Login/login_back.png",
+      "position": [0, 0],
+      "size": [1024, 768]
+    },
+    {
+      "id": "input_username",
+      "type": "input",
+      "position": [450, 310],
+      "size": [200, 20],
+      "properties": {
+        "maxLength": 16,
+        "placeholder": "ID"
+      }
+    },
+    {
+      "id": "input_password",
+      "type": "input",
+      "position": [450, 339],
+      "size": [200, 20],
+      "properties": {
+        "maxLength": 16,
+        "password": true,
+        "placeholder": "PW"
+      }
+    },
+    {
+      "id": "btn_confirm",
+      "type": "button",
+      "asset": "Login/confirm_",
+      "position": [393, 403],
+      "action": "login"
+    },
+    {
+      "id": "btn_cancel",
+      "type": "button",
+      "asset": "Login/cancel_",
+      "position": [520, 403],
+      "action": "cancel"
+    },
+    {
+      "id": "btn_find",
+      "type": "button",
+      "asset": "Login/find_",
+      "position": [393, 438],
+      "action": "find_id"
+    },
+    {
+      "id": "btn_register",
+      "type": "button",
+      "asset": "Login/register_",
+      "position": [520, 438],
+      "action": "register"
+    },
+    {
+      "id": "chk_remember",
+      "type": "checkbox",
+      "asset": "Login/remember",
+      "position": [659, 370],
+      "properties": {
+        "checked": false
+      }
+    }
+  ]
+}
+

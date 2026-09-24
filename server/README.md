@@ -1,79 +1,52 @@
-# KnC Server Emulator
+# Server
 
-Emulator server for Kart n' Crazy  / Chibi Kart (This one tested)
+The private server for Kart n' Crazy / Chibi Kart. Two processes and a database.
 
-## Structure
+| Part | What it does | Port |
+|---|---|---|
+| `login/` | Accounts, launcher tokens, channel list, signup page, redirect to the game server | 50017, web 8080 |
+| `game/` | Everything after the redirect, lobby, rooms, races, shop, quests, social | 50018 |
+| `web-admin/` | Admin panel, opt in, needs OpenSSL | 8080 |
+| `lib/` | Header only libraries, asio, nlohmann json, httplib | |
+| `scripts/` | SQL, applied in name order on a fresh database, then by the launcher for new ones | |
+| `tools/` | Dev tools, dependency fetch, MITM proxy, packet trace, not part of the build | |
+| `data/` | Reference capture the game server compares its login burst against | |
+| `dist/` | Start scripts for a bare Windows run without Docker | |
+
+Shared code, packets, sessions, database and logging, lives in `../shared/src` and builds as `knc-common`.
+
+## Run with Docker
 
 ```
-server/
-├── cmake/              # CMake modules
-├── common/             # Shared library (libknc-common)
-│   ├── include/
-│   │   ├── net/        # Packet, Session, Protocol
-│   │   ├── game/       # Player, Vehicle, Item, Room
-│   │   ├── security/   # RateLimiter, AntiCheat, BanManager
-│   │   ├── logging/    # Logger, PacketLogger
-│   │   ├── config/     # Config loader
-│   │   └── db/         # Database (MariaDB)
-│   └── src/
-├── login-server/       # LoginServer (port 50017)
-│   ├── include/handlers/
-│   ├── src/handlers/
-│   └── config/
-├── game-server/        # GameServer (port 50018)
-│   ├── include/handlers/
-│   ├── src/handlers/
-│   └── config/
-├── web-admin/          # HTTP Admin Panel (port 8080)
-│   ├── include/
-│   ├── src/
-│   └── static/         # HTML/CSS/JS
-├── tests/              # Tests (optionnel, -DBUILD_TESTS=ON)
-├── tools/              # CLI utilities
-├── config/             # Shared config files
-├── scripts/            # Build/deploy scripts
-├── lib/                # Dependencies (header-only)
-│   ├── asio/           # ASIO standalone
-│   ├── json/           # nlohmann/json
-│   └── httplib/        # cpp-httplib
-└── logs/               # Runtime logs
+docker compose up -d
+docker compose logs -f
 ```
 
-## Build
+Settings come from `.env`, see `.env.example`. MariaDB is only reachable inside the compose network.
 
-```bash
-# Configure
-cmake -B build -DCMAKE_BUILD_TYPE=Release
+## Build on Windows
 
-# Build
-cmake --build build
-
-# Run tests
-cd build && ctest --output-on-failure
+```
+cmake -S server -B build-server -G "Visual Studio 17 2022" -A x64
+cmake --build build-server --config Release
 ```
 
-## Docker
+Links `thirdparty/mariadb-connector-c`. Binaries in `build-server/bin/Release`.
 
-```bash
-# Start MariaDB
-docker-compose up -d
+## Database
 
-# Connect via Navicat/DBeaver:
-# Host: localhost:3306
-# User: knc / Pass: knc_password
-# Database: knc_emu
-```
+The SQL under `scripts/` is the whole schema and content. A fresh database runs every file. An existing one runs the files it has not seen, recorded in `schema_migrations`. Write new content as a new numbered file, never edit an old one.
+
+A migration that renames columns (056 is one) must ship together with the image built from the same commit. The old binary reads the old names, so copy a new migration into a running package only when the new image goes with it.
+
+## Secrets
+
+`KNC_INTERNAL_KEY` (login to game server registration) and `ADMIN_TOKEN` (admin HTTP API) have no default. The servers refuse to start when one is missing or still the old sample value. Set both in `.env`, the compose file forwards them.
 
 ## Protocol
 
-See `../docs/packets/` there is a list of all packet i can have see on client side
+`../docs/packets/` has the opcode registry and the per screen documents. The server is the reference implementation, the client rewrite follows it.
 
-## Ports
+## Log level
 
-| Service | Port |
-|---------|------|
-| LoginServer | 50017 |
-| GameServer | 50018 |
-| Web Admin | 8080 |
-| MariaDB | 3306 |
-
+`KNC_LOG_LEVEL=INFO` for a live server. `DEBUG` logs every packet both ways, useful with the client's `packets.log` when something breaks.

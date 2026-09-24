@@ -1,0 +1,12 @@
+# gate: live
+# gate: args --stop-at lobby
+# gate: env KNC_AUTO_GHOST=90
+# the top bar Ghost button opens the ghost menu through the frame action KNC AUTO GHOST then races the track
+# an account with no licence grade lands on the licence stage the Lobby click leaves it
+waitfor licence 60
+click 255 20
+waitfor lobby 400
+wait 25
+click 390 20
+waitfor ghostmode 100
+expect ghostmode

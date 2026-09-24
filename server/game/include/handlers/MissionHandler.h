@@ -1,8 +1,6 @@
-/**
- * @file MissionHandler.h
- * @brief Handles mission/quest packets
- */
+/// the mission menu start and finish of the stock mission stages 24 and 25
 #pragma once
+#include "packets/gen/MissionPackets.h"
 #include "net/Session.h"
 #include "net/Packet.h"
 #include <memory>
@@ -12,32 +10,16 @@ namespace knc {
 
 class GameServer;
 
-struct MissionData {
-    int32_t id;
-    int32_t currentProgress;
-    int32_t targetCount;
-    bool isCompleted;
-};
-
 class MissionHandler {
 public:
-    // Mission list/info
-    static void handleGetMissionList(Session::Ptr session, Packet& packet, GameServer* server);
-    static void handleGetMissionDetails(Session::Ptr session, Packet& packet, GameServer* server);
-    
-    // Mission completion
-    static void handleClaimReward(Session::Ptr session, Packet& packet, GameServer* server);
-    
-    // Progress tracking (called internally by other handlers)
-    static void updateRaceProgress(int characterId, bool won);
-    static void updateItemProgress(int characterId, int itemCount);
-    static void updateTimeProgress(int characterId, int mapId, int timeMs);
-    
-    // Helpers
-    static std::vector<MissionData> getPlayerMissions(int characterId, const std::string& category);
-    static void sendMissionList(Session::Ptr session, int characterId);
-    static void sendMissionComplete(Session::Ptr session, int missionId);
+    /// C2S 0x8F the 0x87 definitions once the 0x88 progress rows then the ack that opens stage 24
+    static void handleOpenMissionMenu(Session::Ptr session, GameServer* server);
+    /// C2S 0x90 checks the row is playable takes the fee and arms the run the finish must match
+    static void handleStartMission(Session::Ptr session, const MissionPackets::MissionIdReq& req,
+                                   GameServer* server);
+    /// C2S 0x8C pays only a run this server started and only on the first clear
+    static void handleMissionComplete(Session::Ptr session, const MissionPackets::MissionIdReq& req,
+                                      GameServer* server);
 };
 
 } // namespace knc
-

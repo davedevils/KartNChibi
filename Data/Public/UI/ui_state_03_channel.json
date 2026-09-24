@@ -1,0 +1,33 @@
+{
+  "version": "1.0",
+  "state": 3,
+  "name": "Channel",
+  "resolution": [
+    1024,
+    768
+  ],
+  "elements": [
+    {
+      "id": "bg_wallpaper",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "WallPaper/intro_bg.png",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "channel_back",
+      "type": "image",
+      "visible": true,
+      "enabled": true,
+      "asset": "ChannelSelect/channel_Back.PNG",
+      "position": [
+        115,
+        108
+      ]
+    }
+  ]
+}

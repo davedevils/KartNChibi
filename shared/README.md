@@ -4,7 +4,7 @@
 
 ---
 
-## 📦 **Contents**
+## **Contents**
 
 ### `core/` - Core Types
 - **`Types.h`** - Base types (int8, uint32, PlayerId, etc.)
@@ -21,7 +21,7 @@
 
 ---
 
-## 🔧 **Usage**
+## **Usage**
 
 ### Quick Start
 
@@ -66,7 +66,7 @@ if (result.IsOk()) {
 
 ---
 
-## 🏗️ **Design Principles**
+## **Design Principles**
 
 1. **Header-only where possible** - Fast compilation
 2. **Zero dependencies** - Only STL
@@ -76,7 +76,7 @@ if (result.IsOk()) {
 
 ---
 
-## 📊 **Type Sizes**
+## **Type Sizes**
 
 | Type | Size | Alignment |
 |------|------|-----------|
@@ -88,7 +88,7 @@ if (result.IsOk()) {
 
 ---
 
-## 🧪 **Testing**
+## **Testing**
 
 ```bash
 cd tests
@@ -97,6 +97,6 @@ cd tests
 
 ---
 
-## 📚 **Documentation**
+## **Documentation**
 
 See `docs/shared/` for detailed API documentation.
