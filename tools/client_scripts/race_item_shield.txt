@@ -1,0 +1,9 @@
+# gate: state race
+# gate: env KNC_ITEM_TEST=8
+# gate: env KNC_ITEM_BOT=10
+# gate: env KNC_ITEM_SHOTS=0.8,1.5,2.0,2.8
+# the shield bubble holds on the own kart the rocket of the leader pops it and does no harm
+# the race clock captures out_item_NNNNN at the listed seconds after the green light
+waitfor race 900
+wait 900
+quit

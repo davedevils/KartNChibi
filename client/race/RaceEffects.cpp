@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <thread>
 #include <cctype>
 #include <cmath>
@@ -126,6 +127,7 @@ void RaceEffects::reset(const std::string& gameDir) {
     m_models.clear();
     m_paths.clear();
     m_gameDir = gameDir;
+    m_awaitingParse = false;
     // KNC FX OFF disables every effect a bisect aid when race crashes
     if (std::getenv("KNC_FX_OFF") != nullptr) m_gameDir.clear();
     const char* test = std::getenv("KNC_FX_TEST");
@@ -252,6 +254,7 @@ std::map<std::string, PropModel> RaceEffects::parseAll(const std::string& gameDi
 
 void RaceEffects::adopt(std::map<std::string, PropModel>&& models) {
     for (auto& entry : models) m_models.emplace(entry.first, std::move(entry.second));
+    m_awaitingParse = false;
     std::printf("[fx] %zu effect nifs parsed before the race\n", m_models.size());
 }
 
@@ -279,6 +282,14 @@ void RaceEffects::setLook(int handle, const std::string& plateModel, const std::
     Car& c = m_cars[handle];
     c.plateModel = plateModel;
     c.antModel = antModel;
+}
+
+void RaceEffects::followDummies(int handle, const float name[16], const float ant[16]) {
+    auto it = m_cars.find(handle);
+    if (it == m_cars.end() || !it->second.alive) return;
+    Car& c = it->second;
+    bx::mtxMul(c.pools[kPlate].world, name, c.world);
+    bx::mtxMul(c.pools[kAnt].world, ant, c.world);
 }
 
 void RaceEffects::remove(int handle) {
@@ -447,8 +458,13 @@ void RaceEffects::decide(Car& c, float dt) {
     // tier 0 big sheet for fast bump tier 1 small one for slow bump or ice
     c.pools[kHit].on = c.clock - c.hitAt < kHitSeconds;
     if (c.pools[kHit].on && !m_gameDir.empty()) {
-        const std::string dir = findDirCi(findDirCi(m_gameDir + "/Data", "Public"), "Effect");
-        c.pools[kHit].nif = findFileCi(dir, c.hitTier == 0 ? "crush_B.nif" : "crush_S.nif");
+        // a folder walk on every frame of the 1 5 s sheet is too slow the path stays per race
+        const char* sheet = c.hitTier == 0 ? "crush_B.nif" : "crush_S.nif";
+        const std::string key = std::string("Hit|") + sheet;
+        auto found = m_paths.find(key);
+        if (found == m_paths.end())
+            found = m_paths.emplace(key, findFileCi(findDirCi(findDirCi(m_gameDir + "/Data", "Public"), "Effect"), sheet)).first;
+        c.pools[kHit].nif = found->second;
     }
 
     // blob shadow every frame plate and antenna show when look names them
@@ -539,7 +555,10 @@ const PropModel* RaceEffects::loadNif(const std::string& path) {
     auto it = m_models.find(path);
     if (it != m_models.end()) return it->second.parts.empty() && it->second.particle_systems.empty() ? nullptr : &it->second;
     PropModel& model = m_models[path];
+    const auto parseFrom = std::chrono::steady_clock::now();
     if (!parseEffectNif(path, model)) return nullptr;
+    std::printf("[fx] %s parsed on the frame thread in %.1f ms\n", fs::path(path).filename().string().c_str(),
+                std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - parseFrom).count());
     // vertex extent tells sprite authored around camera from one on car
     float lo[3] = {1e9f, 1e9f, 1e9f}, hi[3] = {-1e9f, -1e9f, -1e9f};
     for (const PropPart& part : model.parts)
@@ -660,6 +679,9 @@ bool RaceEffects::ensureModel(SceneRenderer& renderer, Car& c, Slot slot) {
         }
         model = &it->second;
     } else {
+        // a parse here on the frame thread held the grid up to 2 s the load thread hands it soon
+        if (m_awaitingParse && slot != kPlate && slot != kAnt && m_models.find(pool.nif) == m_models.end())
+            return false;
         model = loadNif(pool.nif);
         if (model != nullptr && dust) {
             driven = *model;

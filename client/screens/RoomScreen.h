@@ -52,13 +52,17 @@ private:
         uint32_t playerId = 0;
         std::string model;
         std::string driver;
+        // the kart the driver and the parts the member blobs name a new 0x0021 with another look rebuilds the car
+        std::string look;
         int handle = -1;
         int carIndex = -1;
         float x = 0.f, y = 0.f, z = 0.f;
     };
 
-    // the camera of the room scene the eye in front of the row looking at its middle
+    // the camera of the room scene mode 14 until the own seat stands then mode 13 on it
     void roomCamera(float eye[3], float look[3]) const;
+    // FUN 0048DB30 sets camera mode 13 on the own room car camera update 0x43F040 follows it each frame
+    void followCamera(float dt);
     // a world point to canvas units through the room camera false when it lies behind the eye
     bool project(const float world[3], float& sx, float& sy) const;
     void drawNamePlates(DrawContext& ctx);
@@ -93,6 +97,10 @@ private:
     bool m_localSpawned = false;
     double m_driveClock = 0.0;
     double m_motionAt = 0.0;
+    // the mode 13 eye and look of the last frame valid once the own car stands on the floor
+    float m_followEye[3] = {0.f, 0.f, 0.f};
+    float m_followLook[3] = {0.f, 0.f, 0.f};
+    bool m_followValid = false;
     // the team of every member in the wire space of 0x0021 and 0x0064 0 red 1 blue
     std::map<uint32_t, int> m_teams;
 };

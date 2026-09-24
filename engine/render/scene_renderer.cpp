@@ -38,6 +38,23 @@ const UvMatrix& texture_matrix(const ModelPose& pose, int channel) {
     return pose.uv[static_cast<size_t>(channel)];
 }
 
+// A model space direction turned by a column major placement its scale dropped
+void turn_by_world(const float world[16], const float direction[3], float out[4]) {
+    for (int row = 0; row < 3; ++row)
+        out[row] = direction[0] * world[row] + direction[1] * world[4 + row] + direction[2] * world[8 + row];
+    const float length = std::sqrt(out[0] * out[0] + out[1] * out[1] + out[2] * out[2]);
+    if (length > 0.f)
+        for (int axis = 0; axis < 3; ++axis) out[axis] /= length;
+    out[3] = 0.f;
+}
+
+// Gamebryo sums every NiAmbientLight that reaches a geometry into the device ambient
+void add_ambient(const ModelLights& lights, HourColour& ambient) {
+    ambient.red += lights.ambient[0];
+    ambient.green += lights.ambient[1];
+    ambient.blue += lights.ambient[2];
+}
+
 // Channel no controller keeps alpha NiMaterialProperty 219 effect surfaces 0
 float material_alpha(const ModelPose& pose, int channel, float rest) {
     if (channel < 0 || static_cast<size_t>(channel) >= pose.alpha.size()) return rest;
@@ -214,6 +231,12 @@ bool SceneRenderer::create_uniforms() {
     detail_params_uniform_ = bgfx::createUniform("u_detailParams", bgfx::UniformType::Vec4);
     bone_rows_uniform_ = bgfx::createUniform("u_bones", bgfx::UniformType::Vec4,
                                              kBonePaletteSize * kBoneMatrixRows);
+    environment_sampler_ = bgfx::createUniform("s_environment", bgfx::UniformType::Sampler);
+    environment_row_u_ = bgfx::createUniform("u_environmentRowU", bgfx::UniformType::Vec4);
+    environment_row_v_ = bgfx::createUniform("u_environmentRowV", bgfx::UniformType::Vec4);
+    eye_position_ = bgfx::createUniform("u_eyePosition", bgfx::UniformType::Vec4);
+    model_light_direction_ = bgfx::createUniform("u_modelLightDirection", bgfx::UniformType::Vec4, kModelLights);
+    model_light_colour_ = bgfx::createUniform("u_modelLightColour", bgfx::UniformType::Vec4, kModelLights);
     if (bgfx::isValid(bone_rows_uniform_) && bgfx::isValid(diffuse_sampler_) &&
         bgfx::isValid(coverage_sampler_) &&
         bgfx::isValid(splat_params_) && bgfx::isValid(shade_emissive_) &&
@@ -222,7 +245,10 @@ bool SceneRenderer::create_uniforms() {
         bgfx::isValid(fog_range_uniform_) && bgfx::isValid(uv_rows_uniform_) &&
         bgfx::isValid(uv_offset_uniform_) && bgfx::isValid(detail_sampler_) &&
         bgfx::isValid(detail_rows_uniform_) && bgfx::isValid(detail_offset_uniform_) &&
-        bgfx::isValid(detail_params_uniform_))
+        bgfx::isValid(detail_params_uniform_) && bgfx::isValid(environment_sampler_) &&
+        bgfx::isValid(environment_row_u_) && bgfx::isValid(environment_row_v_) &&
+        bgfx::isValid(eye_position_) && bgfx::isValid(model_light_direction_) &&
+        bgfx::isValid(model_light_colour_))
         return true;
     std::cerr << "[render] scene uniforms could not be created\n";
     return false;
@@ -306,13 +332,13 @@ bool SceneRenderer::init(const RendererSetup& setup) {
     layer_visible_[static_cast<int>(SceneLayer::PropHulls)] = false;
     bgfx::setViewMode(kSkyView, bgfx::ViewMode::Sequential);
     bgfx::setViewMode(kSceneView, bgfx::ViewMode::Sequential);
-    // The hud scene views come after the overlay id and draw before it the table is view to rank
-    bgfx::ViewId rank[kHudSceneFirstView + kHudSceneViews];
-    for (int view = 0; view < kOverlayView; ++view) rank[view] = static_cast<bgfx::ViewId>(view);
-    rank[kOverlayView] = static_cast<bgfx::ViewId>(kHudSceneFirstView + kHudSceneViews - 1);
+    // The hud scene views come after the overlay id and draw before it the table is rank to view
+    bgfx::ViewId order[kHudSceneFirstView + kHudSceneViews];
+    for (int view = 0; view < kOverlayView; ++view) order[view] = static_cast<bgfx::ViewId>(view);
     for (int slot = 0; slot < kHudSceneViews; ++slot)
-        rank[kHudSceneFirstView + slot] = static_cast<bgfx::ViewId>(kOverlayView + slot);
-    bgfx::setViewOrder(0, kHudSceneFirstView + kHudSceneViews, rank);
+        order[kOverlayView + slot] = static_cast<bgfx::ViewId>(kHudSceneFirstView + slot);
+    order[kOverlayView + kHudSceneViews] = static_cast<bgfx::ViewId>(kOverlayView);
+    bgfx::setViewOrder(0, kHudSceneFirstView + kHudSceneViews, order);
     target_view_ = kSceneView;
     return true;
 }
@@ -385,6 +411,7 @@ SceneRenderer::PropPartBuffers SceneRenderer::create_part(const PropPart& part) 
         const CachedTexture detail = textures_.acquire(part.detail_texture_path, true);
         if (bgfx::isValid(detail.handle)) buffers.detail = detail.handle;
     }
+    take_environment(part.environment, buffers.environment, buffers.environment_rotation);
     buffers.animation = part.animation;
     if (part.morph_frames.empty()) return buffers;
     buffers.morph_posed = part.vertices;
@@ -445,6 +472,7 @@ SceneRenderer::PropModelBuffers SceneRenderer::create_model(const PropModel& mod
     for (const PropPart& part : model.parts) {
         buffers.parts.push_back(create_part(part));
         buffers.parts.back().lit_by_map_ambient = model.lit_by_map_ambient;
+        buffers.parts.back().lights = model.lights;
         // The flip files of the part uploaded once the pose names the frame
         const int flip = part.animation.flip;
         if (flip < 0 || static_cast<size_t>(flip) >= model.animation.flip_channels.size()) continue;
@@ -540,6 +568,7 @@ SceneRenderer::SkinnedPartBuffers SceneRenderer::create_skinned_part(const Skinn
                                         part.has_vertex_colours);
     buffers.blended = part.surface.alpha.blend_enabled();
     buffers.palette_slots = static_cast<uint16_t>(slots);
+    take_environment(part.environment, buffers.environment, buffers.environment_rotation);
     return buffers;
 }
 
@@ -554,9 +583,11 @@ void SceneRenderer::upload_one_character(const CharacterModel& model) {
     }
     buffers.bound_radius = std::sqrt(buffers.bound_radius);
     buffers.parts.reserve(model.parts.size());
-    for (std::size_t part = 0; part < model.parts.size(); ++part)
+    for (std::size_t part = 0; part < model.parts.size(); ++part) {
         buffers.parts.push_back(
             create_skinned_part(model.parts[part], model.rig.palettes[part].nodes.size()));
+        buffers.parts.back().lights = model.lights;
+    }
     evaluate_skinned_pose(buffers.rig, -1, animation_.seconds(), buffers.pose);
     characters_.push_back(std::move(buffers));
 }
@@ -905,6 +936,53 @@ void SceneRenderer::set_shader_parameters(const SurfaceUniforms& surface,
                              fog_enabled_ && node_fogged_ && !hud_pass_ ? ramp.density : 0.f};
     bgfx::setUniform(fog_colour_uniform_, colour);
     bgfx::setUniform(fog_range_uniform_, &ramp);
+    set_model_stage(nullptr, BGFX_INVALID_HANDLE, nullptr, nullptr);
+}
+
+void SceneRenderer::take_environment(const EnvironmentMap& map, bgfx::TextureHandle& texture,
+                                     float rotation[9]) {
+    if (map.texture.empty()) return;
+    const CachedTexture image = textures_.acquire(map.texture, true);
+    if (!bgfx::isValid(image.handle)) return;
+    texture = image.handle;
+    for (int entry = 0; entry < 9; ++entry) rotation[entry] = map.rotation[entry];
+}
+
+// NiTextureEffect sphere map D3D camera space reflection vector turned into the effect frame then scaled half
+void SceneRenderer::set_model_stage(const ModelLights* lights, bgfx::TextureHandle environment,
+                                    const float rotation[9], const float world[16]) const {
+    float directions[kModelLights][4] = {};
+    float colours[kModelLights][4] = {};
+    float row_u[4] = {0.f, 0.f, 0.f, 0.f};
+    float row_v[4] = {0.f, 0.f, 0.f, 0.f};
+    const float eye[4] = {camera_position_[0], camera_position_[1], camera_position_[2], 0.f};
+    if (lights != nullptr && world != nullptr) {
+        for (int light = 0; light < lights->count && light < kModelLights; ++light) {
+            turn_by_world(world, lights->direction[light], directions[light]);
+            directions[light][3] = 1.f;
+            for (int channel = 0; channel < 3; ++channel) colours[light][channel] = lights->colour[light][channel];
+        }
+    }
+    if (bgfx::isValid(environment) && rotation != nullptr && world != nullptr) {
+        // NiTextureEffect UpdateProjection a sphere map reads world rotation columns 2 and 1 with half weights
+        float column_z[3] = {rotation[2], rotation[5], rotation[8]};
+        float column_y[3] = {rotation[1], rotation[4], rotation[7]};
+        float world_z[4], world_y[4];
+        turn_by_world(world, column_z, world_z);
+        turn_by_world(world, column_y, world_y);
+        for (int axis = 0; axis < 3; ++axis) {
+            row_u[axis] = 0.5f * world_z[axis];
+            row_v[axis] = -0.5f * world_y[axis];
+        }
+        row_u[3] = 1.f;
+    }
+    bgfx::setUniform(model_light_direction_, &directions[0][0], kModelLights);
+    bgfx::setUniform(model_light_colour_, &colours[0][0], kModelLights);
+    bgfx::setUniform(environment_row_u_, row_u);
+    bgfx::setUniform(environment_row_v_, row_v);
+    bgfx::setUniform(eye_position_, eye);
+    bgfx::setTexture(3, environment_sampler_,
+                     bgfx::isValid(environment) ? environment : textures_.white_stand_in(), kDiffuseSampler);
 }
 
 // First opaque coat owns depth buffer coats stacked pass LEQUAL
@@ -929,7 +1007,7 @@ void SceneRenderer::submit_coat(const LayerBuffers& buffers, size_t coat_index,
     const bool baked = baked_shading_ && bgfx::isValid(buffers.baked_vertices);
     bgfx::setVertexBuffer(0, baked ? buffers.baked_vertices : buffers.vertices);
     bgfx::setIndexBuffer(buffers.indices);
-    bgfx::submit(kSceneView, program_);
+    bgfx::submit(target_view_, program_);
 }
 
 void SceneRenderer::submit_layer_buffers(const LayerBuffers& buffers,
@@ -989,12 +1067,15 @@ void SceneRenderer::bind_prop_part(const PropPartBuffers& part, const ModelPose&
     surface.shade = part.shade;
     surface.ambient = hud_pass_ ? hud_ambient_
                                 : (part.lit_by_map_ambient ? cycle_.ambient() : kBlackAmbient);
+    add_ambient(part.lights, surface.ambient);
     set_shader_parameters(surface, world_fog());
     set_uv_transform(texture_matrix(pose, part.animation.uv));
     set_detail_stage(&part, &pose);
     bgfx::setTexture(0, diffuse_sampler_, flipped_texture(part, pose), part.sampler);
     float animated[16];
-    bgfx::setTransform(placed_matrix(part, pose, world, animated));
+    const float* placed = placed_matrix(part, pose, world, animated);
+    set_model_stage(&part.lights, part.environment, part.environment_rotation, placed);
+    bgfx::setTransform(placed);
     if (bgfx::isValid(part.morphed)) bgfx::setVertexBuffer(0, part.morphed);
     else bgfx::setVertexBuffer(0, part.vertices);
     bgfx::setIndexBuffer(part.indices);
@@ -1076,7 +1157,9 @@ void SceneRenderer::bind_character_part(const SkinnedPartBuffers& part,
     surface.splat[3] = part.rest_alpha;
     surface.shade = part.shade;
     surface.ambient = cycle_.ambient();
+    add_ambient(part.lights, surface.ambient);
     set_shader_parameters(surface, world_fog());
+    set_model_stage(&part.lights, part.environment, part.environment_rotation, world);
     set_uv_transform(kRawTextureCoordinates);
     const float* palette = pose.rows.data() + pose.part_offset[index];
     bgfx::setUniform(bone_rows_uniform_, palette,
@@ -1096,19 +1179,19 @@ void SceneRenderer::submit_character_part(const SkinnedPartBuffers& part,
         bind_character_part(part, pose, index, world);
         bgfx::setTexture(1, coverage_sampler_, textures_.white_stand_in(), kCoverageSampler);
         bgfx::setState(state);
-        bgfx::submit(kSceneView, skinned_program_);
+        bgfx::submit(target_view_, skinned_program_);
         return;
     }
     bind_character_part(part, pose, index, world);
     toon_.bind_surface();
     bgfx::setState(state);
-    bgfx::submit(kSceneView, toon_.skinned_surface());
+    bgfx::submit(target_view_, toon_.skinned_surface());
     // Cutout part sheet shell paints whole same reason blended card
     if (part.blended) return;
     bind_character_part(part, pose, index, world);
     toon_.bind_skinned_outline();
     bgfx::setState(kOutlineState);
-    bgfx::submit(kSceneView, toon_.skinned_outline());
+    bgfx::submit(target_view_, toon_.skinned_outline());
 }
 
 // Characters ride Monsters layer key hides spawn markers hides bodies
@@ -1143,7 +1226,7 @@ void SceneRenderer::submit_sky_part(const PropPartBuffers& part, const SkyPhaseB
     bgfx::setState(kSkyState);
     bgfx::setVertexBuffer(0, part.vertices);
     bgfx::setIndexBuffer(part.indices);
-    bgfx::submit(kSkyView, program_);
+    bgfx::submit(sky_view_, program_);
 }
 
 // The stock loads the sky nif like the track nif so the dome stands still over the world
@@ -1316,6 +1399,62 @@ void SceneRenderer::draw_hud_scene(const HudScene& scene) {
     }
 }
 
+// The sky the layers the props the riders and their particles through a second camera the rect is cleared first
+void SceneRenderer::draw_world_inset(const HudScene& scene) {
+    if (!started_ || scene.width == 0 || scene.height == 0) return;
+    if (hud_scenes_drawn_ >= kHudSceneViews) return;
+    const bgfx::ViewId view = static_cast<bgfx::ViewId>(kHudSceneFirstView + hud_scenes_drawn_++);
+    bgfx::setViewFrameBuffer(view, BGFX_INVALID_HANDLE);
+    bgfx::setViewMode(view, bgfx::ViewMode::Sequential);
+    bgfx::setViewRect(view, scene.x, scene.y, scene.width, scene.height);
+    bgfx::setViewClear(view, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, packed_rgba(backdrop()), 1.0f, 0);
+    float projection[16];
+    const float near_plane = std::max(scene.near_plane, kClientNearPlane);
+    const float up = std::tan(scene.fov_vertical * 0.5f) * near_plane;
+    const float aspect = static_cast<float>(scene.width) / static_cast<float>(scene.height);
+    const float right = scene.fov_horizontal > 0.f
+                            ? std::tan(scene.fov_horizontal * 0.5f) * near_plane
+                            : up * aspect;
+    bx::mtxProj(projection, up, -up, -right, right, near_plane, scene.far_plane,
+                bgfx::getCaps()->homogeneousDepth, bx::Handedness::Right);
+    bgfx::setViewTransform(view, scene.view, projection);
+    bgfx::touch(view);
+    float saved_right[3];
+    float saved_up[3];
+    float saved_forward[3];
+    float saved_position[3];
+    for (int axis = 0; axis < 3; ++axis) {
+        saved_right[axis] = billboard_right_[axis];
+        saved_up[axis] = billboard_up_[axis];
+        saved_forward[axis] = camera_forward_[axis];
+        saved_position[axis] = camera_position_[axis];
+        camera_position_[axis] = scene.eye[axis];
+    }
+    const ViewFrustum saved_frustum = scene_frustum_;
+    // The frame frustum would drop riders the inset sees so the inset culls none
+    scene_frustum_.valid = false;
+    take_billboard_basis(scene.view);
+    target_view_ = view;
+    sky_view_ = view;
+    submit_sky(scene.eye);
+    submit_layer(SceneLayer::Terrain);
+    submit_layer(SceneLayer::Grid);
+    submit_instances();
+    submit_layer(SceneLayer::Monsters);
+    submit_characters();
+    submit_particles();
+    submit_layer(SceneLayer::Water);
+    target_view_ = kSceneView;
+    sky_view_ = kSkyView;
+    scene_frustum_ = saved_frustum;
+    for (int axis = 0; axis < 3; ++axis) {
+        billboard_right_[axis] = saved_right[axis];
+        billboard_up_[axis] = saved_up[axis];
+        camera_forward_[axis] = saved_forward[axis];
+        camera_position_[axis] = saved_position[axis];
+    }
+}
+
 void SceneRenderer::draw_frame_veil(const HourColour& colour, float alpha) {
     if (!started_ || alpha <= 0.f || hud_scenes_drawn_ >= kHudSceneViews) return;
     if (bgfx::getAvailTransientVertexBuffer(4, layout_) < 4 || bgfx::getAvailTransientIndexBuffer(6) < 6)
@@ -1387,6 +1526,12 @@ void SceneRenderer::shutdown() {
     destroy_uniform(detail_offset_uniform_);
     destroy_uniform(detail_params_uniform_);
     destroy_uniform(bone_rows_uniform_);
+    destroy_uniform(environment_sampler_);
+    destroy_uniform(environment_row_u_);
+    destroy_uniform(environment_row_v_);
+    destroy_uniform(eye_position_);
+    destroy_uniform(model_light_direction_);
+    destroy_uniform(model_light_colour_);
     if (bgfx::isValid(program_)) bgfx::destroy(program_);
     program_ = BGFX_INVALID_HANDLE;
     if (bgfx::isValid(skinned_program_)) bgfx::destroy(skinned_program_);

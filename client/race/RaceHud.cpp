@@ -44,6 +44,28 @@ constexpr float kIconUnitsX = 166.22616f * 0.8f;
 constexpr float kIconUnitsY = 172.50151f * 0.8f;
 // stock result rows 8 of 72 px in item modes 16 of 36 px in speed modes
 constexpr float kResultX = 153.f;
+// sub 4A9DA0 the attack frame at 599 0 and the name at 732 plus 146 on 164
+constexpr float kAttackFrameX = 599.f;
+constexpr float kAttackFrameY = 0.f;
+constexpr float kAttackNameX = 878.f;
+constexpr float kAttackNameY = 164.f;
+// sub 4AD310 the event frame at 735 214
+constexpr float kEventFrameX = 735.f;
+constexpr float kEventFrameY = 214.f;
+// sub 4C9C70 the marker draws 63 left and 67 up of the aim point its own car mark 17 up
+constexpr float kReticleHalf = 63.f;
+constexpr float kReticleLift = 67.f;
+constexpr float kReticleOwnLift = 17.f;
+// sub 4C0740 the four dung splats inside 16000 ms a simplified path of the stock slide
+constexpr double kDungSeconds = 16.0;
+constexpr double kDungStagger = 0.2;
+constexpr double kDungPop = 0.15;
+constexpr double kDungHold = 12.0;
+constexpr float kDungScale = 0.8f;
+constexpr float kDungSlide = 120.f;
+constexpr float kDungOffset[4][2] = {{-150.f, -60.f}, {140.f, -90.f}, {-40.f, 80.f}, {170.f, 70.f}};
+// sub 43D7E0 mode 3 speed 0x44FA0000 the flash veil lasts 2000 ms
+constexpr double kFlashSeconds = 2.0;
 
 const char* const kItemNames[22] = {"booster", "big_booster", "spike", "storm", "thunder", "handle", "turtle", "rabbit",
                                     "shield", "smoke", "rocket", "hive", "angel", "bluerabbit", "ice", "flash",
@@ -427,9 +449,66 @@ void RaceHud::drawLicence(DrawContext& ctx, AssetStore& assets, const HudState& 
     if (s.licenceTimerMs >= 0.0) timeDigits(ctx, assets, 400.f, 50.f, s.licenceTimerMs / 1000.0);
 }
 
+// sub 4C0740 four splats land one after the other hold then slide down and fade inside 16000 ms
+void RaceHud::drawItemViews(DrawContext& ctx, AssetStore& assets, const HudState& s, float canvasW, float canvasH) {
+    if (s.dungAge >= 0.0 && s.dungAge < kDungSeconds) {
+        for (int i = 0; i < 4; ++i) {
+            const double age = s.dungAge - static_cast<double>(i) * kDungStagger;
+            if (age < 0.0) continue;
+            char name[64];
+            std::snprintf(name, sizeof(name), "Data/Public/Item/Dung/item_ddon_%02d.png", i);
+            const Texture* tex = assets.texture(name);
+            if (!tex || !tex->valid()) continue;
+            const float pop = static_cast<float>(std::min(1.0, age / kDungPop));
+            const float scale = kDungScale * (0.7f + 0.3f * pop);
+            const float fade = static_cast<float>(std::max(0.0, (s.dungAge - kDungHold) / (kDungSeconds - kDungHold)));
+            const float w = static_cast<float>(tex->width) * scale;
+            const float h = static_cast<float>(tex->height) * scale;
+            const float x = canvasW * 0.5f + kDungOffset[i][0] - w * 0.5f;
+            const float y = canvasH * 0.5f + kDungOffset[i][1] - h * 0.5f + fade * kDungSlide;
+            ctx.batch.draw(tex->handle, std::floor(x), std::floor(y), w, h,
+                           rgba(255, 255, 255, static_cast<uint8_t>((1.f - fade) * 255.f)));
+        }
+    }
+    // sub 4A9DA0 the frame pngs swap every second frame the name sits under the inset centre
+    if (s.attackView) {
+        char name[64];
+        std::snprintf(name, sizeof(name), "Panel/AttackView/AttackView_%02d.png", s.attackFrame + 1);
+        sprite(ctx, assets, name, kAttackFrameX, kAttackFrameY);
+        if (!s.attackName.empty()) {
+            const float w = ctx.bold.measure(s.attackName, 13.f);
+            const float x = std::floor(kAttackNameX - w * 0.5f);
+            ctx.bold.draw(ctx.batch, s.attackName, x + 1.f, kAttackNameY + 1.f, 13.f, rgba(0, 0, 0, 200));
+            ctx.bold.draw(ctx.batch, s.attackName, x, kAttackNameY, 13.f, kWhite);
+        }
+    }
+    if (s.eventView) {
+        char name[64];
+        std::snprintf(name, sizeof(name), "Panel/EventView2/EventView_%02d.png", s.eventFrame + 1);
+        sprite(ctx, assets, name, kEventFrameX, kEventFrameY);
+    }
+    // sub 4C9C70 the marker at alpha 0xA0 its own car mark sits 50 lower than the aim of the shooter
+    if (s.reticle) {
+        char name[80];
+        std::snprintf(name, sizeof(name), "Data/Public/Item/%s/target%02d_%02d.PNG",
+                      s.reticleKind == 16 ? "Magnet" : "Rocket", s.reticleSet, s.reticleFrame);
+        const float y = s.reticleOnCar ? s.reticleY - kReticleOwnLift : s.reticleY - kReticleLift;
+        sprite(ctx, assets, name, std::floor(s.reticleX - kReticleHalf), std::floor(y), 1.f, rgba(255, 255, 255, 160));
+    }
+}
+
+// sub 43D7E0 mode 3 the flash veil fades out over 2000 ms
+void RaceHud::drawFlash(DrawContext& ctx, const HudState& s, float canvasW, float canvasH) {
+    if (s.flashAge < 0.0 || s.flashAge >= kFlashSeconds) return;
+    const float alpha = 1.f - static_cast<float>(s.flashAge / kFlashSeconds);
+    ctx.batch.fill(0.f, 0.f, canvasW, canvasH, rgba(255, 255, 255, static_cast<uint8_t>(alpha * 255.f)));
+}
+
 void RaceHud::draw(DrawContext& ctx, AssetStore& assets, const HudState& s, float canvasW, float canvasH) {
     // stock intro pan shows only wait words panels come with chase camera
     const bool panelsHidden = s.waiting && s.countdownStage == 0;
+    // sub 4A8D80 the preview views draw before the panels of the hud
+    if (!panelsHidden) drawItemViews(ctx, assets, s, canvasW, canvasH);
     if (!panelsHidden && s.kind == HudKind::Licence) {
         // panel manager draws minimap gauge and item slot in stage 13 rest is ours
         drawMinimap(ctx, assets, s);
@@ -498,6 +577,7 @@ void RaceHud::draw(DrawContext& ctx, AssetStore& assets, const HudState& s, floa
             ctx.batch.draw(tex->handle, std::floor((canvasW - static_cast<float>(tex->width)) * 0.5f), 300.f,
                            static_cast<float>(tex->width), static_cast<float>(tex->height));
     }
+    drawFlash(ctx, s, canvasW, canvasH);
 }
 
 void RaceHud::drawResult(DrawContext& ctx, AssetStore& assets, const std::vector<HudResultRow>& board, uint32_t gameMode,
@@ -584,6 +664,47 @@ void RaceHud::drawPause(DrawContext& ctx, AssetStore& assets, float canvasW, flo
         ctx.bold.drawCentered(ctx.batch, "OK", ok.x + ok.w * 0.5f, ok.y + 6.f, 15.f, kInkDark);
     if (!sprite(ctx, assets, "Buttons/Common_Cancel_half_00.png", cancel.x, cancel.y))
         ctx.bold.drawCentered(ctx.batch, "Cancel", cancel.x + cancel.w * 0.5f, cancel.y + 6.f, 15.f, kInkDark);
+}
+
+// a first use was a file read a png decode and an upload on the frame the image showed
+std::vector<std::string> RaceHud::warmList() {
+    std::vector<std::string> list;
+    char name[64];
+    for (int i = 0; i <= 10; ++i) {
+        std::snprintf(name, sizeof(name), "Panel/LapTime/num_%02d.png", i);
+        list.push_back(name);
+        if (i == 0) continue;
+        std::snprintf(name, sizeof(name), "Panel/LapTime/LapNum_%02d.png", i);
+        list.push_back(name);
+    }
+    for (int i = 0; i <= 9; ++i) {
+        std::snprintf(name, sizeof(name), "Panel/Guage/speedNum_%d.png", i);
+        list.push_back(name);
+        std::snprintf(name, sizeof(name), "Panel/Stream/num_%d.png", i);
+        list.push_back(name);
+    }
+    for (int i = 1; i <= 8; ++i) {
+        std::snprintf(name, sizeof(name), "Panel/Position/PlayRankingNum_%02d.png", i);
+        list.push_back(name);
+    }
+    for (int i = 1; i <= 4; ++i) {
+        std::snprintf(name, sizeof(name), "Panel/Message/start_%02d.png", i);
+        list.push_back(name);
+    }
+    for (int i = 0; i <= 4; ++i) list.push_back("Icon/link_" + std::to_string(i) + ".png");
+    for (const char* item : kItemNames) {
+        list.push_back(std::string("Icon/item_") + item + "_b.png");
+        list.push_back(std::string("Icon/item_") + item + "_s.png");
+    }
+    for (const char* art : {"Panel/LapTime/title_bestTime.png", "Panel/Position/ranking_bar_01.png",
+                            "Panel/Position/ranking_bar_02.png", "Panel/Guage/board.png", "Panel/Guage/speedarrow.png",
+                            "Panel/Guage/speedometer_top.png", "Panel/ItemSlot/slot window.png",
+                            "Panel/ItemSlot/Slot01.png", "Panel/ItemSlot/slot02.png", "Panel/Message/WaitPlayer.png",
+                            "Panel/Message/reverse.png", "Panel/Message/Check.png", "Panel/Message/Point.png",
+                            "Panel/Message/final.png", "Panel/Message/lap.png", "Panel/ItemBlock/blocking_00.png",
+                            "Panel/Stream/slip_stream.png", "Panel/Stream/slope_stream.png"})
+        list.push_back(art);
+    return list;
 }
 
 }

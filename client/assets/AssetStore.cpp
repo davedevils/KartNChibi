@@ -407,6 +407,17 @@ const Texture* AssetStore::texture(const std::string& assetPath) {
     if (assetPath.empty()) return nullptr;
     const auto cached = m_cache.find(assetPath);
     if (cached != m_cache.end()) return cached->second->valid() ? cached->second.get() : nullptr;
+    DecodedImage prefetched;
+    {
+        std::lock_guard<std::mutex> lock(m_decodedLock);
+        const auto decoded = m_decoded.find(assetPath);
+        if (decoded != m_decoded.end()) {
+            prefetched = std::move(decoded->second);
+            m_decoded.erase(decoded);
+        }
+    }
+    if (!prefetched.pixels.empty())
+        return upload(assetPath, prefetched.found, prefetched.pixels, prefetched.width, prefetched.height, true);
 
     auto tex = std::make_unique<Texture>();
     std::vector<uint8_t> bytes;
@@ -428,14 +439,48 @@ const Texture* AssetStore::texture(const std::string& assetPath) {
         std::printf("[assets] cannot decode %s\n", found.c_str());
         return remember(assetPath, std::move(tex));
     }
+    return upload(assetPath, found, pixels, width, height, false);
+}
+
+const Texture* AssetStore::upload(const std::string& assetPath, const std::string& found,
+                                  const std::vector<uint8_t>& pixels, int width, int height, bool prefetched) {
+    auto tex = std::make_unique<Texture>();
     tex->handle = bgfx::createTexture2D(static_cast<uint16_t>(width), static_cast<uint16_t>(height), false, 1,
                                         bgfx::TextureFormat::RGBA8, BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP,
                                         bgfx::copy(pixels.data(), static_cast<uint32_t>(pixels.size())));
     tex->width = width;
     tex->height = height;
-    if (tex->valid()) std::printf("[assets] loaded %s as %s (%dx%d)\n", assetPath.c_str(), found.c_str(), width, height);
+    if (tex->valid())
+        std::printf("[assets] loaded %s as %s (%dx%d)%s\n", assetPath.c_str(), found.c_str(), width, height,
+                    prefetched ? " decoded on a loader thread" : "");
     else std::printf("[assets] texture upload failed %s\n", found.c_str());
     return remember(assetPath, std::move(tex));
+}
+
+// the exact candidates only the search fallback builds an index the frame thread owns
+void AssetStore::prefetchImages(const std::vector<std::string>& assetPaths) {
+    for (const std::string& path : assetPaths) {
+        if (path.empty()) continue;
+        {
+            std::lock_guard<std::mutex> lock(m_decodedLock);
+            if (m_decoded.count(path) != 0) continue;
+        }
+        DecodedImage image;
+        std::vector<uint8_t> bytes;
+        for (const std::string& candidate : candidates(path)) {
+            if (readBytes(candidate, bytes)) { image.found = candidate; break; }
+        }
+        if (image.found.empty() || !decodeRgba8(bytes, image.pixels, image.width, image.height) || image.width <= 0 ||
+            image.height <= 0)
+            continue;
+        std::lock_guard<std::mutex> lock(m_decodedLock);
+        m_decoded.emplace(path, std::move(image));
+    }
+}
+
+void AssetStore::dropPrefetchedImages() {
+    std::lock_guard<std::mutex> lock(m_decodedLock);
+    m_decoded.clear();
 }
 
 const Texture* AssetStore::white() {

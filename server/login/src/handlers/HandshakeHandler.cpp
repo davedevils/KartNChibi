@@ -298,7 +298,11 @@ void HandshakeHandler::handleReauth(Session::Ptr session, Packet& packet) {
 
     if (accountId == 0 || token.empty()) {
         LOG_WARN("HANDSHAKE", "reauth with no ticket from " + session->remoteAddress());
-        sendDisplayMessage(session, u"MSG_REINPUT_IDPASS", 2);
+        // 0x0001 so sub 478DA0 shows the def trans line the wide box drew the raw key
+        Packet refuse(CMD::S_LOGIN_RESPONSE);
+        refuse.writeString("MSG_REINPUT_IDPASS");
+        refuse.writeInt32(2);
+        session->send(refuse);
         session->closeAfterSend();
         return;
     }
@@ -312,7 +316,11 @@ void HandshakeHandler::handleReauth(Session::Ptr session, Packet& packet) {
     if (rows.empty()) {
         // the ticket is gone so the client has to type the credentials again
         LOG_WARN("HANDSHAKE", "reauth ticket unknown for account " + std::to_string(accountId));
-        sendDisplayMessage(session, u"MSG_REINPUT_IDPASS", 2);
+        // 0x0001 so sub 478DA0 shows the def trans line the wide box drew the raw key
+        Packet refuse(CMD::S_LOGIN_RESPONSE);
+        refuse.writeString("MSG_REINPUT_IDPASS");
+        refuse.writeInt32(2);
+        session->send(refuse);
         session->closeAfterSend();
         return;
     }

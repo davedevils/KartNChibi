@@ -1,0 +1,8 @@
+# gate: state race
+# gate: env KNC_ITEM_TEST=5
+# gate: env KNC_ITEM_SHOTS=0.6,1.2,2.4
+# the handle lands on every other kart and quarters its drift gauge rate
+# the race clock captures out_item_NNNNN at the listed seconds after the green light
+waitfor race 900
+wait 900
+quit

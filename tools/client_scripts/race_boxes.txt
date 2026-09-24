@@ -1,0 +1,13 @@
+# gate: state race
+# the sample race hands a rabbit at the green light then the gas is held down the first straight
+# the box row there gives a second item into slot 1 while the rabbit still sits in slot 0
+# before 2026-09-24 a held item made every box ignore the kart and it drove through them
+waitfor race 900
+hold up 2400
+wait 262
+shot race_boxes_row
+wait 6
+shot race_boxes_near
+wait 6
+shot race_boxes_taken
+quit

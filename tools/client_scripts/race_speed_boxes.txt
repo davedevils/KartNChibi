@@ -1,0 +1,8 @@
+# gate: state race
+# gate: env KNC_RACE_MODE=2
+# the straight of race boxes in the speed single mode the stock builds no item manager there so no box and no drum
+waitfor race 900
+hold up 2400
+wait 262
+shot race_speed_boxes_row
+quit

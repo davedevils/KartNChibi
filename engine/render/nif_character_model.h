@@ -26,6 +26,10 @@ struct CharacterModelRequest {
     // Folder the base texture names resolve in same rule as the prop request
     std::string texture_dir;
     std::vector<CharacterClipRequest> clips;
+    // A body whose meshes all hang on sockets is a bare skeleton the parts dress it later
+    bool allow_no_geometry = false;
+    // A mesh with no base map draws in its material colour the glasses and helmet parts have such meshes
+    bool draw_untextured = false;
 };
 
 // True when any geometry of the stream binds a NiSkinInstance

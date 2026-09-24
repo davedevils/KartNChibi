@@ -1,0 +1,9 @@
+# gate: state race
+# gate: env KNC_ITEM_TEST=9
+# gate: env KNC_ITEM_BOT=6
+# gate: env KNC_ITEM_SHOTS=1.6,2.8,4.4,6.2,8.4
+# the leader tosses a turtle at the own kart it bites and rides the kart then hops off
+# the race clock captures out_item_NNNNN at the listed seconds after the green light
+waitfor race 900
+wait 900
+quit

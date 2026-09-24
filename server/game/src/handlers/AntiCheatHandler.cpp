@@ -56,7 +56,7 @@ void AntiCheatHandler::reportViolation(Session::Ptr session, ViolationType type,
                totalViolations >= VIOLATION_THRESHOLD_KICK) {
         takeAction(session, ViolationSeverity::High);
     } else if (severity == ViolationSeverity::Medium) {
-        session->send(PacketBuilder::displayMessage(u"MSG_CHEAT_WARNING", 2));
+        session->send(PacketBuilder::displayMessage(u"Abnormal driving was detected.", 2));
     }
 }
 
@@ -123,7 +123,7 @@ void AntiCheatHandler::takeAction(Session::Ptr session, ViolationSeverity severi
     switch (severity) {
         case ViolationSeverity::High:
             LOG_WARN("ANTICHEAT", "Kicking player: char=" + std::to_string(session->characterId));
-            session->send(PacketBuilder::displayMessage(u"MSG_KICKED_CHEAT", 2));
+            session->send(PacketBuilder::displayMessage(u"You were removed from the game for cheating.", 2));
             session->stop();
 
             db.execute(
@@ -155,7 +155,7 @@ void AntiCheatHandler::takeAction(Session::Ptr session, ViolationSeverity severi
                 "WHERE id = " + std::to_string(session->accountId)
             );
             
-            session->send(PacketBuilder::displayMessage(u"MSG_BANNED_CHEAT", 2));
+            session->send(PacketBuilder::displayMessage(u"This account is banned for cheating.", 2));
             session->stop();
             
             db.execute(

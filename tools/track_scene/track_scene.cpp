@@ -99,8 +99,11 @@ std::string resolve_texture(const fs::path& nif_dir, const fs::path& map_dir,
 }
 
 void resolve_model_textures(const fs::path& nif_dir, const fs::path& map_dir, PropModel& model) {
-    for (PropPart& part : model.parts)
+    for (PropPart& part : model.parts) {
         part.texture_path = resolve_texture(nif_dir, map_dir, part.texture_path);
+        if (!part.environment.texture.empty())
+            part.environment.texture = resolve_texture(nif_dir, map_dir, part.environment.texture);
+    }
     for (ParticleSystemDefinition& system : model.particle_systems)
         system.texture_path = resolve_texture(nif_dir, map_dir, system.texture_path);
 }
@@ -721,7 +724,8 @@ bool load_track_scene(const TrackSceneRequest& request, TrackScene& out, std::st
 
     clock.mark("light");
     // The drums snap to the col ground like the client when the col is loaded
-    load_item_drums(track_dir, map_dir, out.collision.pieces.empty() ? nullptr : &out.collision, out.scene);
+    if (request.load_item_drums)
+        load_item_drums(track_dir, map_dir, out.collision.pieces.empty() ? nullptr : &out.collision, out.scene);
     clock.mark("drums");
 
     if (request.load_item_boxes) load_item_boxes(track_dir, map_dir, out);

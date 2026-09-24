@@ -102,6 +102,25 @@ struct HudState {
     // seconds since last hit below zero means none block overlay blinks for 1 5 s
     double hitAge = -1.0;
     int hitItem = -1;
+    // sub 4A9DA0 the attack view frame over the top right inset and the name of its car
+    bool attackView = false;
+    int attackFrame = 0;
+    std::string attackName;
+    // sub 4AD310 the event view frame at 735 214
+    bool eventView = false;
+    int eventFrame = 0;
+    // sub 4C0740 seconds since the dung hit the own car below zero none
+    double dungAge = -1.0;
+    // effect 1100 seconds since the flash blinded the own car below zero none
+    double flashAge = -1.0;
+    // sub 4C9C70 the aim marker of the rocket or the magnet at canvas pixels of its car
+    bool reticle = false;
+    int reticleKind = 0;
+    int reticleSet = 1;
+    int reticleFrame = 0;
+    bool reticleOnCar = false;
+    float reticleX = 0.f;
+    float reticleY = 0.f;
     // 0 none 1 to 3 digits 4 is GO seconds since stage began
     int countdownStage = 0;
     // sub 4B2220 Effect startcount nif draws digits in world so sprite stays away
@@ -154,6 +173,8 @@ public:
 
     // stock item kind names from Icon folder booster big booster spike and so on
     static const char* itemName(int kind);
+    // every hud image a race shows a loader thread decodes them so no first use stalls a lap
+    static std::vector<std::string> warmList();
 
 private:
     // asset drawn at its own size when pak has it
@@ -172,6 +193,10 @@ private:
     // 0x4AE230 Effect Guage red gauge band posed at fill over 25 4 boost get flash on top
     void drawDriftGauge(DrawContext& ctx, AssetStore& assets, const HudState& s, float canvasW, float canvasH);
     void drawItemSlot(DrawContext& ctx, AssetStore& assets, const HudState& s, float canvasW);
+    // the dung splats the two preview frames and the aim marker under the panels
+    void drawItemViews(DrawContext& ctx, AssetStore& assets, const HudState& s, float canvasW, float canvasH);
+    // effect 1100 the white veil of the flash over the whole hud
+    void drawFlash(DrawContext& ctx, const HudState& s, float canvasW, float canvasH);
     void drawMessages(DrawContext& ctx, AssetStore& assets, const HudState& s, float canvasW, float canvasH);
     // sub 4B2690 modes 3 and 4 lap word pair slides in from both sides holds then leaves
     void drawLapWords(DrawContext& ctx, AssetStore& assets, const HudState& s, float canvasW, float canvasH);

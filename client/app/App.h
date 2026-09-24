@@ -44,6 +44,7 @@ public:
     const Options& options() const { return m_options; }
     float canvasWidth() const { return m_canvasWidth; }
     float canvasHeight() const { return m_canvasHeight; }
+    bool stretch() const { return m_stretch; }
     double time() const { return m_time; }
     uint16_t width() const { return m_width; }
     uint16_t height() const { return m_height; }
@@ -83,6 +84,8 @@ public:
     void click();
     // the looping track of a screen name empty stops the music
     void playMusic(const std::string& name);
+    // sub 404410 keeps one menu loop from the title on and starts it only when it is not playing
+    void playMenuMusic() { playMusic("multiplay_lobby_bgm"); }
     // opens the creation popup over the current screen a fresh random driver each time
     void openCharacterCreate();
     // true when the sample server answers the wire the auto walks then leave the cars alone

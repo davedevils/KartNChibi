@@ -137,7 +137,11 @@ std::string find_texture(const std::filesystem::path& root, const std::string& w
 }
 
 void resolve_textures(const std::filesystem::path& root, PropModel& model) {
-    for (PropPart& part : model.parts) part.texture_path = find_texture(root, part.texture_path);
+    for (PropPart& part : model.parts) {
+        part.texture_path = find_texture(root, part.texture_path);
+        if (!part.environment.texture.empty())
+            part.environment.texture = find_texture(root, part.environment.texture);
+    }
     for (ParticleSystemDefinition& system : model.particle_systems)
         system.texture_path = find_texture(root, system.texture_path);
 }

@@ -36,7 +36,31 @@ struct GhostCar {
     std::array<float, 16> name_local = {1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f,
                                        0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f};
     bool has_name = false;
+    // The rigid parts a factory kart hangs on the chassis they ride the body matrix after the wheels
+    std::vector<KnC::Render::PropModel> pieces;
 };
+
+// One installed part of a factory kart its 0x0108 model folder and its grade
+struct GhostFactoryPart {
+    std::string model;
+    int grade = 0;
+};
+
+// Factory kart of car apply kart loadout 0x490A70 the chassis then cover tires booster bumper front fender rear fender wing
+struct GhostFactoryCar {
+    std::string chassis;
+    std::array<GhostFactoryPart, 7> parts;
+};
+
+// The kart name a factory car travels under the chassis then every slot so each build has its own name
+std::string ghost_factory_token(const GhostFactoryCar& car);
+// Reads a token back false for a plain kart model name
+bool ghost_factory_of(const std::string& token, GhostFactoryCar& out);
+// The chassis a factory token names else the model itself
+std::string ghost_kart_chassis(const std::string& model);
+// Car FactoryCar CHASSIS body in its grade set one nif per installed slot tires on the O WHEEL dummies
+bool load_ghost_factory_car(const std::string& factory_root, const GhostFactoryCar& car, GhostCar& out,
+                            std::string& error);
 
 // Steer and spin of the wheels the front pair turns every wheel rolls
 struct GhostWheelState {
@@ -65,7 +89,7 @@ bool load_kart_part_model(const std::string& nif, const std::string& texture_dir
 // The ground shake per frame rand 600 minus 300 times speed capped 100 times grip times 4e-6 on the ground
 void ghost_wheels_shake(float speed, const float grip[4], bool on_ground, GhostWheelState& wheels);
 
-// Appends the body then every wheel wheels 1 and 2 take the steer every wheel the spin
+// Appends the body then every wheel wheels 1 and 2 take the steer every wheel the spin then the pieces
 void ghost_car_instances(const GhostCar& car, size_t first_model_index, const float car_world[16],
                          const GhostWheelState& wheels, std::vector<KnC::Render::PropInstance>& out);
 
@@ -116,16 +140,26 @@ bool find_driver_seat(const std::string& body_nif, const std::string& chassis, f
 // BODYSET attach nodes table 0x5EA910 by equip slot 2 to 6
 const char* ghost_driver_slot_node(int equip_slot);
 
-// worn BODYSET nifs merged into body FUN 0048C680
-void ghost_driver_set_parts(const std::string& asset, const std::vector<std::string>& part_nifs);
+// One worn BODYSET nif and the equip slot 2 to 6 whose socket it hangs on
+struct GhostDriverPart {
+    int equip_slot = 0;
+    std::string nif;
+};
+
+// worn BODYSET nifs merged into body FUN 0048C680 a body with parts loses its O sockets like the exe
+void ghost_driver_set_parts(const std::string& asset, const std::vector<GhostDriverPart>& parts);
 // The parts registered for an asset empty when none were set
-const std::vector<std::string>& ghost_driver_parts(const std::string& asset);
+const std::vector<GhostDriverPart>& ghost_driver_parts(const std::string& asset);
 // One line of the registered parts a caller reloads its models when this changes
 std::string ghost_driver_parts_token(const std::string& asset);
+std::string ghost_driver_parts_token(const std::vector<GhostDriverPart>& parts);
 
 // Reads the body nif every clip its KFM names and the seat false when the body fails
 bool load_ghost_driver(const std::string& body_nif, const std::string& chassis, GhostDriver& out,
                        std::string& error);
+// Same with the parts one racer wears the registered parts of the asset stand in above
+bool load_ghost_driver(const std::string& body_nif, const std::string& chassis,
+                       const std::vector<GhostDriverPart>& parts, GhostDriver& out, std::string& error);
 
 // Sequence rule of car visual update 0x48F515 back turbo lean side over 3 units per second idle
 int ghost_driver_sequence(const GhostPose& pose, float speed);

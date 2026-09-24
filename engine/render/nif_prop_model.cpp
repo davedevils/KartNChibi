@@ -235,6 +235,8 @@ private:
     struct PartKey {
         std::string   texture;
         std::string   detail;
+        // The sphere map one effect list lays over the geometry a mesh without it draws apart
+        std::string   environment;
         PartAnimation animation;
         uint32_t      alpha_property    = kNoLink;
         uint32_t      depth_property    = kNoLink;
@@ -243,10 +245,10 @@ private:
         bool          vertex_colours    = false;
 
         bool operator<(const PartKey& other) const {
-            return std::tie(texture, detail, animation.node, animation.uv, animation.alpha,
+            return std::tie(texture, detail, environment, animation.node, animation.uv, animation.alpha,
                             animation.morph, animation.flip, animation.detail_uv, alpha_property,
                             depth_property, material_property, shading, vertex_colours) <
-                   std::tie(other.texture, other.detail, other.animation.node, other.animation.uv,
+                   std::tie(other.texture, other.detail, other.environment, other.animation.node, other.animation.uv,
                             other.animation.alpha, other.animation.morph, other.animation.flip,
                             other.animation.detail_uv, other.alpha_property, other.depth_property,
                             other.material_property, other.shading, other.vertex_colours);
@@ -276,7 +278,7 @@ private:
     void emit_geometry(const NifBlock& geometry, const Frame& frame);
     void push_root_children(uint32_t root_index);
     void push_children(const Frame& frame);
-    PropPart& part_for(const PartKey& key, const NifSurfaceState& surface);
+    PropPart& part_for(const PartKey& key, const NifSurfaceState& surface, const EnvironmentMap& environment);
 
     const NifScene&        scene_;
     const NifModelRequest& request_;
@@ -297,6 +299,7 @@ private:
     std::vector<Frame>        pending_;
     std::vector<bool>         visited_;
     std::vector<NifSurfaceState> surfaces_;
+    EnvironmentMaps environments_{scene_};
     // Where the walk found each block for the particle systems built after it
     std::vector<NifPlacement> block_model_space_;
     std::vector<int>          block_animated_node_;
@@ -324,12 +327,17 @@ void PropPartCollector::index_controllers() {
     }
 }
 
-PropPart& PropPartCollector::part_for(const PartKey& key, const NifSurfaceState& surface) {
+PropPart& PropPartCollector::part_for(const PartKey& key, const NifSurfaceState& surface,
+                                      const EnvironmentMap& environment) {
     const auto known = slots_.find(key);
     if (known != slots_.end()) return out_.parts[known->second];
     slots_.emplace(key, out_.parts.size());
     PropPart part;
     part.texture_path = (std::filesystem::path(request_.texture_dir) / key.texture).string();
+    if (!environment.texture.empty()) {
+        part.environment = environment;
+        part.environment.texture = (std::filesystem::path(request_.texture_dir) / environment.texture).string();
+    }
     if (!key.detail.empty())
         part.detail_texture_path = (std::filesystem::path(request_.texture_dir) / key.detail).string();
     part.animation = key.animation;
@@ -504,11 +512,12 @@ void PropPartCollector::emit_geometry(const NifBlock& geometry, const Frame& fra
     if (mesh.vertices.empty() || mesh.uvs.size() * 3 != mesh.vertices.size() * 2) return dropped("no uv set");
     const NifSurfaceState& surface = surfaces_[frame.block_index];
     const bool coloured = carries_vertex_colours(mesh);
-    const PartKey key{texture_name, find_detail_texture_file_name(scene_, geometry),
+    const EnvironmentMap& environment = environments_.of(frame.block_index);
+    const PartKey key{texture_name, find_detail_texture_file_name(scene_, geometry), environment.texture,
                       part_animation_of(geometry, frame.block_index, surface, frame.animated_node),
                       surface.alpha_link, surface.depth_link, surface.material_link,
                       static_cast<uint8_t>(surface_shading(surface, true)), coloured};
-    PropPart& part = part_for(key, surface);
+    PropPart& part = part_for(key, surface, environment);
     part.has_vertex_colours = coloured;
     // The vertices land in the frame placement the sphere is measured there too
     merge_bound(placed_bound(mesh, frame.placement), part.bound);
@@ -1000,6 +1009,7 @@ void build_prop_model(const NifScene& scene, const NifModelRequest& request, Pro
     out.name = std::filesystem::path(request.nif_path).stem().string();
     PropPartCollector collector(scene, request, out);
     collector.collect_from_roots();
+    out.lights = collect_model_lights(scene);
     tint_parts_by_index(out);
     log_parts(request, out);
 }

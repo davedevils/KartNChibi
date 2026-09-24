@@ -23,6 +23,8 @@ shot slots_shop_chassis_popup
 click 436 551
 wait 150
 shot slots_chassis_bought
+key enter
+wait 10
 click 546 746
 waitfor carcraft 300
 wait 80

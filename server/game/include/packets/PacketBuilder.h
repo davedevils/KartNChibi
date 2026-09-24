@@ -130,6 +130,8 @@ public:
     static Packet connectionOk();
     static Packet connectionOkWithPlayer(const PlayerData& player);  // 0x0A with real player data
     static Packet displayMessage(const std::u16string& msg, int32_t code);
+    // 0x0001 sub 478DA0 shows the def trans line of the key 0x0002 would show the key itself
+    static Packet messageKey(const std::string& key, int32_t code);
     static Packet loginResponse(bool success, const std::string& msg);
     static Packet sessionConfirm(int32_t driverId, const PlayerData& player);  // driverId equals characterId
     static Packet heartbeatResponse();

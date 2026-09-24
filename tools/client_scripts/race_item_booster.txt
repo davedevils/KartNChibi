@@ -1,0 +1,9 @@
+# gate: state race
+# gate: env KNC_ITEM_TEST=1
+# gate: env KNC_ITEM_SHOTS=0.6,1.2,2.0
+# the big booster starts the kind 2 boost the two flames burn and the kart runs off the grid
+# the race clock captures out_item_NNNNN at the listed seconds after the green light
+waitfor race 900
+hold up 900
+wait 900
+quit

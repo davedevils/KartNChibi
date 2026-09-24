@@ -1,0 +1,8 @@
+# gate: state race
+# gate: env KNC_ITEM_TEST=11
+# gate: env KNC_ITEM_SHOTS=1.0,2.3,3.2,4.5
+# the hive goes up on the kart then stands on the racing line ahead the event view shows it
+# the race clock captures out_item_NNNNN at the listed seconds after the green light
+waitfor race 900
+wait 900
+quit

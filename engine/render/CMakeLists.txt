@@ -71,6 +71,7 @@ add_library(KnCRender STATIC
     glow_pass.cpp
     light_rig.cpp
     model_animation.cpp
+    model_lights.cpp
     nif_character_model.cpp
     nif_prop_model.cpp
     particle_simulation.cpp

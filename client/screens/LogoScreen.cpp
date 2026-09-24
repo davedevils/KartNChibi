@@ -109,8 +109,8 @@ void LogoScreen::goToIntro() {
     m_stage = Stage::Intro;
     m_intro = 0.f;
     if (Widget* plate = find("logo_plate")) plate->visible = false;
-    // the stock title stage plays its own music the logo loop stops with the plates
-    m_app.playMusic("title_bgm");
+    // stage 2 of sub 404410 starts the menu loop the logo plates play nothing
+    m_app.playMenuMusic();
 }
 
 void LogoScreen::leaveToLogin() {

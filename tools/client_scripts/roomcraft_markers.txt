@@ -1,6 +1,6 @@
 # gate: state roomcraft
 # the room editor markers of sub 434C00 run with --state roomcraft and no host
-# the Object tab then the first tile then a click on the field places the tree
+# the Object tab then the first tile dragged onto the field places the tree a click on it picks it
 # lobby image red rides the placed object a right drag turns it 0 2 degrees a pixel
 # a middle drag pans the camera 0 5 a frame inside the stage box of FUN 00433CB0
 waitfor roomcraft 500
@@ -8,10 +8,11 @@ wait 40
 shot roomcraft_markers_open
 click 590 106
 wait 20
-click 241 132
-wait 20
-click 500 560
+drag 241 132 500 560 left 20
 wait 40
+shot roomcraft_dropped
+click 500 560
+wait 20
 shot roomcraft_marker
 drag 500 560 620 560 right 12
 wait 20

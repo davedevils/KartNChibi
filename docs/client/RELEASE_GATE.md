@@ -1,6 +1,6 @@
 # Release gate
 
-Ran 2026-09-24 against `knc-server:20260924b` (knc-game, knc-login, knc-mariadb checked healthy first).
+Ran 2026-09-24 against `knc-server:20260924d` (knc-game, knc-login, knc-mariadb checked healthy first).
 
 Run with `python tools/release_gate.py`, options `--only <names>`, `--keep-going`, `--no-fixtures`. A `--only` run merges its rows into the table, it does not drop the rows of scripts it left alone.
 
@@ -11,7 +11,7 @@ Run with `python tools/release_gate.py`, options `--only <names>`, `--keep-going
 | buy | PASS | - | 0 | `reference\gate\2026-09-24\buy` |
 | carcraft | PASS | - | 0 | `reference\gate\2026-09-24\carcraft` |
 | carcraft_factory | PASS | - | 0 | `reference\gate\2026-09-24\carcraft_factory` |
-| carcraft_slots | PASS | - | 0 | `reference\gate\2026-09-24\carcraft_slots` |
+| carcraft_slots | PASS | - | 3 | `reference\gate\2026-09-24\carcraft_slots` |
 | channel | PASS | - | 0 | `reference\gate\2026-09-24\channel` |
 | create | PASS | - | 0 | `reference\gate\2026-09-24\create` |
 | create_driver | PASS | - | 1 | `reference\gate\2026-09-24\create_driver` |
@@ -45,7 +45,22 @@ Run with `python tools/release_gate.py`, options `--only <names>`, `--keep-going
 | pendant | PASS | - | 0 | `reference\gate\2026-09-24\pendant` |
 | pets | PASS | - | 0 | `reference\gate\2026-09-24\pets` |
 | quest | PASS | - | 0 | `reference\gate\2026-09-24\quest` |
+| race_boxes | PASS | - | 0 | `reference\gate\2026-09-24\race_boxes` |
+| race_item_bomb | PASS | - | 0 | `reference\gate\2026-09-24\race_item_bomb` |
+| race_item_dung | PASS | - | 0 | `reference\gate\2026-09-24\race_item_dung` |
+| race_item_hit | PASS | - | 0 | `reference\gate\2026-09-24\race_item_hit` |
+| race_item_ice | PASS | - | 0 | `reference\gate\2026-09-24\race_item_ice` |
+| race_item_magnet | PASS | - | 0 | `reference\gate\2026-09-24\race_item_magnet` |
+| race_item_rabbit | PASS | - | 0 | `reference\gate\2026-09-24\race_item_rabbit` |
+| race_item_rocket | PASS | - | 0 | `reference\gate\2026-09-24\race_item_rocket` |
+| race_item_shield | PASS | - | 0 | `reference\gate\2026-09-24\race_item_shield` |
+| race_item_spike | PASS | - | 0 | `reference\gate\2026-09-24\race_item_spike` |
+| race_item_thunder | PASS | - | 0 | `reference\gate\2026-09-24\race_item_thunder` |
+| race_item_turtle | PASS | - | 0 | `reference\gate\2026-09-24\race_item_turtle` |
 | race_items | PASS | - | 1 | `reference\gate\2026-09-24\race_items` |
+| race_speed_boxes | PASS | - | 0 | `reference\gate\2026-09-24\race_speed_boxes` |
+| race_start | PASS | - | 0 | `reference\gate\2026-09-24\race_start` |
+| race_wall | PASS | - | 0 | `reference\gate\2026-09-24\race_wall` |
 | repair | PASS | - | 0 | `reference\gate\2026-09-24\repair` |
 | room_drive | PASS | - | 0 | `reference\gate\2026-09-24\room_drive` |
 | roomcraft | PASS | - | 0 | `reference\gate\2026-09-24\roomcraft` |

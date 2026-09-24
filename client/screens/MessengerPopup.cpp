@@ -57,8 +57,8 @@ const char* codeKey(int32_t code) {
     static const char* const kKeys[] = {"MSG_FRIEND_ADD", "MSG_FRIEND_ADD_OK", "MSG_FRIEND_DUP", "MSG_FRIEND_MAX",
                                         "MSG_FRIEND_ACCEPTER_MAX", "MSG_FRIEND_NOUSER", "MSG_FRIEND_DEL", "MSG_NOTE_INPUTUSER",
                                         "MSG_NOTE_INPUTNOTE", "MSG_NOTE_NOUSER", "MSG_NOTE_SEND", "MSG_NOTE_NOSEND"};
+    // sub 47B3C0 code 12 queues the request and shows no dialog
     if (code >= 0 && code < 12) return kKeys[code];
-    if (code == 12) return "MSG_FRIEND_REQ_QUEUED";
     return "";
 }
 

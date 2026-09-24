@@ -161,6 +161,25 @@ GimmickDrumResult itemdrum_hit_test(const std::vector<GimmickItemdrumRow>& rows,
     return out;
 }
 
+int32_t itembox_hit_test(const std::vector<GimmickItemboxRow>& rows, const std::vector<uint8_t>& ready, float carX,
+                         float carY, float carYawDeg, float driftGaugeSmoothed) {
+    // item box hit test 0x4BC830 the heading and the point along it are the ones of the drum sweep
+    const float heading = (carYawDeg - driftGaugeSmoothed * GIMMICK_DRUM_GAUGE_TURN) - GIMMICK_DRUM_HEADING_TURN;
+    const float radians = -(heading - GIMMICK_DRUM_HEADING_TURN) * kDegToRad;
+    const float dirX = std::cos(radians);
+    const float dirY = std::sin(radians);
+    for (size_t i = 0; i < rows.size(); ++i) {
+        if (i >= ready.size() || ready[i] == 0) continue;
+        const GimmickItemboxRow& row = rows[i];
+        if (math_hypot2d(carX - row.x, carY - row.y) > GIMMICK_BOX_COARSE_REACH) continue;
+        for (float t = GIMMICK_DRUM_SWEEP_FROM; t <= GIMMICK_DRUM_SWEEP_TO; t += GIMMICK_DRUM_SWEEP_STEP) {
+            if (math_hypot2d(carX + dirX * t - row.x, carY + dirY * t - row.y) < GIMMICK_BOX_HIT_REACH)
+                return static_cast<int32_t>(i);
+        }
+    }
+    return -1;
+}
+
 int32_t world_wheel_bump_slot(const std::array<GimmickBumpSlot, GIMMICK_BUMP_TABLE_SIZE>& table,
                                int32_t car_index) {
     for (size_t i = 0; i < GIMMICK_BUMP_TABLE_SIZE; ++i) {

@@ -1,0 +1,8 @@
+# gate: state race
+# gate: env KNC_ITEM_TEST=3
+# gate: env KNC_ITEM_SHOTS=0.6,1.0,1.6,2.6
+# the storm flies ahead lands on the leader the whirl nif spins it
+# the race clock captures out_item_NNNNN at the listed seconds after the green light
+waitfor race 900
+wait 900
+quit

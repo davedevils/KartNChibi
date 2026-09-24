@@ -1,0 +1,8 @@
+# gate: state race
+# gate: env KNC_ITEM_TEST=15
+# gate: env KNC_ITEM_SHOTS=0.6,1.4,2.0
+# the flash stands on the racing line ahead and bursts the event view shows it
+# the race clock captures out_item_NNNNN at the listed seconds after the green light
+waitfor race 900
+wait 900
+quit

@@ -1,0 +1,9 @@
+# gate: state race
+# gate: env KNC_ITEM_TEST=6
+# gate: env KNC_ITEM_SHOTS=0.7,1.6,2.4,3.8,5.5,7.3
+# the own turtle tossed at the leader on row 1 it lands chases grabs bites and rides that car
+# the grab starts the top right attack view on the hit car the ride holds its effect 500
+# the race clock captures out_item_NNNNN at the listed seconds after the green light
+waitfor race 900
+wait 900
+quit

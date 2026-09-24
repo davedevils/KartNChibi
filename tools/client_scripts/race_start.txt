@@ -1,0 +1,13 @@
+# gate: state race
+# the sample race holds the gas through the three two one the kart stays on its grid row until the GO
+# before 2026-09-24 the wrong way watchdog of the port queued a respawn on the parked kart and it jumped 41 units at the green
+# the log prints the pose at the green light the shots show the kart on the start checkers beside its neighbour
+waitfor race 900
+hold up 1400
+wait 198
+shot race_start_one
+wait 12
+shot race_start_go
+wait 12
+shot race_start_rolled
+quit

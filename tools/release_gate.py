@@ -283,7 +283,8 @@ def build_command(header: Header, user, passwd, script_path: Path, out_dir: Path
         cmd += ["--state", header.state_name]
     else:
         cmd += ["--host", LOGIN_HOST, "--port", str(LOGIN_PORT), "--user", user, "--pass", passwd]
-    cmd += ["--no-focus", "--mute"]
+    # the expect lines and the wire log come only with debug the client is silent without it
+    cmd += ["--no-focus", "--mute", "--debug"]
     cmd += header.extra_args
     cmd += ["--script", str(script_path)]
     cmd += ["--screenshot", str(out_dir / "out.png")]
@@ -313,7 +314,7 @@ def prepare_fixtures(header: Header, script_stem: str, out_dir: Path, cred: dict
             prep_dir = out_dir / "prep"
             prep_dir.mkdir(parents=True, exist_ok=True)
             prep_cmd = [str(CLIENT_EXE), "--game", GAME_DIR, "--host", LOGIN_HOST, "--port", str(LOGIN_PORT),
-                        "--user", user, "--pass", passwd, "--no-focus", "--mute",
+                        "--user", user, "--pass", passwd, "--no-focus", "--mute", "--debug",
                         "--auto-create-character", nick, "--stop-at", "licence",
                         "--screenshot", str(prep_dir / "prep.png"), "--wire", str(prep_dir / "wire.log")]
             res = run_process(prep_cmd, timeout=90)

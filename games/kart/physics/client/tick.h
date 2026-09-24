@@ -12,7 +12,7 @@ void cars_frame_update(GameState& game, const ColTrack& track, int64_t nowMs);
 void car_physics_tick_local(GameState& game, int carIndex, const ColTrack& track, int64_t nowMs);
 
 // car substep collision response 0x00498960 reverts the substep and pushes a bounce and spin impulse
-bool car_substep_collision_response(GameState& game, int carIndex, float substepDt);
+bool car_substep_collision_response(GameState& game, int carIndex, float impulseTime);
 
 // car decode id5 0x0049BE20 decodes five denormal float encoded ints into a 5 char string
 void car_decode_id5(char out[6], const int in[5]);

@@ -171,6 +171,8 @@ public:
     void draw(const float view_matrix[16], const float camera_position[3]);
     // draws one hud scene into its rect depth cleared colour kept at most kHudSceneViews per frame extras dropped
     void draw_hud_scene(const HudScene& scene);
+    // The whole world of the frame through a second camera in a rect its instances list is not read
+    void draw_world_inset(const HudScene& scene);
     // flat colour veil over the whole frame after world before hud scenes uses one of the hud scene views
     void draw_frame_veil(const HourColour& colour, float alpha);
     void shutdown();
@@ -229,6 +231,11 @@ private:
         PartAnimation            animation;
         // Map ambient light reaches surface emissive whole colour
         bool                     lit_by_map_ambient = true;
+        // The sphere map the part adds invalid for none and the model space rotation of its effect
+        bgfx::TextureHandle      environment = BGFX_INVALID_HANDLE;
+        float                    environment_rotation[9] = {1.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 1.f};
+        // The lights of the model own tree
+        ModelLights              lights;
     };
 
     // One draw NiAlphaAccumulator holding what draw stands key ordered
@@ -275,6 +282,9 @@ private:
         ShadeState               shade;
         bool                     blended = false;
         uint16_t                 palette_slots = 0;
+        bgfx::TextureHandle      environment = BGFX_INVALID_HANDLE;
+        float                    environment_rotation[9] = {1.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 1.f};
+        ModelLights              lights;
     };
 
     // Character GPU what poses it sampled once frame spawns
@@ -365,6 +375,11 @@ private:
     void set_uv_transform(const UvMatrix& matrix) const;
     // The detail stage of a draw off for every draw that binds none
     void set_detail_stage(const PropPartBuffers* part, const ModelPose* pose) const;
+    // The model own lights and the sphere map turned by the placement a null light set clears both
+    void set_model_stage(const ModelLights* lights, bgfx::TextureHandle environment,
+                         const float rotation[9], const float world[16]) const;
+    // Uploads the sphere map of a part a missing file leaves the part without one
+    void take_environment(const EnvironmentMap& map, bgfx::TextureHandle& texture, float rotation[9]);
     // Samples every model animates once frame before draws
     void refresh_poses();
     void refresh_character_poses();
@@ -425,6 +440,12 @@ private:
     bgfx::UniformHandle   detail_offset_uniform_ = BGFX_INVALID_HANDLE;
     bgfx::UniformHandle   detail_params_uniform_ = BGFX_INVALID_HANDLE;
     bgfx::UniformHandle   bone_rows_uniform_  = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle   environment_sampler_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle   environment_row_u_  = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle   environment_row_v_  = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle   eye_position_       = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle   model_light_direction_ = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle   model_light_colour_ = BGFX_INVALID_HANDLE;
     bgfx::VertexLayout    layout_;
     bgfx::VertexLayout    skinned_layout_;
     LayerBuffers          layers_[kSceneLayerCount];
@@ -467,6 +488,8 @@ private:
     bool                  fog_enabled_ = true;
     // The view the prop and particle submits go to draw sets the scene one a hud scene its own
     bgfx::ViewId          target_view_ = 2;
+    // The view the sky dome goes to a world inset takes its own
+    bgfx::ViewId          sky_view_ = 1;
     // A hud scene takes no fog and no sun the count of them drawn since the last frame
     bool                  hud_pass_ = false;
     HourColour            hud_ambient_;

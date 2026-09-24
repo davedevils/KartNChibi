@@ -18,7 +18,7 @@ void GarageHandler::handleOpenGarage(Session::Ptr session, Packet& packet, GameS
               " requested_category=" + std::to_string(category));
 
     if (session->characterId == 0) {
-        session->send(PacketBuilder::displayMessage(u"MSG_NOT_LOGGED_IN", 2));
+        session->send(PacketBuilder::displayMessage(u"You are not logged in.", 2));
         return;
     }
 

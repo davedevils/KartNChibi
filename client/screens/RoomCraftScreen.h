@@ -60,6 +60,8 @@ private:
     std::string worldToken() const;
     bool loadField();
     void refreshFieldProps();
+    // FUN 00435450 a strip press picks a tile to drag unless none is left or its singleton is placed
+    bool canDragTile(int tile) const;
     void placeTile(int tile, const float world[3]);
     void moveSelected(const float world[3]);
     void rotateSelected(float degrees);
@@ -93,6 +95,8 @@ private:
     int m_kind = 0;
     int m_scroll = 0;
     int m_tile = -1;
+    // the strip tile the left press picked FUN 00435810 places it where the button comes up
+    int m_dragTile = -1;
     int m_selected = -1;
     bool m_dragging = false;
     bool m_tip = false;

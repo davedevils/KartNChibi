@@ -9,7 +9,7 @@
 
 namespace KnC::Kart::Client {
 
-bool car_substep_collision_response(GameState& game, int carIndex, float substepDt) {
+bool car_substep_collision_response(GameState& game, int carIndex, float impulseTime) {
     // car substep collision response 0x498960 reverts the substep and pushes a bounce impulse
     CarState& car = game.cars[carIndex];
 
@@ -89,9 +89,9 @@ bool car_substep_collision_response(GameState& game, int carIndex, float substep
 
     // 0x498D6C the impulse x from car 0x2E34 y from car 0x2E38 z from the spin term
     Vec3 impulse;
-    impulse.x = normalX * frictionFloor * impulseScale * substepDt;
-    impulse.y = frictionFloor * impulseScale * normalY * substepDt;
-    impulse.z = spinTerm * substepDt * kSmoothQuarter;
+    impulse.x = normalX * frictionFloor * impulseScale * impulseTime;
+    impulse.y = frictionFloor * impulseScale * normalY * impulseTime;
+    impulse.z = spinTerm * impulseTime * kSmoothQuarter;
     body_vec3_add(car.body.wheels.velocity, impulse);
 
     // 0x498DB2 licence test 0x17 counts the collisions DAT 00BFDAC4 is the test id DAT 00BFDABC the count

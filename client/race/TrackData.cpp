@@ -173,6 +173,10 @@ std::string findEntryCi(const std::string& dir, const std::string& name) {
 }
 
 std::string kartBodyNif(const std::string& gameDir, const std::string& model) {
+    // a factory token names its chassis before the hash the body of the CHASSIS tree
+    const size_t hash = model.find('#');
+    if (hash != std::string::npos)
+        return findEntryCi(findEntryCi(gameDir + "/Data/Public/Car/FactoryCar/CHASSIS", model.substr(0, hash)), "BODY.nif");
     const std::string folder = findEntryCi(gameDir + "/Data/Public/Car/Body/High", model);
     if (folder.empty()) return std::string();
     return findEntryCi(folder, "BODY.nif");
@@ -221,11 +225,14 @@ void fixTexturePaths(const TrackFiles& files, KnC::Render::PropModel& model) {
             if (!found.empty()) { path = found; return; }
         }
     };
-    for (KnC::Render::PropPart& part : model.parts) fix(part.texture_path);
+    for (KnC::Render::PropPart& part : model.parts) {
+        fix(part.texture_path);
+        fix(part.environment.texture);
+    }
     for (KnC::Render::ParticleSystemDefinition& system : model.particle_systems) fix(system.texture_path);
 }
 
-bool loadRaceWorld(const TrackFiles& files, RaceWorld& out, std::string& error) {
+bool loadRaceWorld(const TrackFiles& files, RaceWorld& out, std::string& error, bool items) {
     out.files = files;
     KnC::Tools::TrackSceneRequest request;
     request.track_dir = files.trackDir;
@@ -233,6 +240,8 @@ bool loadRaceWorld(const TrackFiles& files, RaceWorld& out, std::string& error) 
     request.load_collision = false;
     request.load_markers = false;
     request.load_geometry = false;
+    request.load_item_boxes = items;
+    request.load_item_drums = items;
     // app points texture cache at its warm pak index second pak scan cost 23 s
     request.point_textures_at_pak = false;
     WorldClock clock;
@@ -245,8 +254,8 @@ bool loadRaceWorld(const TrackFiles& files, RaceWorld& out, std::string& error) 
     clock.mark("col pieces");
     std::string ignored;
     if (!KnC::Kart::Client::gimmick_load_boost(files.trackDir, out.boostRows, ignored)) out.boostRows.clear();
-    if (!KnC::Kart::Client::gimmick_load_itembox(files.trackDir, out.itemBoxes, ignored)) out.itemBoxes.clear();
-    if (!KnC::Kart::Client::gimmick_load_itemdrum(files.trackDir, out.itemDrums, ignored)) out.itemDrums.clear();
+    if (!items || !KnC::Kart::Client::gimmick_load_itembox(files.trackDir, out.itemBoxes, ignored)) out.itemBoxes.clear();
+    if (!items || !KnC::Kart::Client::gimmick_load_itemdrum(files.trackDir, out.itemDrums, ignored)) out.itemDrums.clear();
     clock.mark("ini rows");
     const std::string col = findEntryCi(files.trackDir, "track.COL");
     if (col.empty() || !readColHead(col, out.checkpointCount, out.checkpointPoints)) {

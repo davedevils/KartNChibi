@@ -303,6 +303,8 @@ struct GameState {
     int32_t stoppedFlag = 0;
     float deflectHeadingDeg = 0.0f;  // game 0x6FC collision heading the impact angle index reads global 0x2EB0688 ramp of the air kick push
     float airKickRamp = 0.0f;
+    // DAT 01AF2B5C record plus 4 the 0xC3 track id of the world the watchdog reads it
+    int32_t worldTrackId = 0;
     uint8_t themeSpecialRow = 0;  // world theme is special row 0x487230 theme record field 4 at 0x1312D00 DAT 02EB4828 nonzero blocks kind 5 boost
     uint8_t themeBoostBlocked = 0;
     uint8_t accelKeyRawHeld = 0;  // input key down and pressed on slot 0 binding read at 0x49C884 and by drift update host fills both

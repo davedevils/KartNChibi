@@ -157,8 +157,14 @@ void cars_frame_update(GameState& game, const ColTrack& track, int64_t nowMs) {
             car_physics_tick_local(game, i, track, nowMs);
         } else {
             car.remote.frameDt = car.frameDt;
+            // the remote mover 0x49ED90 runs the effect clock 0x496600 of its car each tick
+            car_remote_effect_update(game, i);
             car.remote.effectCode = car.effect.activeCode;
             car.remote.effectWobble = car.effect.wobbleAmplitude;
+            car.remote.effectSnapX = car.effect.snapshotX;
+            car.remote.effectSnapY = car.effect.snapshotY;
+            car.remote.effectSnapZ = car.effect.snapshotZ;
+            car.remote.effectEndCondition = car.effect.endCondition;
             car.remote.groundQuery = &car.body.groundQuery;
             car.remote.track = &track;
             car_remote_update_tick(car.remote, nowMs);
@@ -580,7 +586,8 @@ void car_physics_tick_local(GameState& game, int carIndex, const ColTrack& track
             car_decode_id5(decoded, rawIds);
             bool touchesRegen = car_node_name_is(game, carIndex, 2, decoded);
             if (!touchesRegen) {
-                car_substep_collision_response(game, carIndex, substepDt);
+                // the client pushes 1 0 here not the substep time so the wall push keeps its full strength
+                car_substep_collision_response(game, carIndex, kCollisionImpulseTime);
             }
         }
 

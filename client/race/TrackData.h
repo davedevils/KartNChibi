@@ -62,15 +62,15 @@ struct RaceWorld {
 bool resolveTrackFiles(const Catalog& catalog, int trackId, const std::string& gameDir, TrackFiles& out,
                        std::string& error);
 
-// loads track scene boost and box rows and COL head
-bool loadRaceWorld(const TrackFiles& files, RaceWorld& out, std::string& error);
+// loads track scene boost and box rows and COL head items false leaves the boxes and the drums out
+bool loadRaceWorld(const TrackFiles& files, RaceWorld& out, std::string& error, bool items = true);
 
 // reads minimap nif and minimap ini of a track folder false when either is missing
 bool loadMinimap(const std::string& gameDir, const TrackFiles& files, MinimapData& out);
 
 // one entry under a folder found without case disk names differ from wire names
 std::string findEntryCi(const std::string& dir, const std::string& name);
-// Data Public Car Body High model BODY nif or empty
+// Data Public Car Body High model BODY nif or empty a factory token gives its chassis body
 std::string kartBodyNif(const std::string& gameDir, const std::string& model);
 // Data Car model car or empty
 std::string kartCarFile(const std::string& gameDir, const std::string& model);

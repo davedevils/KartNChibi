@@ -15,6 +15,7 @@
 #include "packets/gen/CharCreatePackets.h"
 #include "handlers/ProgressionHandler.h"
 #include "handlers/QuestHandler.h"
+#include "handlers/GachaHandler.h"
 #include "logging/Logger.h"
 #include <unordered_set>
 #include <algorithm>
@@ -392,6 +393,8 @@ RoomMemberWire buildRoomMember(int32_t charId, const std::u16string& name,
     m.displayName = name;
     m.levelIndex = 0;
     m.readyState = ready ? 1u : 0u;
+    // sub 40D650 stores the worn pet and sub 40CC90 loads it on the room stand
+    m.petBaseKey = GachaHandler::equippedPetBaseKey(static_cast<uint32_t>(charId));
 
     auto& db = Database::instance();
 

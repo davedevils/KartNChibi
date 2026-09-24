@@ -410,6 +410,7 @@ int main(int argc, char** argv) {
     if (playback) {
         car_model_index = renderer.append_prop_model(ghost_car.body);
         for (const PropModel& wheel : ghost_car.wheels) renderer.append_prop_model(wheel);
+        for (const PropModel& piece : ghost_car.pieces) renderer.append_prop_model(piece);
         if (has_driver) {
             driver_model_index = track.scene.character_models.size();
             renderer.append_character_model(ghost_driver.model);

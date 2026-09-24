@@ -153,6 +153,15 @@ struct NifPropertySpan {
     uint8_t  mask   = 0;
 };
 
+// NiTextureEffect the map it lays over the geometry it affects and how its coordinates are made
+struct NifTextureEffect {
+    // 0 projected light 1 projected shadow 2 environment map 3 fog map
+    uint32_t texture_type = 0;
+    // 0 world parallel 1 world perspective 2 sphere map 3 specular cube map 4 diffuse cube map
+    uint32_t coordinate_type = 0;
+    uint32_t texture_link = kNoLink;
+};
+
 // Four property families glTF carries extras values pointer NiMaterialProperty
 struct NifPropertySpans {
     NifPropertySpan alpha_flags;       // NiAlphaProperty
@@ -183,6 +192,8 @@ struct NifBlock {
     NifTransform transform;
     std::vector<uint32_t> children;   // link id arrays children NiNode only properties every NiAVObject descendant
     std::vector<uint32_t> properties;
+    // NiNode effect list the dynamic effects that light its subtree
+    std::vector<uint32_t> effects;
     uint32_t     data_link = kNoLink; // data link points to geometry data block holding positions triples corner indices strips expanded
     std::vector<float>    vertices;
     std::vector<uint16_t> triangles;
@@ -228,6 +239,8 @@ struct NifBlock {
     std::shared_ptr<NifParticleSystem> particles;
     // Particle modifier payload NiPSysModifier descendant
     std::shared_ptr<NifPSysModifier> psys_modifier;
+    // Texture effect payload NiTextureEffect only
+    std::shared_ptr<NifTextureEffect> texture_effect;
     // Block body file offset next block below 20 2 0 5 no parse
     uint64_t byte_offset = 0;
     uint64_t byte_length = 0;

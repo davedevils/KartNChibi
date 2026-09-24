@@ -1,0 +1,9 @@
+# gate: state race
+# gate: env KNC_ITEM_TEST=9
+# gate: env KNC_ITEM_BOT=700
+# gate: env KNC_ITEM_SHOTS=1.2,2.0,4.0
+# the S2C 0x0069 700 of a hive lands on the own kart the bees swarm it
+# the race clock captures out_item_NNNNN at the listed seconds after the green light
+waitfor race 900
+wait 900
+quit

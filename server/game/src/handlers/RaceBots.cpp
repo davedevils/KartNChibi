@@ -209,6 +209,48 @@ float BotDriver::lapFraction() const {
     return f < 0.0f ? 0.0f : (f > 1.0f ? 1.0f : f);
 }
 
+float raceRankKey(const std::vector<SpawnPackets::TrackVec3>& points, int32_t laps, int32_t checkpoint, float x, float y) {
+    const int32_t n = static_cast<int32_t>(points.size());
+    if (n < 2) return static_cast<float>(laps) * 5000.0f;
+    if (checkpoint < 0 || checkpoint >= n) checkpoint = 0;
+    const SpawnPackets::TrackVec3& a = points[static_cast<size_t>(checkpoint)];
+    const SpawnPackets::TrackVec3& b = points[static_cast<size_t>((checkpoint + 1) % n)];
+    const float dx = b.x - a.x, dy = b.y - a.y;
+    const float len2 = dx * dx + dy * dy;
+    float frac = len2 > 1e-3f ? ((x - a.x) * dx + (y - a.y) * dy) / len2 : 0.0f;
+    if (frac < 0.0f) frac = 0.0f;
+    if (frac > 1.0f) frac = 1.0f;
+    const float bucket = 5000.0f / static_cast<float>(n);
+    return static_cast<float>(laps) * 5000.0f + (static_cast<float>(checkpoint) + frac) * bucket;
+}
+
+int32_t clientLapsFromTracker(const SpawnPackets::LapTracker& tracker) {
+    // back on START after the grid the client already counts the lap the tracker waits for the next face
+    if (tracker.nextCheckpoint() == 0 && tracker.crossings() >= 1) return tracker.lapsCompleted() + 1;
+    return tracker.lapsCompleted();
+}
+
+uint32_t BotCheckpointFollower::update(const std::vector<SpawnPackets::TrackVec3>& points, float x, float y) {
+    const int32_t n = static_cast<int32_t>(points.size());
+    if (n < 2) return static_cast<uint32_t>(laps) * 5000u;
+    float frac = 0.0f;
+    // a car may pass more than one point in a tick the bound stops a loop on a broken head
+    for (int32_t step = 0; step <= n; ++step) {
+        const SpawnPackets::TrackVec3& a = points[static_cast<size_t>(checkpoint)];
+        const SpawnPackets::TrackVec3& b = points[static_cast<size_t>((checkpoint + 1) % n)];
+        const float dx = b.x - a.x, dy = b.y - a.y;
+        const float len2 = dx * dx + dy * dy;
+        frac = len2 > 1e-3f ? ((x - a.x) * dx + (y - a.y) * dy) / len2 : 1.0f;
+        if (frac < 1.0f) break;
+        // the client only takes the expected next face and closes a lap on START
+        checkpoint = (checkpoint + 1) % n;
+        if (checkpoint == 0) ++laps;
+    }
+    if (frac < 0.0f) frac = 0.0f;
+    if (frac > 1.0f) frac = 1.0f;
+    return SpawnPackets::progressScore(static_cast<uint32_t>(laps), static_cast<uint32_t>((checkpoint + 1) % n), frac, n);
+}
+
 uint32_t BotDriver::progressScore() const {
     // C2S 0x67 is laps times 5000 plus the lap bucket so score over 5000 is the completed laps
     return static_cast<uint32_t>(m_laps) * 5000u +

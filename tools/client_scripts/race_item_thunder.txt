@@ -1,0 +1,9 @@
+# gate: state race
+# gate: env KNC_ITEM_TEST=4
+# gate: env KNC_ITEM_SHOTS=1.0,3.8,4.4,5.4,9.6
+# the thunder rises on the own kart the event view watches then it strikes the leader of the standings
+# the top right attack view shows the struck car and the effect 400 holds it
+# the race clock captures out_item_NNNNN at the listed seconds after the green light
+waitfor race 900
+wait 900
+quit

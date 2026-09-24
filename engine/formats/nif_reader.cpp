@@ -314,8 +314,7 @@ bool read_single_interp_controller(Cursor& cursor, NifBlock& block) {
 }
 bool read_node(Cursor& cursor, const NifHeader& header, NifBlock& block) {
     if (!read_av_object(cursor, header, block)) return false;
-    std::vector<uint32_t> effects;
-    return read_links(cursor, block.children) && read_links(cursor, effects);
+    return read_links(cursor, block.children) && read_links(cursor, block.effects);
 }
 
 bool read_extra_data(Cursor& cursor, const NifHeader& header, NifBlock& block) {

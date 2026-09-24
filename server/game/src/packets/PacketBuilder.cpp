@@ -134,6 +134,13 @@ Packet PacketBuilder::displayMessage(const std::u16string& msg, int32_t code) {
     return pkt;
 }
 
+Packet PacketBuilder::messageKey(const std::string& key, int32_t code) {
+    Packet pkt(CMD::S_LOGIN_RESPONSE);
+    pkt.writeString(key);
+    pkt.writeInt32(code);
+    return pkt;
+}
+
 Packet PacketBuilder::loginResponse(bool success, const std::string& msg) {
     Packet pkt(CMD::S_LOGIN_RESPONSE);
     pkt.writeString(msg);

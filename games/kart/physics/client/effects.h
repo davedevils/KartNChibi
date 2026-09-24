@@ -12,6 +12,9 @@ void car_effect_apply(GameState& game, int carIndex, int code, int64_t nowMs);
 void car_effect_update(GameState& game, int carIndex, float* outScaleX, float* outScaleY,
                         int64_t nowMs);
 
+// car remote effect update 0x496600 the effect clock of a car the remote mover drives
+void car_remote_effect_update(GameState& game, int carIndex);
+
 // car effect lean update 0x49B3D0 once per tick roll wobble or cornering lean overlay
 void car_effect_lean_update(GameState& game, int carIndex);
 
@@ -29,5 +32,9 @@ bool car_is_camera_reversed(const std::array<StatusIdSlot, STATUS_TABLE_SIZE>& t
 
 // gimmick pool update 0x4C7ED0 the carry pool grab lock carry drop and release of every live slot
 void gimmick_pool_update(GameState& game, const ColTrack& track, int64_t nowMs);
+
+// gimmick pool update 0x4C7ED0 and 0x4BA380 one pool the carry grabs with 600 the blue rabbit pool with 900
+void gimmick_pool_update_pool(GameState& game, std::array<GimmickPoolSlot, GIMMICK_POOL_LIVE_SLOTS>& pool,
+                              int grabCode, const ColTrack& track, int64_t nowMs);
 
 } // namespace KnC Kart Client

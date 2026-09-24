@@ -256,8 +256,12 @@ bool read_texture_effect(Cursor& cursor, const NifHeader& header, NifBlock& bloc
         uint16_t max_anisotropy = 0;
         if (!cursor.take_u16(max_anisotropy)) return false;
     }
-    if (!skip_enum(cursor) || !skip_enum(cursor) || !skip_enum(cursor)) return false;
-    if (!skip_link(cursor)) return false;                     // texture
+    auto effect = std::make_shared<NifTextureEffect>();
+    uint32_t clamp = 0;
+    if (!cursor.take_u32(clamp) || !cursor.take_u32(effect->texture_type) ||
+        !cursor.take_u32(effect->coordinate_type) || !cursor.take_u32(effect->texture_link))
+        return false;
+    block.texture_effect = effect;
     uint8_t plane_enabled = 0;
     if (!cursor.take_u8(plane_enabled)) return false;
     if (!cursor.skip(4 * sizeof(float))) return false;        // model plane

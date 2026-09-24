@@ -179,7 +179,7 @@ void GhostModeScreen::enter() {
     m_status.clear();
     // stock Ghost button sends empty 0x011D board comes before ack
     m_app.session().openGhostMenu();
-    m_app.playMusic("multiplay_lobby_bgm");
+    m_app.playMenuMusic();
     const uint32_t wanted = autoGhostTrack();
     if (wanted != 0) {
         for (size_t t = 0; t < m_tracks.size(); ++t)
@@ -435,6 +435,7 @@ bool GhostRaceScreen::loadWorld() {
         return false;
     }
     if (!m_sim.init(m_world, session.profile().playerId, error)) { m_status = "sim init failed: " + error; return false; }
+    if (const OwnedPet* worn = m_app.session().catalog().equippedPet()) m_sim.setEquippedPet(worn->petKey);
     m_view.load(m_app.renderer(), m_world);
     m_auto.reset(m_sim.line());
     m_worldLoaded = true;

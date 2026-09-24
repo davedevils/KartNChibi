@@ -53,6 +53,8 @@ private:
     // FUN 004A5ED0 with factory flag chassis body then one nif per installed slot
     bool loadPreview();
     void refreshPreview();
+    // sub 430EF0 lens horizontal field in radians of the stage camera
+    float previewHorizontalField() const;
     // installed rows as one line a change rebuilds built car
     std::string previewToken() const;
     // texture set for a grade basic under five unique under twenty epic under sixty five
@@ -65,6 +67,8 @@ private:
     void removePart();
     void save();
     void beginRename();
+    // the magnifier of a part row opens the shop item box of its def
+    void openPartInfo(const ListRow& row);
     void submitRename();
     // config slot for a 0x0108 category cover booster tires fenders bumper wing
     static int slotOfCategory(int category);

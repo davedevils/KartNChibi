@@ -1,0 +1,8 @@
+# gate: state race
+# gate: env KNC_ITEM_TEST=17
+# gate: env KNC_ITEM_SHOTS=1.0,3.7,4.3,5.3,5.8
+# the hammer rises on the own kart then falls on the leader and squashes it
+# the race clock captures out_item_NNNNN at the listed seconds after the green light
+waitfor race 900
+wait 900
+quit

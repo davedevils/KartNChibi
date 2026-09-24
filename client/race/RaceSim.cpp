@@ -2,6 +2,7 @@
 
 #include "games/kart/physics/client/body.h"
 #include "games/kart/physics/client/boost.h"
+#include "games/kart/physics/client/constants.h"
 #include "games/kart/physics/client/effects.h"
 #include "games/kart/physics/client/respawn.h"
 #include "games/kart/physics/client/stats.h"
@@ -48,6 +49,9 @@ constexpr int kBandAirborneLimit = 1;
 // released drift stocks half of its gain full band a third of it times 0 37037 at eight racers
 constexpr float kBandReleaseShare = 0.5f;
 constexpr float kBandFullShare = 0.33333334f * 0.37037036f;
+// sub 4AE590 pet kind 0x13 of key 10 sets the gauge factor 0x3F866666 that 0x4ADC20 multiplies in
+constexpr int32_t kPetKindGauge = 0x13;
+constexpr float kBandPetScale = 1.05f;
 
 int dustKindOf(int surfaceIndex) {
     if (surfaceIndex < 0 || surfaceIndex >= 9) return -1;
@@ -63,9 +67,23 @@ RaceSim::RaceSim() : m_game(std::make_unique<GameState>()) {
 
 RaceSim::~RaceSim() = default;
 
+void RaceSim::setEquippedPet(uint32_t petKey) {
+    GameState& game = *m_game;
+    game.pets.records.clear();
+    if (petKey != 0) {
+        KnC::Kart::Client::OwnedPet worn;
+        worn.base_key = petKey;
+        worn.equipped = 1;
+        game.pets.records.push_back(worn);
+    }
+    m_bandPetScale = pet_equipped_kind(game.pets) == kPetKindGauge ? kBandPetScale : 1.f;
+    std::printf("[sim] worn pet %u kind %d\n", petKey, pet_equipped_kind(game.pets));
+}
+
 bool RaceSim::init(RaceWorld& world, uint32_t localPlayerId, std::string& error) {
     m_world = &world;
     m_game = std::make_unique<GameState>();
+    m_bandPetScale = 1.f;
     m_ids.fill(0);
     for (auto& sides : m_rearSurface) sides = {-1, -1};
     m_impact.fill(Impact{});
@@ -83,6 +101,7 @@ bool RaceSim::init(RaceWorld& world, uint32_t localPlayerId, std::string& error)
     game.boostRows = world.boostRows;
     game.tuning = TrackTuning{world.files.tuning[0], world.files.tuning[1], world.files.tuning[2]};
     game.worldReady = 1;
+    game.worldTrackId = world.files.trackId;
     // key poll and engine force wait for green light countdown turns it on
     game.sessionRunning = 0;
     game.localCarIndex = 0;
@@ -296,6 +315,58 @@ void RaceSim::applyEffect(uint32_t playerId, int code) {
     car_effect_apply(*m_game, i, code, m_nowMs);
 }
 
+void RaceSim::applyEffectOnCar(int carIndex, int code) {
+    if (carIndex < 0 || carIndex >= kCarSlotCount) return;
+    if (m_game->cars[static_cast<size_t>(carIndex)].slotOccupied == 0 && carIndex != 0) return;
+    car_effect_apply(*m_game, carIndex, code, m_nowMs);
+}
+
+void RaceSim::pushCar(int carIndex, float headingDeg, float strength) {
+    if (carIndex != 0 || !m_localReady) return;
+    car_boost_push(*m_game, 0, headingDeg, strength);
+}
+
+void RaceSim::kickCar(int carIndex, float up) {
+    if (carIndex != 0 || !m_localReady || m_game->sessionRunning == 0) return;
+    car_apply_engine_force(m_game->cars[0], 0.f, 0.f, up);
+}
+
+void RaceSim::startBoost(int kind) {
+    if (!m_localReady) return;
+    car_boost_start(*m_game, 0, kind, m_nowMs);
+}
+
+void RaceSim::startCarry(int carIndex, bool blue, float x, float y, float z, float yawDeg) {
+    if (carIndex < 0 || carIndex >= kCarSlotCount) return;
+    auto& pool = blue ? m_game->effect900Pool : m_game->carryPool;
+    for (const GimmickPoolSlot& s : pool)
+        if (s.active && s.car_index == carIndex) return;
+    for (GimmickPoolSlot& s : pool) {
+        if (s.active) continue;
+        s = GimmickPoolSlot{};
+        s.active = true;
+        s.car_index = carIndex;
+        s.x = x; s.y = y; s.z = z;
+        s.yaw_deg = yawDeg;
+        s.last_dist = 1e9f;
+        // sub 4C7B80 the slot starts on the nearest point of the follow lists
+        int list = 0, point = 0;
+        float dist = 0.f;
+        if (respawn_checkpoint_nearest_all(m_game->checkpoints, x, y, z, &list, &point, &dist)) {
+            s.follow_list = list;
+            s.follow_point = point;
+        }
+        return;
+    }
+}
+
+const GimmickPoolSlot* RaceSim::carrySlot(int carIndex, bool blue) const {
+    const auto& pool = blue ? m_game->effect900Pool : m_game->carryPool;
+    for (const GimmickPoolSlot& s : pool)
+        if (s.active && s.car_index == carIndex) return &s;
+    return nullptr;
+}
+
 // itemdrum hit test 0x4bed40 three responses bounce pushes car away from barrel
 void RaceSim::applyDrumHit(const GimmickDrumResult& hit) {
     if (!m_localReady || hit.kind == GimmickDrumHit::None) return;
@@ -325,6 +396,12 @@ void RaceSim::applyDrumHit(const GimmickDrumResult& hit) {
 
 float RaceSim::localDriftGaugeSmoothed() const {
     return m_localReady ? m_game->cars[0].driftGaugeSmoothed : 0.f;
+}
+
+float RaceSim::driftGaugeSmoothed(int carIndex) const {
+    if (carIndex == 0) return localDriftGaugeSmoothed();
+    if (carIndex < 0 || carIndex >= kCarSlotCount) return 0.f;
+    return m_game->cars[static_cast<size_t>(carIndex)].remote.driftGaugeSmoothed;
 }
 
 void RaceSim::setFinished(uint32_t playerId) {
@@ -392,6 +469,9 @@ int RaceSim::advance(float dt) {
     while (m_accum >= kTickSeconds && ticks < kMaxTicksPerAdvance) {
         m_accum -= kTickSeconds;
         cars_frame_update(game, track, m_nowMs);
+        // sub 4C7ED0 and sub 4BA380 the two rabbit pools carry their car each frame
+        gimmick_pool_update_pool(game, game.carryPool, kGimmickCarryGrabCode, track, m_nowMs);
+        gimmick_pool_update_pool(game, game.effect900Pool, kGimmickBlueGrabCode, track, m_nowMs);
         // remote mover keeps its own pose car record copy feeds overlap and rival scans
         for (int i = 1; i < kCarSlotCount; ++i) {
             CarState& car = game.cars[static_cast<size_t>(i)];
@@ -436,7 +516,7 @@ void RaceSim::updateDriftBand(float dt) {
     if (!m_gaugeCharging) {
         if (charging) { m_gaugeCharging = true; m_gaugeStart = m_gaugeValue; }
     } else if (charging) {
-        float rate = kBandRate;
+        float rate = kBandRate * m_bandPetScale;
         if (car.miniTurboStage != 0) rate *= kBandStageScale;
         if (car.boostState != 0) rate *= kBandBoostScale;
         m_gaugeValue += rate * dt;

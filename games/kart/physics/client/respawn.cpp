@@ -3,6 +3,7 @@
 #include "gimmicks.h"
 
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 
 #include "boost.h"
@@ -96,35 +97,44 @@ void respawn_crash_recovery_update(GameState& game, int carIndex, int64_t nowMs)
         return;
     }
 
-    if (w.state == 1 || w.state == 2) {
-        int point = 0;
-        float dist = 0.0f;
-        if (respawn_checkpoint_nearest_on_list(game.checkpoints, w.nearestListIndex, car.posX, car.posY,
-                                                car.posZ, &point, &dist)) {
-            if (point > w.progressIndex) {
-                w.progressIndex = point;
-                w.distance = dist;
-                w.lastDirectionChangeMs = nowMs;
-            } else if (nowMs - w.lastDirectionChangeMs >= kRespawnDirectionDebounceMs) {
-                w.state = (w.state == 1) ? 2 : 100;
-                w.lastDirectionChangeMs = nowMs;
-            }
-        }
+    int point = 0;
+    float dist = 0.0f;
+    if (!respawn_checkpoint_nearest_on_list(game.checkpoints, w.nearestListIndex, car.posX, car.posY, car.posZ,
+                                            &point, &dist)) {
         return;
     }
-
-    if (w.state == 100) {
-        int point = 0;
-        float dist = 0.0f;
-        if (respawn_checkpoint_nearest_on_list(game.checkpoints, w.nearestListIndex, car.posX, car.posY,
-                                                car.posZ, &point, &dist) &&
-            point > w.progressIndex) {
-            w.state = 1;
-            w.progressIndex = point;
+    w.distance = dist;
+    // 0x4A0A60 a car over 80 from its list takes the nearest point of all four lists again
+    if (dist > kRespawnReprobeDistance &&
+        !respawn_checkpoint_nearest_all(game.checkpoints, car.posX, car.posY, car.posZ, &w.nearestListIndex,
+                                        &point, &dist)) {
+        return;
+    }
+    if (game.worldTrackId == kBattleTrackId) return;
+    const int step = std::abs(w.progressIndex - point);
+    // only a falling index counts a car that stands still or drives on never escalates
+    const bool backward = step < kRespawnIndexStepLimit && point < w.progressIndex;
+    const bool forward = step < kRespawnIndexStepLimit && point > w.progressIndex;
+    if (w.state == 1) {
+        if (backward) {
+            w.state = 2;
             w.lastDirectionChangeMs = nowMs;
-            return;
         }
-        if (nowMs - w.lastDirectionChangeMs > kRespawnCommitTimeoutMs) {
+    } else if (w.state == 2) {
+        if (backward && nowMs - w.lastDirectionChangeMs >= kRespawnDirectionDebounceMs) {
+            w.lastDirectionChangeMs = nowMs;
+            const bool loopA = game.worldTrackId == kRespawnLoopTrackA && w.nearestListIndex == 0 &&
+                               point >= kRespawnLoopTrackAFirst && point <= kRespawnLoopTrackALast;
+            const bool loopB = game.worldTrackId == kRespawnLoopTrackB && w.nearestListIndex == 0 &&
+                               point >= kRespawnLoopTrackBFirst && point <= kRespawnLoopTrackBLast;
+            w.state = loopA || loopB ? 1 : 100;
+        } else if (forward) {
+            w.state = 1;
+        }
+    } else if (w.state == 100) {
+        if (forward) {
+            w.state = 1;
+        } else if (backward && nowMs - w.lastDirectionChangeMs > kRespawnCommitTimeoutMs) {
             w.state = 0;
             car.recoveryPosX = car.posX;
             car.recoveryPosY = car.posY;
@@ -133,6 +143,7 @@ void respawn_crash_recovery_update(GameState& game, int carIndex, int64_t nowMs)
             car.checkpointTimestampMs = static_cast<uint64_t>(nowMs);
         }
     }
+    w.progressIndex = point;
 }
 
 void car_respawn_state_machine(GameState& game, int carIndex, const ColTrack& track, int64_t nowMs) {

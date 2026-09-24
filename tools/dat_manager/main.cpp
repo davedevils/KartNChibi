@@ -21,6 +21,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <filesystem>
 #include <string>
 
 using namespace KnC::Tools;
@@ -132,7 +133,9 @@ int main(int argc, char** argv) {
     if (!headless) app.audio.init();
     app.preview.attach(&renderer, &app.archive, &app.audio);
 
-    const std::string game_dir = options.game_dir.empty() ? load_game_dir_setting() : options.game_dir;
+    std::string game_dir = options.game_dir.empty() ? load_game_dir_setting() : options.game_dir;
+    // a double click beside the game opens that game with no folder to pick
+    if (game_dir.empty() && std::filesystem::exists("pak001.dat")) game_dir = ".";
     if (!game_dir.empty()) open_game_folder(app, game_dir);
     else app.status = "Pick the game folder with Change Folder";
     int exit_code = 0;

@@ -45,6 +45,7 @@ bool parseOptions(int argc, char** argv, Options& out) {
         else if (arg == "--no-focus") out.noFocus = true;
         else if (arg == "--status-line") out.statusLine = true;
         else if (arg == "--script" && hasValue) out.script = argv[++i];
+        else if (arg == "--debug") out.debug = true;
         else if (arg == "--size" && hasValue) {
             int w = 0, h = 0;
             if (std::sscanf(argv[++i], "%dx%d", &w, &h) != 2 || w <= 0 || h <= 0) return false;
@@ -95,7 +96,8 @@ void printUsage() {
         "                  [--screenshot out.png] [--frames N] [--size WxH] [--ui-dir <folder>]\n"
         "                  [--lang Eng] [--wire wire.log]\n"
         "                  [--state logo|login|channel|menu|lobby|room|race|result|garage|shop|missions|mission|messenger|creation]\n"
-        "                  [--no-focus] [--status-line] [--script <file>]\n"
+        "                  [--no-focus] [--status-line] [--script <file>] [--debug]\n"
+        "       --debug writes the log lines to the console and opens the --wire file, off by default\n"
         "       F12 writes <screen>.png next to the exe\n"
         "       script verbs: wait N, click X Y, rclick X Y, key NAME, text WORDS, shot NAME,\n"
         "       waitfor SCREEN [N], expect SCREEN, quit\n");

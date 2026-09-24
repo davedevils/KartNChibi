@@ -1576,8 +1576,12 @@ void Session::parseRoomMember(Packet& pkt) {
     const std::vector<uint8_t>& p = pkt.payload();
     const size_t at = p.size() - pkt.remaining();
     m.driverKey = rd32(p, at + 0x04);
+    for (size_t i = 0; i < m.accessory.size(); ++i) m.accessory[i] = rd32(p, at + 0x08 + 4 * i);
     m.kartKey = rd32(p, at + 0x2C + 0x04);
+    for (size_t i = 0; i < m.kartParts.size(); ++i) m.kartParts[i] = rd32(p, at + 0x2C + 0x08 + 4 * i);
     m.ready = rd32(p, at + 0x2C + 0x38);
+    m.petKey = rd32(p, at + 0x2C + 0x38 + 0x04);
+    for (size_t i = 0; i < m.customCar.size(); ++i) m.customCar[i] = rd32(p, at + 0x2C + 0x38 + 8 + 4 * i);
     if (!m_room.inRoom) return;
     bool replaced = false;
     for (RoomMember& r : m_room.members) {
@@ -1587,8 +1591,8 @@ void Session::parseRoomMember(Packet& pkt) {
         break;
     }
     if (!replaced) m_room.members.push_back(m);
-    std::printf("[session] member slot %u id %u %s driver %u kart %u ready %u\n", m.slot, m.playerId,
-                u16ToUtf8(m.name).c_str(), m.driverKey, m.kartKey, m.ready);
+    std::printf("[session] member slot %u id %u %s driver %u kart %u ready %u pet %u\n", m.slot, m.playerId,
+                u16ToUtf8(m.name).c_str(), m.driverKey, m.kartKey, m.ready, m.petKey);
     if (onRoomChanged) onRoomChanged();
 }
 

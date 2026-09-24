@@ -25,6 +25,8 @@ waitfor shopitem 100
 wait 20
 click 436 551
 wait 120
+key enter
+wait 10
 click 564 147
 wait 30
 click 540 385
@@ -33,6 +35,8 @@ wait 20
 click 436 551
 wait 120
 shot carcraft_bought
+key enter
+wait 10
 click 546 746
 waitfor carcraft 300
 wait 60

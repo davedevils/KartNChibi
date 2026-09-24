@@ -88,8 +88,14 @@ bool carries_translucency(const std::vector<uint8_t>& rgba8) {
 }
 
 // mip chain copied out decoded image freed a sheet with no mip filter keeps its top level alone
-bgfx::TextureHandle create_texture(const bimg::ImageContainer& image, bool mipmapped) {
+bgfx::TextureHandle create_texture(const bimg::ImageContainer& image, bool mipmapped,
+                                   const std::vector<uint8_t>& cut_chain_dds) {
     const bool chain = mipmapped && image.m_numMips > 1;
+    // The dds itself makes a texture of only the levels it ships the sampler stops at the last one
+    if (chain && !cut_chain_dds.empty())
+        return bgfx::createTexture(
+            bgfx::copy(cut_chain_dds.data(), static_cast<uint32_t>(cut_chain_dds.size())),
+            BGFX_TEXTURE_NONE);
     if (!chain) {
         bimg::ImageMip top;
         if (bimg::imageGetRawData(image, 0, 0, image.m_data, image.m_size, top))
@@ -116,6 +122,8 @@ struct PreparedImage {
     bimg::ImageContainer* image = nullptr;
     std::string source;
     bool translucent = false;
+    // The file of a dds whose mip chain stops short empty for every other image
+    std::vector<uint8_t> cut_chain_dds;
 };
 
 std::mutex& stats_lock() {
@@ -192,6 +200,13 @@ bool prepare_image(const std::string& path, PreparedImage& out) {
         std::cerr << "[render] texture is not a decodable image: " << out.source << "\n";
         return false;
     }
+    // bimg sizes a whole chain and leaves the levels a short dds lacks as heap garbage
+    bimg::ImageContainer authored;
+    bx::Error header_error;
+    if (looks_like_dds(out.source, bytes) &&
+        bimg::imageParse(authored, bytes.data(), static_cast<uint32_t>(bytes.size()), &header_error) &&
+        authored.m_numMips > 1 && authored.m_numMips < out.image->m_numMips)
+        out.cut_chain_dds = std::move(bytes);
     at = std::chrono::steady_clock::now();
     std::vector<uint8_t> top_level;
     const bool inspected = decode_top_level(*out.image, top_level);
@@ -204,11 +219,12 @@ bool prepare_image(const std::string& path, PreparedImage& out) {
 // The file goes to the device as authored the fragment hands the device straight alpha
 CachedTexture upload_prepared(PreparedImage& prepared, bool mipmapped) {
     const auto at = std::chrono::steady_clock::now();
-    const bgfx::TextureHandle handle = create_texture(*prepared.image, mipmapped);
+    const bgfx::TextureHandle handle = create_texture(*prepared.image, mipmapped, prepared.cut_chain_dds);
     add_stat(&TextureLoadStats::create_ms, ms_since(at));
     const CachedTexture loaded = uploaded(*prepared.image, handle, prepared.translucent);
     bimg::imageFree(prepared.image);
     prepared.image = nullptr;
+    prepared.cut_chain_dds.clear();
     return loaded;
 }
 
@@ -234,7 +250,7 @@ bool take_prepared(const std::string& path, PreparedImage& out) {
     std::lock_guard<std::mutex> lock(store.lock);
     const auto found = store.images.find(path);
     if (found == store.images.end()) return false;
-    out = found->second;
+    out = std::move(found->second);
     store.images.erase(found);
     return true;
 }
@@ -274,7 +290,7 @@ size_t prefetch_textures(const std::vector<std::string>& paths, unsigned threads
             std::lock_guard<std::mutex> lock(store.lock);
             auto& slot = store.images[wanted[at]];
             if (slot.image != nullptr) bimg::imageFree(slot.image);
-            slot = prepared;
+            slot = std::move(prepared);
             ++ready;
         }
     };

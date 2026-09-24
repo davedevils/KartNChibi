@@ -2,6 +2,7 @@
 // character geometry with vertices named by bones skeleton and animation clips
 #include "engine/formats/nif_effect.h"
 #include "engine/formats/nif_skeleton.h"
+#include "engine/render/model_lights.h"
 #include "engine/render/scene_vertex.h"
 
 #include <cstddef>
@@ -31,6 +32,8 @@ struct SkinnedPart {
     // surface state from NiAlphaProperty NiZBufferProperty NiMaterialProperty same as prop
     KnC::NifSurfaceState     surface;
     bool                       has_vertex_colours = false;
+    // The sphere map a NiTextureEffect above the geometry adds empty texture for none
+    EnvironmentMap             environment;
 };
 
 // bones each slot names skeleton node and skin bind transform parallel
@@ -57,6 +60,8 @@ struct CharacterModel {
     std::string              name;
     CharacterRig             rig;
     std::vector<SkinnedPart> parts;
+    // the lights the body root effect list hangs over every part
+    ModelLights              lights;
     // rest pose bounding box minimum
     float bounds_min[3] = {0.f, 0.f, 0.f};
     float bounds_max[3] = {0.f, 0.f, 0.f};

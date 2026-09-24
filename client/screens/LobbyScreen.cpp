@@ -172,9 +172,9 @@ void LobbyScreen::refreshPreview() {
     if (!kart && !cat.ownedKarts().empty()) kart = &cat.ownedKarts().front();
     if (session.profile().characterInstance >= 0) mine = cat.ownedCharacter(static_cast<uint32_t>(session.profile().characterInstance));
     if (!mine && !cat.ownedCharacters().empty()) mine = &cat.ownedCharacters().front();
-    const KartRow* kartDef = kart ? cat.kart(kart->kartKey) : nullptr;
     const DriverRow* driverDef = mine ? cat.driver(mine->driverKey) : nullptr;
-    const std::string model = kartDef && !kartDef->model.empty() ? kartDef->model : std::string("Basic_1");
+    // a factory kart builds from its preset row so the chassis and the parts show
+    const std::string model = kart ? ownedKartViewModel(m_app, kart->instance) : std::string("Basic_1");
     const std::string asset = driverDef && !driverDef->asset.empty() ? driverDef->asset : std::string("Cosmo");
     if (model == m_previewKart && asset == m_previewDriver && m_previewCar >= 0) return;
     if (m_previewCar >= 0) m_view.removeCar(m_previewCar);

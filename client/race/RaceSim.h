@@ -91,6 +91,8 @@ public:
 
     // follow lists boost rows and globals of a race on this world
     bool init(RaceWorld& world, uint32_t localPlayerId, std::string& error);
+    // the worn pet of the 0x0104 list 0x1A69708 the boost the mini turbo and the band read it after init
+    void setEquippedPet(uint32_t petKey);
     // body create from car file 17 stats and setup overrides from harness
     bool spawnLocal(const CarSetup& setup, std::string& error);
     // remote car parked on its grid row fed by 0x0040 later returns car index
@@ -113,10 +115,23 @@ public:
     void teleport(uint32_t playerId, float x, float y, float z, float yawDeg);
     // 0x0069 effect code on a car
     void applyEffect(uint32_t playerId, int code);
+    // car effect apply 0x495C30 on a car index the item objects hit
+    void applyEffectOnCar(int carIndex, int code);
+    // car boost push 0x496B40 on the own car a remote car moves by its own client
+    void pushCar(int carIndex, float headingDeg, float strength);
+    // car apply engine force 0x4968F0 straight up on the own car
+    void kickCar(int carIndex, float up);
+    // car boost start 0x496BE0 kind 1 the booster kind 2 the big booster on the own car
+    void startBoost(int kind);
+    // sub 4C7B80 a carry slot of the own car in the rabbit pool or in the blue rabbit pool
+    void startCarry(int carIndex, bool blue, float x, float y, float z, float yawDeg);
+    const KnC::Kart::Client::GimmickPoolSlot* carrySlot(int carIndex, bool blue) const;
     // itemdrum hit test 0x4bed40 barrel response on local car caller keeps broken rows
     void applyDrumHit(const KnC::Kart::Client::GimmickDrumResult& hit);
     // drift gauge drum sweep reads car 0x35ac of local car
     float localDriftGaugeSmoothed() const;
+    // car 0x35ac of any car the remote mover keeps its own the item box sweep turns by it
+    float driftGaugeSmoothed(int carIndex) const;
     // gauge update 0x4ADC20 shown fill of red band 0 to 127 hud draws it
     float gaugeFill() const { return m_gaugeShown; }
     // 0x85C spark at O POS node of band while charge climbs
@@ -186,6 +201,8 @@ private:
     int64_t m_driftTestStartMs = -1;
     // 0x868 band target 0x870 shown fill 0x878 value charge started at
     float m_gaugeValue = 0.f;
+    // sub 4AE590 gauge factor this plus 3308 one or the Rosie scale
+    float m_bandPetScale = 1.f;
     float m_gaugeShown = 0.f;
     float m_gaugeValueBlue = 0.f;
     float m_gaugeShownBlue = 0.f;

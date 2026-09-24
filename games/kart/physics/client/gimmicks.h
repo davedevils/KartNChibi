@@ -92,6 +92,16 @@ GimmickDrumResult itemdrum_hit_test(const std::vector<GimmickItemdrumRow>& rows,
                                      float carYawDeg, float driftGaugeSmoothed, float speedKmh,
                                      bool boosting);
 
+// item box hit test 0x4BC830 the same sweep as the drum with a 4 unit reach on the ready boxes
+constexpr float GIMMICK_BOX_COARSE_REACH = 10.0f;
+constexpr float GIMMICK_BOX_HIT_REACH = 4.0f;
+// 0x4BCA90 a taken box hides 2000 ms then waits 500 ms before it can be taken again
+constexpr int32_t GIMMICK_BOX_HIDDEN_MS = 2000;
+constexpr int32_t GIMMICK_BOX_ARM_MS = 500;
+// the first ready row the car sweep touches minus one when none a row with ready zero is skipped
+int32_t itembox_hit_test(const std::vector<GimmickItemboxRow>& rows, const std::vector<uint8_t>& ready, float carX,
+                         float carY, float carYawDeg, float driftGaugeSmoothed);
+
 constexpr size_t GIMMICK_BOOST_MAX_LINES = 100;  // gimmick load boost 0x48AB10 gimmick load itembox 0x48AC20
 constexpr size_t GIMMICK_ITEMBOX_MAX_LINES = 100;
 constexpr size_t GIMMICK_ITEMBITE_MAX_LINES = 100;  // gimmick load itembite 0x48AD20 gimmick load itemdrum 0x48AF20

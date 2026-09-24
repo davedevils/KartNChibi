@@ -4,7 +4,7 @@
 # gate: needs gold
 # the room craft editor buys an object then places moves turns and removes it and saves with 0x010F
 # run on hltest2 a one day fortree01 costs 300 gold the stage opens with 0x010E
-# the strip lists the owned 0x010D rows a tile then a click on the field places one
+# the strip lists the owned 0x010D rows a tile dragged onto the field places one a click picks it
 # an account with no licence grade lands on the licence stage the Lobby click leaves it
 waitfor licence 120
 click 255 20
@@ -24,18 +24,20 @@ wait 20
 click 436 551
 wait 120
 shot roomcraft_bought
+key enter
+wait 10
 click 665 746
 waitfor roomcraft 300
 wait 90
 shot roomcraft_open
 click 590 106
 wait 20
-click 241 132
-wait 20
-shot roomcraft_tile
-click 500 560
+drag 241 132 500 560 left 20
 wait 60
 shot roomcraft_placed
+click 500 560
+wait 20
+shot roomcraft_picked
 key e
 key e
 key e

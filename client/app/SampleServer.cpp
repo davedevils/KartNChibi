@@ -163,14 +163,15 @@ void ownedPart(Packet& p, uint32_t instance, uint32_t partKey) {
     p.writeUInt32(0); p.writeUInt32(1);
 }
 
-// the room member and the grid spawn share the two blobs the keys sit at their offset 4
-void memberBlobs(Packet& p, uint32_t driverKey, uint32_t kartKey, uint32_t ready) {
+// member and grid rows share the two blobs a member row puts its ready flag before the pet key
+void memberBlobs(Packet& p, uint32_t driverKey, uint32_t kartKey, bool member, uint32_t ready) {
     std::vector<uint8_t> a(0x2C, 0), b(0x38, 0), tail(0x3C, 0);
     putU32(a, 0, 5); putU32(a, 4, driverKey);
     putU32(b, 0, 6); putU32(b, 4, kartKey);
     p.writeBytes(a.data(), a.size());
     p.writeBytes(b.data(), b.size());
-    p.writeUInt32(ready);
+    if (member) p.writeUInt32(ready);
+    p.writeUInt32(0);
     p.writeBytes(tail.data(), tail.size());
 }
 
@@ -585,7 +586,7 @@ void SampleServer::sendRoom() {
         p.writeUInt32(m.slot); p.writeUInt32(0); p.writeUInt32(m.id); p.writeWString(m.name);
         // the u32 after the pccafe byte is the worn pendant the room plate draws it
         p.writeUInt8(m.level); p.writeUInt8(0); p.writeUInt8(0); p.writeUInt32(m.id == kMyId ? m_pendant : m.id == kBotA ? 8u : 0u);
-        memberBlobs(p, m.driver, m.kart, m.ready);
+        memberBlobs(p, m.driver, m.kart, true, m.ready);
         send(p);
     }
     Packet track = Packet::fromCmdFull(0x0035);
@@ -608,11 +609,14 @@ void SampleServer::sendGrid() {
 
 void SampleServer::sendGridRows() {
     struct Racer { uint32_t id; const char16_t* name; uint32_t grid; uint32_t driver; uint32_t kart; };
-    const Racer racers[] = {{kMyId, u"Sample", 0, 1, 10010}, {kBotA, u"HlTester", 1, 2, 10011}, {kBotB, u"HlTestTwo", 2, 3, 10101}};
+    // KNC ITEM TEST puts the own kart on row 9 so the leader on row 1 stands in its cone
+    const bool behind = std::getenv("KNC_ITEM_TEST") != nullptr;
+    const Racer racers[] = {{kMyId, u"Sample", behind ? 9u : 0u, 1, 10010}, {kBotA, u"HlTester", 1, 2, 10011},
+                            {kBotB, u"HlTestTwo", behind ? 0u : 2u, 3, 10101}};
     for (const Racer& r : racers) {
         Packet p = Packet::fromCmdFull(0x003E);
         p.writeUInt32(r.id); p.writeWString(r.name); p.writeUInt32(r.grid); p.writeUInt32(0);
-        memberBlobs(p, r.driver, r.kart, 0);
+        memberBlobs(p, r.driver, r.kart, false, 0);
         send(p);
     }
     send(Packet::fromCmdFull(0x000D));
@@ -961,9 +965,9 @@ void SampleServer::tick() {
         p.writeUInt32(ids[i]); p.writeInt32(i); p.writeInt32(pings[i]);
         send(p);
     }
-    // a bump hit on the own car after the green light the damage clip and the crash sprite
+    // a bump hit on the own car after the green light KNC ITEM TEST leaves it out
     const double sinceGo = now - m_goAt;
-    if (sinceGo >= 13.5 && sinceGo < 14.0) {
+    if (sinceGo >= 13.5 && sinceGo < 14.0 && std::getenv("KNC_ITEM_TEST") == nullptr) {
         Packet hit = Packet::fromCmdFull(0x0069);
         hit.writeUInt32(kMyId); hit.writeInt16(1000);
         send(hit);

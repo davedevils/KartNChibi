@@ -14,6 +14,8 @@ namespace KnC::Render {
 
 namespace {
 
+constexpr uint16_t kHiddenObjectFlag = 0x0001u;
+
 // A bone a vertex follows skeleton node and the bind transform into that node
 struct Influence {
     int          node = -1;
@@ -37,6 +39,8 @@ struct SkinnedGeometry {
 // One part is one texture and one device state like the prop builder
 struct PartKey {
     std::string texture;
+    // The sphere map over the geometry a mesh without one draws apart
+    std::string environment;
     uint32_t    alpha_property    = kNoLink;
     uint32_t    depth_property    = kNoLink;
     uint32_t    material_property = kNoLink;
@@ -45,9 +49,9 @@ struct PartKey {
     bool        vertex_colours    = false;
 
     bool operator<(const PartKey& other) const {
-        return std::tie(texture, alpha_property, depth_property, material_property, texturing,
+        return std::tie(texture, environment, alpha_property, depth_property, material_property, texturing,
                         shading, vertex_colours) <
-               std::tie(other.texture, other.alpha_property, other.depth_property,
+               std::tie(other.texture, other.environment, other.alpha_property, other.depth_property,
                         other.material_property, other.texturing, other.shading,
                         other.vertex_colours);
     }
@@ -114,6 +118,7 @@ SceneVertex surface_vertex(const NifBlock& mesh, std::size_t vertex) {
         out.normal_z = mesh.normals[vertex * 3 + 2];
     }
     if (carries_vertex_colours(mesh)) out.abgr = nif_colour_abgr(&mesh.vertex_colours[vertex * 4]);
+    if (mesh.uvs.size() * 3 != mesh.vertices.size() * 2) return out;
     out.u = mesh.uvs[vertex * 2];
     out.v = mesh.uvs[vertex * 2 + 1];
     return out;
@@ -124,7 +129,7 @@ class CharacterBuilder {
 public:
     CharacterBuilder(const NifScene& scene, const CharacterModelRequest& request,
                      CharacterModel& out)
-        : scene_(scene), request_(request), out_(out) {}
+        : scene_(scene), request_(request), out_(out), environments_(scene) {}
 
     void build_geometry();
     bool bind_clips(std::string& error);
@@ -136,8 +141,10 @@ private:
     void gather_rigid(uint32_t block, const NifBlock& mesh, SkinnedGeometry& geometry) const;
     int  rigid_influence(uint32_t block, SkinnedGeometry& geometry) const;
     void emit(uint32_t block, const SkinnedGeometry& geometry);
-    OpenPart& open_part(const PartKey& key, const NifSurfaceState& surface, bool coloured);
-    OpenPart& fresh_part(const PartKey& key, const NifSurfaceState& surface, bool coloured);
+    OpenPart& open_part(const PartKey& key, const NifSurfaceState& surface, bool coloured,
+                        const EnvironmentMap& environment);
+    OpenPart& fresh_part(const PartKey& key, const NifSurfaceState& surface, bool coloured,
+                         const EnvironmentMap& environment);
     void copy_vertex(const SkinnedGeometry& geometry, uint32_t vertex, OpenPart& open);
     void drop_empty_parts();
     void measure_bounds();
@@ -147,6 +154,7 @@ private:
     CharacterModel&              out_;
     std::vector<NifSurfaceState> surfaces_;
     std::map<PartKey, OpenPart>  open_;
+    EnvironmentMaps              environments_;
 };
 
 void CharacterBuilder::build_geometry() {
@@ -157,9 +165,13 @@ void CharacterBuilder::build_geometry() {
         // Only a block the skeleton reached is drawn like the client tree walk
         if (out_.rig.skeleton.node_of(block) < 0 || shape.data_link >= scene_.blocks.size())
             continue;
-        if (find_base_texture_file_name(scene_, shape).empty()) continue;
+        // flags bit 0 is app culled the red helper box of a part is one
+        if ((shape.object_flags & kHiddenObjectFlag) != 0) continue;
+        const bool textured = !find_base_texture_file_name(scene_, shape).empty();
+        if (!textured && !request_.draw_untextured) continue;
         const NifBlock& mesh = scene_.blocks[shape.data_link];
-        if (mesh.vertices.empty() || mesh.uvs.size() * 3 != mesh.vertices.size() * 2) continue;
+        const bool has_uvs = mesh.uvs.size() * 3 == mesh.vertices.size() * 2;
+        if (mesh.vertices.empty() || (textured && !has_uvs)) continue;
         SkinnedGeometry geometry;
         gather(block, geometry);
         emit(block, geometry);
@@ -235,9 +247,14 @@ void CharacterBuilder::gather_rigid(uint32_t block, const NifBlock& mesh,
 }
 
 OpenPart& CharacterBuilder::fresh_part(const PartKey& key, const NifSurfaceState& surface,
-                                       bool coloured) {
+                                       bool coloured, const EnvironmentMap& environment) {
     SkinnedPart part;
-    part.texture_path = (std::filesystem::path(request_.texture_dir) / key.texture).string();
+    if (!key.texture.empty())
+        part.texture_path = (std::filesystem::path(request_.texture_dir) / key.texture).string();
+    if (!environment.texture.empty()) {
+        part.environment = environment;
+        part.environment.texture = (std::filesystem::path(request_.texture_dir) / environment.texture).string();
+    }
     part.surface = surface;
     part.has_vertex_colours = coloured;
     out_.parts.push_back(std::move(part));
@@ -250,10 +267,10 @@ OpenPart& CharacterBuilder::fresh_part(const PartKey& key, const NifSurfaceState
 }
 
 OpenPart& CharacterBuilder::open_part(const PartKey& key, const NifSurfaceState& surface,
-                                      bool coloured) {
+                                      bool coloured, const EnvironmentMap& environment) {
     const auto known = open_.find(key);
     if (known != open_.end()) return known->second;
-    return fresh_part(key, surface, coloured);
+    return fresh_part(key, surface, coloured, environment);
 }
 
 void CharacterBuilder::copy_vertex(const SkinnedGeometry& geometry, uint32_t vertex,
@@ -281,11 +298,13 @@ void CharacterBuilder::copy_vertex(const SkinnedGeometry& geometry, uint32_t ver
 void CharacterBuilder::emit(uint32_t block, const SkinnedGeometry& geometry) {
     const NifSurfaceState& surface = surfaces_[block];
     const bool coloured = carries_vertex_colours(scene_.blocks[scene_.blocks[block].data_link]);
-    const PartKey key{find_base_texture_file_name(scene_, scene_.blocks[block]),
+    const EnvironmentMap& environment = environments_.of(block);
+    const std::string texture = find_base_texture_file_name(scene_, scene_.blocks[block]);
+    const PartKey key{texture, environment.texture,
                       surface.alpha_link, surface.depth_link, surface.material_link,
                       surface.texturing_link,
-                      static_cast<uint8_t>(surface_shading(surface, true)), coloured};
-    OpenPart* open = &open_part(key, surface, coloured);
+                      static_cast<uint8_t>(surface_shading(surface, !texture.empty())), coloured};
+    OpenPart* open = &open_part(key, surface, coloured, environment);
     open->slot_of_influence.assign(geometry.influences.size(), -1);
     open->vertex_of.assign(geometry.vertices.size(), -1);
     std::vector<int> needed;
@@ -303,7 +322,7 @@ void CharacterBuilder::emit(uint32_t block, const SkinnedGeometry& geometry) {
         }
         BonePalette* palette = &out_.rig.palettes[open->part];
         if (palette->nodes.size() + needed.size() > static_cast<std::size_t>(kBonePaletteSize)) {
-            open = &fresh_part(key, surface, coloured);
+            open = &fresh_part(key, surface, coloured, environment);
             open->slot_of_influence.assign(geometry.influences.size(), -1);
             open->vertex_of.assign(geometry.vertices.size(), -1);
             palette = &out_.rig.palettes[open->part];
@@ -413,7 +432,8 @@ bool build_character_model(const NifScene& scene, const CharacterModelRequest& r
     out.name = std::filesystem::path(request.nif_path).stem().string();
     CharacterBuilder builder(scene, request, out);
     builder.build_geometry();
-    if (out.parts.empty()) {
+    out.lights = collect_model_lights(scene);
+    if (out.parts.empty() && !request.allow_no_geometry) {
         error = request.nif_path + " has no textured geometry to skin";
         return false;
     }

@@ -207,6 +207,22 @@ bool loadUntexturedModel(const std::string& path, uint32_t tint, KnC::Render::Pr
     return true;
 }
 
+// sub 42CE40 three digit cells 16 apart the leading zeros skipped the right flag shifts short values
+void drawPageNumber(DrawContext& ctx, AssetStore& assets, float x, float y, int value, bool right) {
+    value = std::min(std::max(value, 0), 999);
+    const int hundreds = value / 100;
+    const int tens = value % 100 / 10;
+    const int units = value % 10;
+    if (right) x -= value < 10 ? 32.f : (value < 100 ? 16.f : 0.f);
+    auto digit = [&](int d, float at) {
+        const Texture* t = assets.texture("Garage/pageNum" + std::to_string(d) + ".png");
+        if (t && t->valid()) ctx.batch.draw(t->handle, at, y, static_cast<float>(t->width), static_cast<float>(t->height));
+    };
+    if (hundreds != 0) digit(hundreds, x);
+    if (hundreds != 0 || tens != 0) digit(tens, x + 16.f);
+    digit(units, x + 32.f);
+}
+
 // the nif of one owned row by its category empty when the folder ships none
 std::string objectNif(const std::string& root, uint32_t category, const std::string& folder, std::string& dir) {
     switch (category) {
@@ -248,6 +264,7 @@ void RoomCraftScreen::enter() {
     m_kind = 0;
     m_scroll = 0;
     m_tile = -1;
+    m_dragTile = -1;
     m_selected = -1;
     m_dragging = false;
     m_tip = false;
@@ -327,6 +344,7 @@ void RoomCraftScreen::refreshTiles() {
     if (m_scroll > pages) m_scroll = pages;
     if (m_scroll < 0) m_scroll = 0;
     if (m_tile >= static_cast<int>(m_tiles.size())) m_tile = -1;
+    if (m_dragTile >= static_cast<int>(m_tiles.size())) m_dragTile = -1;
 }
 
 std::string RoomCraftScreen::worldToken() const {
@@ -679,7 +697,17 @@ int RoomCraftScreen::pickPlaced(float x, float y) const {
     return best;
 }
 
-// FUN 00435810 a tile then a click on the field the singleton kinds take the others off first
+bool RoomCraftScreen::canDragTile(int tile) const {
+    if (tile < 0 || tile >= static_cast<int>(m_tiles.size())) return false;
+    const StripTile& picked = m_tiles[static_cast<size_t>(tile)];
+    if (picked.available <= 0) return false;
+    if (picked.category == 3) return true;
+    for (const RoomCraftInstance& r : m_rows)
+        if (r.objectKey == picked.objectKey && r.category == picked.category && r.placed != 0) return false;
+    return true;
+}
+
+// FUN 00435810 the tile dropped on the field the singleton kinds take the others off first
 void RoomCraftScreen::placeTile(int tile, const float world[3]) {
     if (tile < 0 || tile >= static_cast<int>(m_tiles.size())) return;
     const StripTile& picked = m_tiles[static_cast<size_t>(tile)];
@@ -705,7 +733,8 @@ void RoomCraftScreen::placeTile(int tile, const float world[3]) {
             if (other.category == r.category && other.instance != r.instance) other.placed = 0;
     }
     r.placed = 1;
-    m_selected = row;
+    // 0x435F67 a drop that rebuilt the world leaves nothing selected a click on the object picks it
+    m_selected = -1;
     m_status = "placed " + picked.folder + " instance " + std::to_string(r.instance);
     refreshTiles();
     if (r.category != 3) { m_worldReady = loadField(); }
@@ -810,12 +839,13 @@ void RoomCraftScreen::drawOverlay(DrawContext& ctx) {
         if (const RoomObjectRow* def = m_app.session().catalog().roomObject(r.objectKey)) {
             const Texture* icon = assets.texture("Parts/" + def->folder + "_01.png");
             if (icon && icon->valid()) ctx.batch.draw(icon->handle, kInfoX + 8.f, kInfoY + 9.f, 44.f, 43.f);
-            ctx.bold.draw(ctx.batch, m_app.tr(def->nameKey), kInfoX + 136.f, kInfoY + 11.f, 14.f, kInkWhite);
+            // 0x4344EA font slot 38 Arial 25 black on the white name box centred on 192
+            drawAligned(ctx, ctx.font, m_app.tr(def->nameKey), kInfoX + 136.f, kInfoY + 11.f, 25.f, kInkBlack, Align::Centre);
         }
     }
-    // the placed counter of the object kind over the cap of fifty
-    ctx.bold.draw(ctx.batch, std::to_string(placedOfCategory(3)), kCountX, kCountY, 15.f, kInkWhite);
-    ctx.bold.draw(ctx.batch, std::to_string(kCategoryCap), kCountX + 58.f, kCountY, 15.f, kInkWhite);
+    // 0x434671 the placed counter and the cap of fifty in the Garage pageNum digits
+    drawPageNumber(ctx, assets, kCountX, kCountY, placedOfCategory(3), false);
+    drawPageNumber(ctx, assets, kCountX + 58.f, kCountY, kCategoryCap, true);
     // the selected object wears a ring so the move and the turn show which row they hit
     if (m_selected >= 0 && m_selected < static_cast<int>(m_rows.size())) {
         const RoomCraftInstance& r = m_rows[static_cast<size_t>(m_selected)];
@@ -825,6 +855,11 @@ void RoomCraftScreen::drawOverlay(DrawContext& ctx) {
             ctx.batch.fill(sx - 6.f, sy - 6.f, 12.f, 12.f, rgba(255, 220, 90, 180));
     }
     if (m_tip) sprite("RoomEditer/Factory_Room_Tip.png", kTipX, kTipY);
+    // 0x4345CA the dragged tile icon rides the cursor minus 24 23 as the hover stores it
+    if (m_dragTile >= 0 && m_dragTile < static_cast<int>(m_tiles.size())) {
+        const Texture* icon = assets.texture("Parts/" + m_tiles[static_cast<size_t>(m_dragTile)].folder + "_01.png");
+        if (icon && icon->valid()) ctx.batch.draw(icon->handle, m_cursorX - 22.f, m_cursorY - 21.f, 44.f, 43.f);
+    }
     if (!m_status.empty() && m_app.options().statusLine) ctx.font.draw(ctx.batch, m_status, 40.f, 706.f, 12.f, kInkGrey);
 }
 
@@ -870,8 +905,10 @@ void RoomCraftScreen::onMouseButton(int button, int action, float x, float y) {
             const size_t index = static_cast<size_t>(m_scroll + i);
             if (index >= m_tiles.size()) break;
             m_tile = static_cast<int>(index);
+            m_selected = -1;
+            m_dragTile = canDragTile(m_tile) ? m_tile : -1;
             m_app.click();
-            m_status = "picked " + m_tiles[index].folder + ", click the field to place it";
+            m_status = "picked " + m_tiles[index].folder + (m_dragTile >= 0 ? ", drop it on the field" : ", none left to place");
             return;
         }
         if (kField.contains(x, y)) {
@@ -882,11 +919,18 @@ void RoomCraftScreen::onMouseButton(int button, int action, float x, float y) {
                 m_status = "instance " + std::to_string(m_rows[static_cast<size_t>(hit)].instance) + " grabbed";
                 return;
             }
-            float world[3];
-            if (m_tile >= 0 && groundPoint(x, y, world)) { placeTile(m_tile, world); return; }
         }
     }
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) m_dragging = false;
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
+        m_dragging = false;
+        if (m_dragTile >= 0) {
+            const int tile = m_dragTile;
+            m_dragTile = -1;
+            // 0x435CA5 the drop counts only strictly inside 56 175 to 960 705 else the pick is dropped
+            float world[3];
+            if (x > 56.f && x < 960.f && y > 175.f && y < 705.f && groundPoint(x, y, world)) placeTile(tile, world);
+        }
+    }
     // the right drag turns the selected object as the stock does with its 0 1 step per pixel
     if (button == GLFW_MOUSE_BUTTON_RIGHT) {
         if (action == GLFW_PRESS && kField.contains(x, y)) {
@@ -926,13 +970,17 @@ void RoomCraftScreen::onKey(int key, int action, int mods) {
 void RoomCraftScreen::onAction(const std::string& action, Widget& source) {
     if (action == "lobby" || action == "channel") { exitToLobby(); return; }
     if (action == "quit") { m_app.quit(); return; }
-    if (action.rfind("kind", 0) == 0) { m_kind = action[4] - '0'; m_scroll = 0; m_tile = -1; refreshTiles(); return; }
+    if (action.rfind("kind", 0) == 0) { m_kind = action[4] - '0'; m_scroll = 0; m_tile = -1; m_dragTile = -1; refreshTiles(); return; }
     if (action == "thumb_left") { if (m_scroll > 0) --m_scroll; return; }
     if (action == "thumb_right") { if (m_scroll + kStripTiles < static_cast<int>(m_tiles.size())) ++m_scroll; return; }
     if (action == "tip") { m_tip = !m_tip; return; }
     if (action == "del") { removeSelected(); return; }
     if (action == "info") { m_status = "the info sheet of the picked object is not in"; return; }
     if (action == "save") { save(); return; }
+    // sub 42BCE0 cases 5 and 7 leave the editor for the shop or the garage case 6 skips stage 19
+    if (action == "shop") { m_app.session().openShop(); m_status = "shop 0x0010 sent"; return; }
+    if (action == "garage") { m_app.session().openGarage(); m_status = "garage 0x000F sent"; return; }
+    if (action == "gacha") return;
     if (frameAction(m_app, action)) return;
     m_status = source.id + " has no verb in this stage";
 }

@@ -2,6 +2,7 @@
 
 #include "net/Utf.h"
 
+#include <algorithm>
 #include <cstdio>
 
 namespace KnC::Client {
@@ -38,7 +39,8 @@ void RaceSession::begin(const RaceLaunch& launch, uint32_t localPlayerId) {
     m_resultTeam = 0;
     m_lapAdvances = 0;
     m_itemRolls.clear();
-    m_heldItem = -1;
+    m_slots.fill(-1);
+    m_heldCount = 0;
     m_lastScore = 0xFFFFFFFFu;
     m_lastScoreAt = -1.0;
     m_sceneLoadedSent = 0;
@@ -138,6 +140,33 @@ void RaceSession::onFrame(uint16_t op, Packet& pkt) {
         if (onEffect) onEffect(id, code);
         break;
     }
+    case 0x004B: {
+        // sub 47A460 the sender only gates the liveness the kind the shooter and the target follow
+        u32(pkt);
+        const int32_t kind = i32(pkt);
+        const uint32_t shooter = u32(pkt);
+        const uint32_t target = u32(pkt);
+        std::printf("[race] homing %d from %u on %u\n", kind, shooter, target);
+        if (onHomingLaunch) onHomingLaunch(kind, shooter, target);
+        break;
+    }
+    case 0x005C: {
+        // sub 47A500 the sender then the shooter and the target of a turtle
+        u32(pkt);
+        const uint32_t shooter = u32(pkt);
+        const uint32_t target = u32(pkt);
+        std::printf("[race] turtle from %u on %u\n", shooter, target);
+        if (onTurtleLaunch) onTurtleLaunch(shooter, target);
+        break;
+    }
+    case 0x0057: {
+        // sub 47AB40 only the target of the lock reacts
+        const uint32_t target = u32(pkt);
+        const int32_t phase = i32(pkt);
+        const int32_t kind = i32(pkt);
+        if (target == m_localId && onLockState) onLockState(kind, phase);
+        break;
+    }
     case 0x0046:
         parseScoreboard(pkt);
         // sub 47A760 stores rows shows board and starts race end at 2000 for everyone
@@ -191,8 +220,11 @@ void RaceSession::parseGridSpawn(Packet& pkt) {
     const std::vector<uint8_t>& p = pkt.payload();
     const size_t at = p.size() - pkt.remaining();
     r.driverKey = rd32(p, at + 0x04);
+    for (size_t i = 0; i < r.accessory.size(); ++i) r.accessory[i] = rd32(p, at + 0x08 + 4 * i);
     r.kartKey = rd32(p, at + 0x2C + 0x04);
+    for (size_t i = 0; i < r.kartParts.size(); ++i) r.kartParts[i] = rd32(p, at + 0x2C + 0x08 + 4 * i);
     r.petKey = rd32(p, at + 0x2C + 0x38);
+    for (size_t i = 0; i < r.customCar.size(); ++i) r.customCar[i] = rd32(p, at + 0x2C + 0x38 + 4 + 4 * i);
     skip(pkt, 0x2C + 0x38 + 4 + 0x3C);
     r.local = r.playerId == m_localId;
     if (Racer* old = racer(r.playerId)) *old = r;
@@ -305,34 +337,77 @@ void RaceSession::sendProgress(uint32_t score, double nowSeconds) {
     m_session.send(p);
 }
 
-void RaceSession::sendSlotMirror(int32_t slot0) {
+void RaceSession::sendSlotMirror() {
     Packet p = Packet::fromCmdFull(0x00CF);
-    p.writeInt32(slot0);
-    p.writeInt32(-1);
-    p.writeInt32(-1);
+    for (int32_t item : m_slots) p.writeInt32(item);
     m_session.send(p);
 }
 
-void RaceSession::sendItemGrant(int32_t item) {
+// FUN 004AECD0 refuses past the open slots the report carries the count held before the new item
+bool RaceSession::sendItemGrant(int32_t item, int openSlots) {
+    if (m_heldCount >= std::min(openSlots, kItemSlots)) return false;
     Packet g = Packet::fromCmdFull(0x0049);
     g.writeInt32(item);
-    g.writeInt32(0);
+    g.writeInt32(m_heldCount);
     m_session.send(g);
     sendAnimState(7);
-    sendSlotMirror(item);
-    m_heldItem = item;
+    // FUN 004AEFA0 lands the item in the next free slot then reports the three slots
+    m_slots[static_cast<size_t>(m_heldCount)] = item;
+    ++m_heldCount;
+    sendSlotMirror();
+    return true;
 }
 
-void RaceSession::sendItemUse(int32_t item, float x, float y, float z, float yawDeg) {
+// FUN 004AEED0 the used slot 0 goes and the others move up one
+void RaceSession::sendItemUse(float x, float y, float z, float yawDeg) {
+    if (m_heldCount <= 0) return;
+    sendItemSpawn(m_slots[0], x, y, z, yawDeg);
+    consumeItem();
+}
+
+// sub 481230 the use of a kind with the four floats the server echoes it as S2C 0x0047
+void RaceSession::sendItemSpawn(int32_t kind, float x, float y, float z, float yawDeg) {
     Packet u = Packet::fromCmdFull(0x0047);
-    u.writeInt32(item);
+    u.writeInt32(kind);
     u.writeFloat(x);
     u.writeFloat(y);
     u.writeFloat(z);
     u.writeFloat(yawDeg);
     m_session.send(u);
-    sendSlotMirror(-1);
-    m_heldItem = -1;
+}
+
+void RaceSession::consumeItem() {
+    if (m_heldCount <= 0) return;
+    for (size_t i = 0; i + 1 < m_slots.size(); ++i) m_slots[i] = m_slots[i + 1];
+    m_slots.back() = -1;
+    --m_heldCount;
+    sendSlotMirror();
+}
+
+// sub 481320 the launch of a locked rocket or magnet
+void RaceSession::sendHomingLaunch(int32_t kind, uint32_t shooter, uint32_t target) {
+    Packet p = Packet::fromCmdFull(0x004B);
+    p.writeInt32(kind);
+    p.writeUInt32(shooter);
+    p.writeUInt32(target);
+    m_session.send(p);
+}
+
+// sub 481430 the own turtle and the racer it chases
+void RaceSession::sendTurtleLaunch(uint32_t shooter, uint32_t target) {
+    Packet p = Packet::fromCmdFull(0x005C);
+    p.writeUInt32(shooter);
+    p.writeUInt32(target);
+    m_session.send(p);
+}
+
+// sub 481520 the lock phase on a target the server relays it to that racer alone
+void RaceSession::sendLockState(uint32_t target, int32_t phase, int32_t kind) {
+    Packet p = Packet::fromCmdFull(0x0057);
+    p.writeUInt32(target);
+    p.writeInt32(phase);
+    p.writeInt32(kind);
+    m_session.send(p);
 }
 
 void RaceSession::sendHit(int16_t code) {

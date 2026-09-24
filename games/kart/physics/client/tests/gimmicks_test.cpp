@@ -114,6 +114,33 @@ GimmickWorld one_row(int32_t gimmickClass, float z) {
     return world;
 }
 
+// item box hit test 0x4BC830 yaw 0 drives toward minus x the sweep reaches one unit each way
+void itembox_checks() {
+    const float carX = 100.0f, carY = 50.0f;
+    std::vector<GimmickItemboxRow> rows(3);
+    rows[0].x = carX - 3.0f; rows[0].y = carY;
+    rows[1].x = carX; rows[1].y = carY + 4.5f;
+    rows[2].x = carX - 2.0f; rows[2].y = carY + 1.0f;
+    const std::vector<uint8_t> ready = {1, 1, 0};
+    // the box three units ahead is touched the one 4 5 to the side and the unready one are not
+    const int32_t hit = itembox_hit_test(rows, ready, carX, carY, 0.0f, 0.0f);
+    if (hit != 0) {
+        std::printf("itembox_hit_test wanted row 0 ahead of the car got %d\n", hit);
+        ++failures;
+    }
+    const std::vector<uint8_t> sideOnly = {0, 1, 0};
+    if (itembox_hit_test(rows, sideOnly, carX, carY, 0.0f, 0.0f) != -1) {
+        std::printf("itembox_hit_test touched the box 4 5 to the side\n");
+        ++failures;
+    }
+    // turned 90 the car drives toward plus y and the side box comes inside the reach
+    if (itembox_hit_test(rows, sideOnly, carX, carY, 90.0f, 0.0f) != 1) {
+        std::printf("itembox_hit_test at yaw 90 wanted the row 1 box\n");
+        ++failures;
+    }
+    std::printf("itembox_hit_test the ready rows and the 4 unit reach read right\n");
+}
+
 // world gimmick hit dispatch 0x4D3950 and car gimmick hit 0x4982D0 one case per effect family
 void themed_gimmick_checks() {
     GameState game;
@@ -283,6 +310,7 @@ void themed_gimmick_checks() {
 
 int main() {
     themed_gimmick_checks();
+    itembox_checks();
     const std::string data_dir = client_data_dir();
     const std::string track_dir = data_dir + "/Public/World/Cookie/Cookie_01";
 

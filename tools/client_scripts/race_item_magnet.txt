@@ -1,0 +1,8 @@
+# gate: state race
+# gate: env KNC_ITEM_TEST=16
+# gate: env KNC_ITEM_SHOTS=0.8,1.4,2.2,3.4
+# the magnet search locks the leader the release ties the two karts and pulls them together
+# the race clock captures out_item_NNNNN at the listed seconds after the green light
+waitfor race 900
+wait 900
+quit

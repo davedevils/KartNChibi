@@ -31,7 +31,7 @@ void InventoryHandler::handleEquipVehicle(Session::Ptr session, Packet& packet, 
     );
 
     if (karts.empty()) {
-        session->send(PacketBuilder::displayMessage(u"MSG_VEHICLE_NOT_FOUND", 2));
+        session->send(PacketBuilder::displayMessage(u"That kart is not in your garage.", 2));
         LOG_WARN("INVENTORY", "Equip vehicle: not found or not owned: id=" + std::to_string(vehicleId));
         return;
     }
@@ -74,7 +74,7 @@ void InventoryHandler::handleEquipAccessory(Session::Ptr session, Packet& packet
     );
 
     if (accessories.empty()) {
-        session->send(PacketBuilder::displayMessage(u"MSG_ACCESSORY_NOT_FOUND", 2));
+        session->send(PacketBuilder::displayMessage(u"That part is not in your garage.", 2));
         LOG_WARN("INVENTORY", "Equip accessory: not found or not owned: id=" + std::to_string(accessoryId));
         return;
     }
@@ -558,14 +558,6 @@ struct SkinTarget {
     const char* column = nullptr;
 };
 
-int32_t uiCategoryFor(int32_t category, const std::string& name) {
-    if (category != 2) return category;
-    if (name.find("_char_body_") != std::string::npos) return 2;
-    if (name.find("_char_face_") != std::string::npos) return 3;
-    if (name.find("_char_head_") != std::string::npos) return 4;
-    return 7;
-}
-
 SkinTarget skinTargetFor(uint32_t skinKey) {
     auto& db = Database::instance();
     auto rows = db.queryPrepared(
@@ -573,7 +565,8 @@ SkinTarget skinTargetFor(uint32_t skinKey) {
         {static_cast<int32_t>(skinKey)});
     if (rows.empty()) return SkinTarget{};
 
-    switch (uiCategoryFor(std::stoi(rows[0].at("category")), rows[0].at("name"))) {
+    // the same map the 0xC2 burst sends or a glass and a back part answer MSG UNKNOWN ERROR
+    switch (partSlotFor(std::stoi(rows[0].at("category")), rows[0].at("name"))) {
     case 0: return SkinTarget{"owned_kart", "skin_primary"};
     case 1: return SkinTarget{"owned_kart", "skin_secondary"};
     case 8: return SkinTarget{"owned_kart", "skin_tertiary"};
@@ -661,7 +654,7 @@ bool InventoryHandler::handleDelete(Session::Ptr session, Packet& packet, GameSe
         LOG_WARN("INVENTORY", "delete cat " + std::to_string(req.category) + " key " +
                  std::to_string(req.baseKey) + " refused the row is missing or still running char " +
                  std::to_string(charId));
-        session->send(PacketBuilder::displayMessage(u"MSG_UNKNOWN_ERROR", 0));
+        session->send(PacketBuilder::messageKey("MSG_UNKNOWN_ERROR", 1));
         return true;
     }
 
@@ -695,7 +688,7 @@ bool InventoryHandler::handleInstall(Session::Ptr session, Packet& packet, GameS
             "SELECT * FROM owned_character WHERE character_id = ? AND base_key = ? LIMIT 1",
             {charId, key});
         if (rows.empty()) {
-            session->send(PacketBuilder::displayMessage(u"MSG_UNKNOWN_ERROR", 0));
+            session->send(PacketBuilder::messageKey("MSG_UNKNOWN_ERROR", 1));
             return true;
         }
         // equipped driver id holds the base key selectedCharacterRow joins on it
@@ -723,7 +716,7 @@ bool InventoryHandler::handleInstall(Session::Ptr session, Packet& packet, GameS
             "ORDER BY active_flag DESC, id ASC LIMIT 1",
             {charId, key});
         if (rows.empty()) {
-            session->send(PacketBuilder::displayMessage(u"MSG_UNKNOWN_ERROR", 0));
+            session->send(PacketBuilder::messageKey("MSG_UNKNOWN_ERROR", 1));
             return true;
         }
         InventoryPackets::KartRow kr;
@@ -744,7 +737,7 @@ bool InventoryHandler::handleInstall(Session::Ptr session, Packet& packet, GameS
             "ORDER BY id ASC LIMIT 1",
             {charId, key});
         if (rows.empty()) {
-            session->send(PacketBuilder::displayMessage(u"MSG_UNKNOWN_ERROR", 0));
+            session->send(PacketBuilder::messageKey("MSG_UNKNOWN_ERROR", 1));
             return true;
         }
         InventoryPackets::ItemRow ir;
@@ -763,11 +756,11 @@ bool InventoryHandler::handleInstall(Session::Ptr session, Packet& packet, GameS
             // the ack of this def type carries the kart period tail so the selected kart must exist on mode 3
             InventoryPackets::KartRow kr;
             if (!selectedKartRow(charId, kr) || kr.periodMode != KART_PERIOD_DURABILITY) {
-                session->send(PacketBuilder::displayMessage(u"MSG_UNKNOWN_ERROR", 0));
+                session->send(PacketBuilder::messageKey("MSG_UNKNOWN_ERROR", 1));
                 return true;
             }
             if (ir.periodMode == InventoryPackets::PERIOD_COUNT && ir.periodValue <= 0) {
-                session->send(PacketBuilder::displayMessage(u"MSG_UNKNOWN_ERROR", 0));
+                session->send(PacketBuilder::messageKey("MSG_UNKNOWN_ERROR", 1));
                 return true;
             }
             const int32_t amount = repairAmountFor(key);
@@ -809,7 +802,7 @@ bool InventoryHandler::handleInstall(Session::Ptr session, Packet& packet, GameS
             "ORDER BY id ASC LIMIT 1",
             {charId, key});
         if (rows.empty()) {
-            session->send(PacketBuilder::displayMessage(u"MSG_UNKNOWN_ERROR", 0));
+            session->send(PacketBuilder::messageKey("MSG_UNKNOWN_ERROR", 1));
             return true;
         }
         InventoryPackets::PartRow pr;
@@ -825,13 +818,13 @@ bool InventoryHandler::handleInstall(Session::Ptr session, Packet& packet, GameS
         const SkinTarget tgt = skinTargetFor(req.baseKey);
         if (tgt.table == nullptr) {
             LOG_WARN("INVENTORY", "part key " + std::to_string(key) + " has no skin slot");
-            session->send(PacketBuilder::displayMessage(u"MSG_UNKNOWN_ERROR", 0));
+            session->send(PacketBuilder::messageKey("MSG_UNKNOWN_ERROR", 1));
             return true;
         }
         if (std::string(tgt.table) == "owned_kart") {
             InventoryPackets::KartRow kr;
             if (!selectedKartRow(charId, kr)) {
-                session->send(PacketBuilder::displayMessage(u"MSG_UNKNOWN_ERROR", 0));
+                session->send(PacketBuilder::messageKey("MSG_UNKNOWN_ERROR", 1));
                 return true;
             }
             db.executePrepared(std::string("UPDATE owned_kart SET ") + tgt.column +
@@ -840,7 +833,7 @@ bool InventoryHandler::handleInstall(Session::Ptr session, Packet& packet, GameS
         } else {
             InventoryPackets::CharacterRow cr;
             if (!selectedCharacterRow(charId, cr)) {
-                session->send(PacketBuilder::displayMessage(u"MSG_UNKNOWN_ERROR", 0));
+                session->send(PacketBuilder::messageKey("MSG_UNKNOWN_ERROR", 1));
                 return true;
             }
             db.executePrepared(std::string("UPDATE owned_character SET ") + tgt.column +
@@ -861,7 +854,7 @@ bool InventoryHandler::handleInstall(Session::Ptr session, Packet& packet, GameS
             "ORDER BY id ASC LIMIT 1",
             {charId, key});
         if (rows.empty()) {
-            session->send(PacketBuilder::displayMessage(u"MSG_UNKNOWN_ERROR", 0));
+            session->send(PacketBuilder::messageKey("MSG_UNKNOWN_ERROR", 1));
             return true;
         }
         InventoryPackets::PetRow np;

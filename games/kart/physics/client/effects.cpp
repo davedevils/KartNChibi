@@ -1,5 +1,6 @@
 #include "effects.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 
@@ -241,6 +242,58 @@ void car_effect_update(GameState& game, int carIndex, float* outScaleX, float* o
     if (outScaleY) *outScaleY = scale;
 }
 
+void car_remote_effect_update(GameState& game, int carIndex) {
+    CarState& car = game.cars[static_cast<size_t>(carIndex)];
+    const float dt = car.frameDt;
+    EffectState& e = car.effect;
+    bool still = true;
+    switch (e.activeCode) {
+        case 100:
+            e.wobbleAmplitude += dt * kRemoteEffect100Rate;
+            still = e.wobbleAmplitude <= kRemoteEffect100End;
+            break;
+        case 200:
+            e.endCondition = e.quadraticInput * e.elapsedAccum - e.elapsedAccum * e.elapsedAccum * kRemoteEffect200Gravity;
+            e.elapsedAccum += dt;
+            still = e.endCondition >= 0.0f;
+            break;
+        case 300:
+            // 0x496664 the remote crash rises and falls on 29 4 then the height of the snapshot comes back
+            e.endCondition = e.quadraticInput * e.elapsedAccum - e.elapsedAccum * e.elapsedAccum * kEffect300QuadraticTerm;
+            e.elapsedAccum += dt;
+            e.wobbleAmplitude -= dt * kEffect300RecoveryRate;
+            if (e.endCondition < 0.0f) {
+                effect_end(car);
+                car.posZ = e.snapshotZ;
+            }
+            return;
+        case 400:
+            e.wobbleAmplitude = std::min(e.wobbleAmplitude + dt * kEffect100RampRateMs, kRemoteEffectWobbleCap);
+            still = effect_hive_hit_lookup(game.hiveTable, carIndex) >= 0;
+            break;
+        case 500:
+            still = effect_hazard_hit_lookup(game.hazardTable, carIndex) >= 0;
+            break;
+        case 600:
+            still = gimmick_pool_slot_lookup(game.carryPool, carIndex) >= 0;
+            break;
+        case 700:
+            e.wobbleAmplitude = std::min(e.wobbleAmplitude + dt * kEffect100RampRateMs, kRemoteEffectWobbleCap);
+            still = world_wheel_bump_slot(game.itembiteTable, carIndex) >= 0;
+            break;
+        case 900:
+            still = gimmick_pool_slot_lookup(game.effect900Pool, carIndex) >= 0;
+            break;
+        case 1000:
+            e.wobbleAmplitude = std::min(e.wobbleAmplitude + dt * kEffect100RampRateMs, kRemoteEffectWobbleCap);
+            still = world_wheel_bump_slot(game.itemdrumTable, carIndex) >= 0;
+            break;
+        default:
+            return;
+    }
+    if (!still) effect_end(car);
+}
+
 float car_suspension_shake(const CarState& car) {
     if (car.vehicleKind != 2) return 0.0f;
     float sum = car.body.wheels.tireScratch[0].compression + car.body.wheels.tireScratch[1].compression +
@@ -383,15 +436,20 @@ const CheckpointPoint* follow_point_of(const GameState& game, const GimmickPoolS
 } // namespace
 
 void gimmick_pool_update(GameState& game, const ColTrack& track, int64_t nowMs) {
+    gimmick_pool_update_pool(game, game.carryPool, kGimmickCarryGrabCode, track, nowMs);
+}
+
+void gimmick_pool_update_pool(GameState& game, std::array<GimmickPoolSlot, GIMMICK_POOL_LIVE_SLOTS>& pool,
+                              int grabCode, const ColTrack& track, int64_t nowMs) {
     // gimmick pool update 0x4C7ED0 the eight carry slots at 0x2EFC818 states 0 1 100 200 201
     for (size_t i = 0; i < GIMMICK_POOL_LIVE_SLOTS; ++i) {
-        GimmickPoolSlot& slot = game.carryPool[i];
+        GimmickPoolSlot& slot = pool[i];
         if (!slot.active || slot.car_index < 0 || slot.car_index >= kCarSlotCount) continue;
         CarState& car = game.cars[static_cast<size_t>(slot.car_index)];
         switch (slot.state) {
             case GimmickPoolState::Idle: {
-                // 0x4C7F6E effect 600 the grab lock a particle on the car then the timestamps
-                car_effect_apply(game, slot.car_index, 600, nowMs);
+                // 0x4C7F6E the grab lock a particle on the car then the timestamps 0x4BA380 grabs with 900
+                car_effect_apply(game, slot.car_index, grabCode, nowMs);
                 if (game.hooks.spawnParticle) {
                     game.hooks.spawnParticle(game.hooks.user, slot.car_index, 4, car.posX, car.posY, car.posZ);
                 }

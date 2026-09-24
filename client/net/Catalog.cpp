@@ -240,9 +240,7 @@ void Catalog::parseTrack(Packet& p) {
     row.lapCount = r.u32();
     r.u32();
     row.fogFar = bitsToFloat(r.u32());
-    r.u32();
-    r.u32();
-    r.u32();
+    for (float& f : row.lensFlare) f = bitsToFloat(r.u32());
     row.nameKey = r.str(36);
     if (row.lapCount < 1) row.lapCount = 1;
     if (row.lapCount > 9) row.lapCount = 9;

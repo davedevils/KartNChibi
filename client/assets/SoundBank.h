@@ -27,6 +27,8 @@ public:
     void play(const std::string& name, float volume = 1.f);
     // the looping track name empty stops it the same name keeps playing
     void music(const std::string& name, float volume = 0.6f);
+    // the running loop takes the new level in place as sub 448C30 does it never restarts
+    void setMusicVolume(float volume);
     // the engine loop pitch one is the file as recorded zero stops it
     void engine(const std::string& name, float pitch, float volume);
     void stopEngine();

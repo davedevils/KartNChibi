@@ -36,6 +36,10 @@ add_executable(knc_client
     race/GaugeScene.cpp
     race/RaceHud.cpp
     race/RaceEffects.cpp
+    race/PetActor.cpp
+    race/LensFlare.cpp
+    race/RaceItems.cpp
+    race/ItemViews.cpp
     screens/LogoScreen.cpp
     screens/LoginScreen.cpp
     screens/ChannelScreen.cpp

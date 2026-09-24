@@ -9,6 +9,7 @@
 #include "games/kart/physics/client/world_collision.h"
 #include "race/RaceEffects.h"
 #include "net/Utf.h"
+#include "ui/CharPanel.h"
 
 #include <GLFW/glfw3.h>
 #include <bx/math.h>
@@ -51,13 +52,17 @@ constexpr float kIntroFrontDistance = 9.f;
 constexpr float kIntroFrontHeight = 3.5f;
 // the 0x0040 report period
 constexpr double kMotionPeriod = 0.1;
-// an item box is taken inside this reach and comes back after the cooldown the server bots use 6 0
-constexpr float kBoxReach = 6.f;
-constexpr float kBoxCooldown = 6.f;
-// the kinds the auto driver rolls the icons exist for them
-constexpr int32_t kItemKinds[] = {3, 6, 10, 14};
-// the effect codes the client keeps every other code is dropped
-constexpr int kEffectCodes[] = {100, 200, 300, 700, 1000};
+// the owned item row that opens the third item slot
+constexpr uint32_t kThirdSlotItem = 5000;
+// sub 47AF00 the S2C 0x0069 codes 100 200 300 go on the car 700 and 1000 take a slot
+constexpr int kEffectCodes[] = {100, 200, 300};
+// sub 4AEFA0 the auto driver holds the key this long before it lets a rocket or a magnet go
+constexpr float kAutoLockHold = 0.8f;
+// sub 4CA2A0 with no car in the cone the marker eases to the middle 0 3 of the height down
+constexpr float kReticleRestHeight = 0.3f;
+constexpr float kAimStep = 10.f;
+// KNC ITEM TEST presses the use key this long after the green light
+constexpr float kItemTestUseSeconds = 0.3f;
 // the mid race capture comes this long after the green light
 constexpr float kRaceCaptureSeconds = 20.f;
 // FUN 00401D90 state 2010 holds the finish camera 6000 ms after the board then FUN 0043D7E0 fades 300 ms
@@ -106,25 +111,12 @@ void collectTextures(const KnC::Render::PropModel& model, std::vector<std::strin
     for (const KnC::Render::PropPart& part : model.parts) {
         out.push_back(part.texture_path);
         out.push_back(part.detail_texture_path);
+        out.push_back(part.environment.texture);
     }
     for (const auto& channel : model.animation.flip_channels)
         for (const std::string& path : channel.textures) out.push_back(path);
     for (const KnC::Render::ParticleSystemDefinition& system : model.particle_systems)
         out.push_back(system.texture_path);
-}
-
-// the use cue of the item kinds the pages name the rest play the generic use cue
-const char* itemUseSound(int32_t kind) {
-    switch (kind) {
-    case 2: return "item_spike_on_snd";
-    case 10: return "item_rocket_shot_snd";
-    case 11: return "item_hive_use_snd";
-    case 14: return "item_ice_throw_snd";
-    case 17: return "item_hammer_throw";
-    case 18: return "item_bomb_throw";
-    case 19: return "item_dung_throw";
-    default: return "item_shield_use_snd";
-    }
 }
 
 // the theme loop by the World folder name the pak names five themes the others take the city loop
@@ -155,8 +147,13 @@ struct RaceScreen::LoadJob {
     bool ok = false;
     std::string error;
     TrackFiles files;
+    // false in the speed modes the loader then leaves the boxes and the drums out
+    bool items = true;
     std::string gameDir;
     std::map<std::string, KnC::Render::PropModel> effects;
+    // the hud images and the driver faces the thread decodes the frame thread then only uploads them
+    AssetStore* assets = nullptr;
+    std::vector<std::string> hudImages;
     double worldMs = 0.0;
     double effectsMs = 0.0;
     double texturesMs = 0.0;
@@ -198,6 +195,17 @@ std::string RaceScreen::driverAsset(uint32_t driverKey) const {
 uint32_t RaceScreen::raceGameMode() const {
     if (const char* forced = std::getenv("KNC_RACE_MODE")) return static_cast<uint32_t>(std::atoi(forced));
     return m_app.session().raceLaunch().gameMode;
+}
+
+bool RaceScreen::itemRace() const {
+    const uint32_t mode = raceGameMode();
+    return mode < 2 || mode == 4;
+}
+
+int RaceScreen::openItemSlots() const {
+    for (const OwnedItem& row : m_app.session().catalog().ownedItems())
+        if (row.itemKey == kThirdSlotItem && row.inUse == 1 && static_cast<int32_t>(row.periodValue) > 0) return 3;
+    return 2;
 }
 
 RaceScreen::Slot* RaceScreen::slot(uint32_t playerId) {
@@ -250,8 +258,11 @@ void RaceScreen::enter() {
     m_wire.onTeleport = [this](uint32_t id, float x, float y, float z, float yaw) { m_sim.teleport(id, x, y, z, yaw); };
     m_wire.onEffect = [this](uint32_t id, int code) {
         if (id == m_wire.localPlayerId()) m_hitAt = m_time;
+        Slot* hitSlot = slot(id);
         // the impact sprite of the car the code 1000 alone plays it 0x496066
-        if (Slot* hitSlot = slot(id)) raceEffects().hit(hitSlot->viewHandle, code, m_app.renderer().animation().seconds());
+        if (hitSlot) raceEffects().hit(hitSlot->viewHandle, code, m_app.renderer().animation().seconds());
+        // sub 4C3A60 and sub 4C4A10 the hive and the ice take a victim slot that holds the effect
+        if ((code == 700 || code == 1000) && hitSlot) { m_items.remoteHit(hitSlot->carIndex, code); return; }
         for (int known : kEffectCodes) if (known == code) { m_sim.applyEffect(id, code); return; }
     };
     m_wire.onItemGrant = [this](uint32_t id, int32_t item, int32_t slotIndex) {
@@ -261,9 +272,29 @@ void RaceScreen::enter() {
     };
     m_wire.onItemSpawn = [this](const ItemSpawn& s) {
         std::printf("[race] item %d spawned by %u at %.1f %.1f\n", s.kind, s.playerId, s.x, s.y);
-        // the echo of our own use plays nothing twice the others play at a lower volume
-        if (s.playerId != m_wire.localPlayerId()) m_app.sound().play(itemUseSound(s.kind), 0.5f);
+        const Slot* owner = slot(s.playerId);
+        if (!owner || owner->carIndex < 0) return;
+        // sub 47A110 skips 0 1 6 10 16 the own angel and devil red spawned at the use
+        const bool own = s.playerId == m_wire.localPlayerId();
+        if (own && (s.kind == kItemAngel || s.kind == kItemDevilRed)) return;
+        m_items.spawn(s.kind, owner->carIndex, s.x, s.y, s.z, s.yawDeg);
     };
+    // sub 47A460 the rocket or the magnet of another racer the own one flew at the lock
+    m_wire.onHomingLaunch = [this](int32_t kind, uint32_t shooter, uint32_t target) {
+        if (shooter == m_wire.localPlayerId()) return;
+        const Slot* from = slot(shooter);
+        const Slot* to = slot(target);
+        if (from && from->carIndex >= 0) m_items.launchHoming(kind, from->carIndex, to ? to->carIndex : -1);
+    };
+    // sub 47A500 the turtle of another racer the server echoes the own one to nobody
+    m_wire.onTurtleLaunch = [this](uint32_t shooter, uint32_t target) {
+        if (shooter == m_wire.localPlayerId()) return;
+        const Slot* from = slot(shooter);
+        const Slot* to = slot(target);
+        if (from && from->carIndex >= 0) m_items.remoteTurtle(from->carIndex, to ? to->carIndex : -1);
+    };
+    // sub 47AB40 a racer searches or locks the own car the marker shows over it
+    m_wire.onLockState = [this](int32_t kind, int32_t phase) { m_items.lockWarning(kind, phase); };
     m_wire.onLocalFinish = [this]() {
         if (m_stage < Stage::Finished) { m_stage = Stage::Finished; m_stageTime = 0.f; }
         m_sim.setFinished(m_wire.localPlayerId());
@@ -312,6 +343,7 @@ void RaceScreen::leave() {
     if (m_load) m_load->stop.store(true);
     joinLoad();
     KnC::Render::drop_prefetched_textures();
+    m_app.assets().dropPrefetchedImages();
 }
 
 // the track the effects and the textures read on a thread the window keeps drawing meanwhile
@@ -319,6 +351,15 @@ void RaceScreen::startLoad(int trackId) {
     std::string error;
     auto job = std::make_unique<LoadJob>();
     job->gameDir = m_app.options().gameDir;
+    job->items = itemRace();
+    job->assets = &m_app.assets();
+    job->hudImages = RaceHud::warmList();
+    for (const DriverRow& row : m_app.session().catalog().drivers()) {
+        if (row.asset.empty()) continue;
+        job->hudImages.push_back("Parts/driver_" + row.asset + "_01.png");
+        job->hudImages.push_back("Panel/MiniMap/driver_" + row.asset + "_01.dds");
+        job->hudImages.push_back("Panel/MiniMap/driver_" + row.asset + "_02.dds");
+    }
     if (!resolveTrackFiles(m_app.session().catalog(), trackId, job->gameDir, job->files, error)) {
         m_status = "track " + std::to_string(trackId) + ": " + error;
         std::printf("[race] %s\n", m_status.c_str());
@@ -334,7 +375,7 @@ void RaceScreen::startLoad(int trackId) {
         if (const char* delay = std::getenv("KNC_RACE_LOAD_DELAY"))
             std::this_thread::sleep_for(std::chrono::milliseconds(std::atoi(delay)));
         double at = App::uptimeMs();
-        raw->ok = loadRaceWorld(raw->files, *world, raw->error);
+        raw->ok = loadRaceWorld(raw->files, *world, raw->error, raw->items);
         raw->worldMs = App::uptimeMs() - at;
         if (raw->ok) {
             at = App::uptimeMs();
@@ -346,6 +387,8 @@ void RaceScreen::startLoad(int trackId) {
             if (world->scene.has_item_box) collectTextures(world->scene.item_box_model, paths);
             const unsigned cores = std::max(2u, std::thread::hardware_concurrency());
             raw->textures = KnC::Render::prefetch_textures(paths, std::min(cores - 1, 6u));
+            raw->hudImages.push_back(world->minimap.texture);
+            raw->assets->prefetchImages(raw->hudImages);
             raw->texturesMs = App::uptimeMs() - at;
         }
         raw->done.store(true);
@@ -398,10 +441,13 @@ bool RaceScreen::finishWorld(const TrackFiles& files) {
         m_status = "sim init failed: " + error;
         return false;
     }
+    // the stock pet effects read only the own 0x0104 list 0x496BE0 0x496E50 0x49AA90 and 0x4AE590
+    if (const OwnedPet* worn = m_app.session().catalog().equippedPet()) m_sim.setEquippedPet(worn->petKey);
     // sub 4ADB90 stocks the blue band only in the mode 3 of dword 0xB23178 the speed team race
     m_sim.setGaugeTeamMode(raceGameMode() == 3);
     clock.mark("sim");
     m_view.load(m_app.renderer(), m_world);
+    if (m_load && !m_load->effectsAdopted) raceEffects().awaitParse();
     clock.mark("upload");
     // the weather of the track pick 0 sun 1 night 2 rain a night takes the sky night nif
     uint32_t weather = session.room().trackWeather != 0 ? session.room().trackWeather
@@ -414,6 +460,18 @@ bool RaceScreen::finishWorld(const TrackFiles& files) {
     if (weather <= 3) mode = static_cast<RaceWeather>(weather);
     if (mode == RaceWeather::Rain && trackId == 60) mode = RaceWeather::Clear;
     m_view.setWeather(m_app.renderer(), m_app.options().gameDir, mode);
+    // sub 4D1C70 mode 0 loads the sun flare at the lens point of the 0x00C3 row
+    if (mode == RaceWeather::Clear) {
+        float point[3] = {0.f, 0.f, 0.f};
+        if (const TrackRow* row = session.catalog().track(static_cast<uint32_t>(trackId)))
+            for (int axis = 0; axis < 3; ++axis) point[axis] = row->lensFlare[axis];
+        // KNC LENS FLARE x y z forces the point since the rows of our server hold zeros
+        if (const char* forced = std::getenv("KNC_LENS_FLARE"))
+            std::sscanf(forced, "%f %f %f", &point[0], &point[1], &point[2]);
+        // an all zero point is an empty row the stock would aim at the world origin on the ground
+        if (point[0] != 0.f || point[1] != 0.f || point[2] != 0.f)
+            m_flare.load(m_view, m_app.renderer(), m_app.options().gameDir, point);
+    }
     std::printf("[race] weather %u night %d\n", weather, weather == 1 ? 1 : 0);
     clock.mark("weather");
     // sub 4AE590 the gauge nifs load with the stage the blue band only in the speed team mode
@@ -422,6 +480,7 @@ bool RaceScreen::finishWorld(const TrackFiles& files) {
     loadCountdownProp();
     clock.mark("countdown");
     loadItemBoxes();
+    beginItems();
     m_drumBroken.assign(m_world.itemDrums.size(), 0);
     // world gimmick load by track 0x4D4180 the placed gimmick nifs of the track become hit rows
     m_gimmicks = KnC::Kart::Client::GimmickWorld();
@@ -550,21 +609,15 @@ void RaceScreen::spawnRacer(const Racer& racer) {
     } else {
         s.carIndex = m_sim.spawnRemote(racer.playerId, x, y, z, yaw);
     }
-    // the paint the plate and the antenna keys of the 0x00C0 row the local owned kart wins
-    std::array<uint32_t, 3> look{};
-    if (const KartRow* row = m_app.session().catalog().kart(racer.kartKey))
-        for (size_t i = 0; i < 3; ++i) look[i] = row->skins[i];
-    if (racer.local && m_app.session().profile().kartInstance >= 0)
-        if (const OwnedKart* owned = m_app.session().catalog().ownedKart(static_cast<uint32_t>(m_app.session().profile().kartInstance)))
-            for (size_t i = 0; i < 3; ++i) if (owned->part[i] != 0) look[i] = owned->part[i];
-    auto partModel = [this](uint32_t key) {
-        const PartRow* row = key != 0 ? m_app.session().catalog().part(key) : nullptr;
-        return row ? row->model : std::string();
-    };
+    // car apply kart loadout 0x490A70 the paint plate and antenna of the kart record of the 0x003E blob
+    const KartLook look = kartLook(m_app, racer.kartKey, racer.kartParts);
     clock.mark("racer sim " + std::to_string(racer.playerId));
-    s.viewHandle = m_view.addCar(m_app.renderer(), m_app.options().gameDir, model, driver, partModel(look[0]));
+    // sub 42A050 the five keys of the character record dress the driver not the def costume
+    s.viewHandle = m_view.addCar(m_app.renderer(), m_app.options().gameDir,
+                                 kartViewModel(m_app, racer.kartKey, racer.customCar), driver, look.paint,
+                                 driverParts(m_app, driver, racer.accessory));
     clock.mark("racer kart and driver " + model + " " + driver);
-    raceEffects().setLook(s.viewHandle, partModel(look[1]), partModel(look[2]));
+    raceEffects().setLook(s.viewHandle, look.plate, look.antenna);
     // driver manager load driver 0x48CE97 the pet of the 0x003E key the local one falls back on the garage
     uint32_t petKey = racer.petKey;
     if (racer.local && petKey == 0)
@@ -658,6 +711,8 @@ void RaceScreen::readKeys(InputFlags& flags, bool& drift, bool& item) {
     flags.brake = m_app.raceKeyDown(RaceKey::Down) ? 1 : 0;
     flags.steerLeft = m_app.raceKeyDown(RaceKey::Left) ? 1 : 0;
     flags.steerRight = m_app.raceKeyDown(RaceKey::Right) ? 1 : 0;
+    // sub 4BD8D0 a devil on the own car swaps the two steering keys
+    if (m_sim.hasLocal() && m_items.cursed(kItemDevil, m_sim.localIndex())) std::swap(flags.steerLeft, flags.steerRight);
     drift = m_app.raceKeyDown(RaceKey::Drift);
     item = m_app.raceKeyDown(RaceKey::Item);
 }
@@ -708,13 +763,22 @@ void RaceScreen::update(float dt) {
             m_sim.setSessionRunning(true);
             m_lapStartClock = 0.0;
             m_status = "green light";
+            const CarPose own = localPose();
+            std::printf("[race] green light car at %.2f %.2f %.2f\n", own.x, own.y, own.z);
             m_app.sound().play("countdown_go_snd");
             // the sample race holds a rabbit from the light so the slot shows as the stock capture
-            if (m_app.sampleMode()) m_wire.sendItemGrant(7);
+            if (m_app.sampleMode() && itemRace()) {
+                // KNC ITEM TEST hands that kind instead a capture aid for the item proofs
+                const char* forced = std::getenv("KNC_ITEM_TEST");
+                m_wire.sendItemGrant(forced ? std::atoi(forced) : kItemRabbit, openItemSlots());
+                // the item test uses the kind on its own clock so the proof shots sit on the green light
+                if (forced) m_useItemIn = kItemTestUseSeconds;
+            }
         }
     }
     // the GO plate of the nif holds its last second then the prop goes away
     if (m_stage == Stage::Racing) updateCountdownProp(m_stageTime < 1.f ? 4 : 0);
+    itemShots();
     if (m_stage == Stage::Racing || m_stage == Stage::Finished) m_raceClock += dt;
     if (m_stage == Stage::Racing && m_app.captureMode() && !m_capturedRace && m_stageTime >= kRaceCaptureSeconds) {
         std::printf("[race] band %.1f of 127 spark %d flash %d at %.0f km per hour\n", m_sim.gaugeFill(),
@@ -746,16 +810,30 @@ void RaceScreen::update(float dt) {
 
     const int ticks = m_sim.advance(dt);
     if (ticks > 0 && m_sim.hasLocal()) {
-        for (float& c : m_boxCooldown) if (c > 0.f) c -= 0.02f * static_cast<float>(ticks);
         if (m_stage == Stage::Racing) {
             watchCheckpoints();
             watchDrums();
             watchGimmicks();
             logRemoteLean();
-            const bool useNow = (itemKey && !m_itemWas) || (m_autoDrive && m_useItemIn >= 0.f && (m_useItemIn -= 0.02f * static_cast<float>(ticks)) <= 0.f);
-            watchItems(useNow);
+            // the auto driver presses when its timer runs out and lets a search go after a short hold
+            bool autoPress = false, autoRelease = false;
+            const bool autoUse = m_autoDrive || (m_app.sampleMode() && std::getenv("KNC_ITEM_TEST") != nullptr);
+            if (autoUse && m_useItemIn >= 0.f && (m_useItemIn -= 0.02f * static_cast<float>(ticks)) <= 0.f) {
+                autoPress = true;
+                m_autoHold = kAutoLockHold;
+            } else if (autoUse && m_autoHold >= 0.f && (m_autoHold -= 0.02f * static_cast<float>(ticks)) <= 0.f) {
+                autoRelease = true;
+                m_autoHold = -1.f;
+            }
+            watchItems((itemKey && !m_itemWas) || autoPress, (!itemKey && m_itemWas) || autoRelease);
         }
         m_itemWas = itemKey;
+    }
+    // the item objects move and hit after the tick the preview cameras follow them
+    if (m_stage >= Stage::Countdown && m_stage < Stage::Finished) {
+        m_items.update(dt, itemCars());
+        m_itemViews.update(dt, m_sim, m_items);
+        botItemTest();
     }
     tickWire(ticks);
 
@@ -770,6 +848,7 @@ void RaceScreen::update(float dt) {
     const float clock = m_app.renderer().animation().seconds();
     for (Slot& s : m_slots) {
         if (s.carIndex < 0 || s.viewHandle < 0) continue;
+        m_view.setCarSquash(s.viewHandle, m_items.squash(s.carIndex));
         CarPose pose = m_sim.pose(s.carIndex);
         if (m_stage == Stage::Podium && m_podium.loaded()) {
             const Racer* me = nullptr;
@@ -793,6 +872,8 @@ void RaceScreen::update(float dt) {
     const CarPose own = localPose();
     const float carAt[3] = {own.x, own.y, own.z};
     m_view.updateWeather(m_app.renderer(), dt, carAt);
+    if (m_stage < Stage::Podium) m_flare.update(m_view);
+    else if (m_flare.loaded()) m_flare.hide(m_view);
     if (m_view.takeThunder()) m_app.sound().play("weather_thunder");
     // the rain loop of sound 0xD4 is 3 13 s long one shot on the sheet window avoids a gap
     if (m_view.weather() == RaceWeather::Rain) {
@@ -1018,42 +1099,233 @@ void RaceScreen::logRemoteLean() {
     }
 }
 
-void RaceScreen::watchItems(bool useKey) {
-    const CarPose pose = localPose();
-    if (m_wire.heldItem() < 0) {
-        const std::vector<ItemBoxSpot>& boxes = m_view.itemBoxes();
-        for (size_t i = 0; i < boxes.size() && i < m_boxCooldown.size(); ++i) {
-            if (m_boxCooldown[i] > 0.f) continue;
-            const float dx = boxes[i].position[0] - pose.x;
-            const float dy = boxes[i].position[1] - pose.y;
-            if (dx * dx + dy * dy > kBoxReach * kBoxReach) continue;
-            m_boxCooldown[i] = kBoxCooldown;
-            // the box goes away on the touch and comes back once the cooldown runs out
-            m_view.hideItemBox(i, m_app.renderer().animation().seconds() + kBoxCooldown);
-            m_itemRng = m_itemRng * 1103515245u + 12345u;
-            const int32_t kind = kItemKinds[(m_itemRng >> 16) % (sizeof(kItemKinds) / sizeof(kItemKinds[0]))];
-            m_wire.sendItemGrant(kind);
-            m_pickupAt = m_time;
-            m_pickupItem = kind;
-            m_useItemIn = 2.f + static_cast<float>(m_itemRng % 2000) / 1000.f;
-            std::printf("[race] item box %zu gives %d\n", i, kind);
-            m_app.sound().play("itembox_get_snd");
-            break;
+// item box hit test 0x4BC830 runs for every car any car breaks a box only the own car rolls
+void RaceScreen::watchItems(bool pressed, bool released) {
+    const std::vector<ItemBoxSpot>& spots = m_view.itemBoxes();
+    if (!spots.empty() && spots.size() == m_world.itemBoxes.size() && spots.size() == m_boxReadyAt.size()) {
+        std::vector<uint8_t> ready(spots.size(), 0);
+        for (size_t i = 0; i < spots.size(); ++i) ready[i] = m_time >= m_boxReadyAt[i] ? 1 : 0;
+        for (const Slot& s : m_slots) {
+            if (s.carIndex < 0) continue;
+            // cars frame update 0x495330 skips the item hits while the effect 500 600 or 900 runs
+            const int code = m_sim.car(s.carIndex).effect.activeCode;
+            if (code == 500 || code == 600 || code == 900) continue;
+            const CarPose pose = m_sim.pose(s.carIndex);
+            const int32_t box = KnC::Kart::Client::itembox_hit_test(m_world.itemBoxes, ready, pose.x, pose.y,
+                                                                    pose.yawDeg, m_sim.driftGaugeSmoothed(s.carIndex));
+            if (box < 0) continue;
+            ready[static_cast<size_t>(box)] = 0;
+            takeItemBox(static_cast<size_t>(box), s.carIndex == m_sim.localIndex());
         }
-        return;
     }
-    if (useKey) {
-        m_app.sound().play(itemUseSound(m_wire.heldItem()));
-        m_wire.sendItemUse(m_wire.heldItem(), pose.x, pose.y, pose.z, pose.yawDeg);
-        m_useItemIn = -1.f;
-        std::printf("[race] item used\n");
+    useItem(pressed, released);
+}
+
+// KNC ITEM SHOTS lists race clock seconds after the green light each one takes a capture of the item proofs
+void RaceScreen::itemShots() {
+    static const std::vector<float> at = [] {
+        std::vector<float> list;
+        const char* text = std::getenv("KNC_ITEM_SHOTS");
+        while (text && *text) {
+            char* end = nullptr;
+            const float value = std::strtof(text, &end);
+            if (end == text) break;
+            list.push_back(value);
+            text = *end == ',' ? end + 1 : end;
+        }
+        return list;
+    }();
+    if (m_stage != Stage::Racing) return;
+    while (m_itemShot < at.size() && m_stageTime >= at[m_itemShot]) {
+        char name[32];
+        std::snprintf(name, sizeof(name), "item_%05d", static_cast<int>(at[m_itemShot] * 1000.f + 0.5f));
+        m_app.captureStage(name);
+        ++m_itemShot;
     }
 }
 
-// the item boxes come off the race view the session keeps one cooldown per spot beside them
+// KNC ITEM BOT the leading sample bot uses that kind on the own car a second after the green
+void RaceScreen::botItemTest() {
+    static const char* forced = std::getenv("KNC_ITEM_BOT");
+    if (!forced || !m_app.sampleMode() || m_botItemDone || m_stage != Stage::Racing || m_stageTime < 1.f) return;
+    m_botItemDone = true;
+    int bot = -1;
+    for (const ItemCar& c : itemCars()) if (c.rank == 0 && !c.local) bot = c.carIndex;
+    if (bot < 0) return;
+    const int kind = std::atoi(forced);
+    const CarPose p = m_sim.pose(bot);
+    std::printf("[items] test bot car %d uses %d on the own car\n", bot, kind);
+    // a code of 700 or 1000 lands like the S2C 0x0069 of a hive or an ice
+    if (kind == 700 || kind == 1000) m_items.remoteHit(m_sim.localIndex(), kind);
+    else if (kind == kItemTurtle) m_items.remoteTurtle(bot, m_sim.localIndex());
+    else if (kind == kItemRocket || kind == kItemMagnet) m_items.launchHoming(kind, bot, m_sim.localIndex());
+    else m_items.spawn(kind, bot, p.x, p.y, p.z, p.yawDeg);
+}
+
+uint32_t RaceScreen::playerOf(int carIndex) const {
+    for (const Slot& s : m_slots) if (s.carIndex == carIndex) return s.playerId;
+    return 0;
+}
+
+std::vector<ItemCar> RaceScreen::itemCars() const {
+    std::vector<ItemCar> cars;
+    for (const Slot& s : m_slots) {
+        if (s.carIndex < 0) continue;
+        ItemCar c;
+        c.carIndex = s.carIndex;
+        c.playerId = s.playerId;
+        c.local = s.carIndex == m_sim.localIndex() && s.playerId == m_wire.localPlayerId();
+        for (const Racer& r : m_wire.racers()) {
+            if (r.playerId != s.playerId) continue;
+            c.rank = r.position;
+            c.team = static_cast<int>(r.team);
+            c.finished = r.finishRank >= 0;
+        }
+        cars.push_back(c);
+    }
+    return cars;
+}
+
+void RaceScreen::beginItems() {
+    ItemHooks hooks;
+    hooks.sound = [this](const char* name, float volume) { m_app.sound().play(name, volume); };
+    // sub 481B60 the victim reports its hit the sample server has no room to relay it
+    hooks.reportHit = [this](int code) {
+        m_hitAt = m_time;
+        if (!m_app.sampleMode()) m_wire.sendHit(static_cast<int16_t>(code));
+    };
+    hooks.attackView = [this](int carIndex) {
+        m_itemViews.startAttack(carIndex, m_sim.pose(carIndex));
+        std::printf("[items] attack view on car %d\n", carIndex);
+    };
+    hooks.eventView = [this](int mode, int a, int b) {
+        m_itemViews.startEvent(mode, a, b);
+        std::printf("[items] event view mode %d %d %d\n", mode, a, b);
+    };
+    hooks.dungSplat = [this]() { m_dungAt = m_time; };
+    hooks.flashBlind = [this]() { m_flashAt = m_time; };
+    hooks.lockPing = [this](int kind, int targetCar, int phase) {
+        if (!m_app.sampleMode()) m_wire.sendLockState(playerOf(targetCar), phase, kind);
+    };
+    const bool team = raceGameMode() == 1 || raceGameMode() == 3;
+    m_items.begin(m_app.options().gameDir, m_world, m_sim, hooks, team, m_app.sampleMode());
+    m_view.setItems(&m_items);
+    m_itemViews.reset();
+    m_dungAt = -1.0;
+    m_flashAt = -1.0;
+}
+
+// FUN 004AEFA0 the release lets a search go the press uses slot 0 by its kind
+void RaceScreen::useItem(bool pressed, bool released) {
+    if (!m_sim.hasLocal()) return;
+    const int me = m_sim.localIndex();
+    const uint32_t myId = m_wire.localPlayerId();
+    const bool online = !m_app.sampleMode();
+    const int kind = m_wire.heldItem(0);
+    // the lock is dropped with no item in hand under an effect of the car
+    const bool blocked = m_wire.heldCount() <= 0 || m_sim.car(me).effect.activeCode != 0;
+    if (released) {
+        for (int homing : {static_cast<int>(kItemRocket), static_cast<int>(kItemMagnet)}) {
+            if (m_items.lockPhase(homing) == 0) continue;
+            if (blocked) { m_items.lockCancel(homing); continue; }
+            const int phase = m_items.lockRelease(homing);
+            const int target = m_items.lockTarget(homing);
+            if (phase == 2 && kind == homing && target >= 0) {
+                if (online) m_wire.sendHomingLaunch(homing, myId, playerOf(target));
+                m_wire.consumeItem();
+                std::printf("[race] item %d locked on car %d\n", homing, target);
+            }
+        }
+    }
+    // sub 4CA2A0 case 1 a left press turns the search 10 degrees down a right press 10 up
+    const bool left = m_app.raceKeyDown(RaceKey::Left);
+    const bool right = m_app.raceKeyDown(RaceKey::Right);
+    for (int homing : {static_cast<int>(kItemRocket), static_cast<int>(kItemMagnet)}) {
+        if (left && !m_leftWas) m_items.lockAim(homing, -kAimStep);
+        else if (right && !m_rightWas) m_items.lockAim(homing, kAimStep);
+    }
+    m_leftWas = left;
+    m_rightWas = right;
+    if (!pressed || blocked || kind < 0) return;
+    const CarPose pose = localPose();
+    auto wire = [&](float yawDeg) { if (online) m_wire.sendItemSpawn(kind, pose.x, pose.y, pose.z, yawDeg); };
+    bool consume = true;
+    switch (kind) {
+    case kItemBooster:
+    case kItemBigBooster:
+        // sub 496BE0 kind 1 the booster kind 2 the big booster
+        m_sim.startBoost(kind == kItemBooster ? 1 : 2);
+        wire(pose.yawDeg);
+        break;
+    case kItemTurtle: {
+        const int target = m_items.useTurtle(me);
+        if (online && target >= 0) m_wire.sendTurtleLaunch(myId, playerOf(target));
+        break;
+    }
+    case kItemRocket:
+    case kItemMagnet:
+        m_items.lockPress(kind, me);
+        wire(pose.yawDeg);
+        consume = false;
+        break;
+    case kItemAngel:
+    case kItemDevilRed:
+        m_items.spawn(kind, me, pose.x, pose.y, pose.z, pose.yawDeg);
+        wire(pose.yawDeg);
+        break;
+    case kItemThunder:
+    case kItemHammer:
+    case kItemRabbit:
+    case kItemBlueRabbit:
+        if (m_items.casting(kind, me)) return;
+        [[fallthrough]];
+    default:
+        if (kind == kItemShield && m_items.shielded(me)) return;
+        if (online) wire(pose.yawDeg);
+        else m_items.spawn(kind, me, pose.x, pose.y, pose.z, pose.yawDeg);
+        break;
+    }
+    if (consume) m_wire.consumeItem();
+    m_useItemIn = m_wire.heldCount() > 0 ? 2.f + static_cast<float>(m_itemRng % 2000) / 1000.f : -1.f;
+    std::printf("[race] item %d used %d left\n", kind, m_wire.heldCount());
+}
+
+void RaceScreen::takeItemBox(size_t index, bool local) {
+    // 0x4BCA90 state 3 hides the box 2000 ms then state 1 arms it 500 ms after it shows again
+    constexpr double kHidden = KnC::Kart::Client::GIMMICK_BOX_HIDDEN_MS / 1000.0;
+    constexpr double kArm = KnC::Kart::Client::GIMMICK_BOX_ARM_MS / 1000.0;
+    m_boxReadyAt[index] = m_time + kHidden + kArm;
+    m_view.hideItemBox(index, m_app.renderer().animation().seconds() + static_cast<float>(kHidden));
+    if (!local) return;
+    m_app.sound().play("itembox_get_snd");
+    // FUN 004AFF00 rolls nothing once the open slots are full the box still breaks
+    const int open = openItemSlots();
+    if (m_wire.heldCount() >= open) {
+        std::printf("[race] item box %zu taken with the %d slots full\n", index, open);
+        return;
+    }
+    m_itemRng = m_itemRng * 1103515245u + 12345u;
+    // FUN 004B0570 the stock table by racer count and rank a held rabbit rolls again without the rabbits
+    bool rabbit = false;
+    for (int i = 0; i < RaceSession::kItemSlots; ++i)
+        rabbit = rabbit || m_wire.heldItem(i) == kItemRabbit || m_wire.heldItem(i) == kItemBlueRabbit;
+    const bool team = raceGameMode() == 1 || raceGameMode() == 3;
+    int32_t kind = RaceItems::roll(static_cast<int>(m_wire.racers().size()), m_wire.localPosition(), rabbit, team,
+                                   m_rollSeed);
+    // KNC ITEM TEST forces the kind of every box a capture aid for the item proofs
+    if (const char* forced = std::getenv("KNC_ITEM_TEST")) kind = std::atoi(forced);
+    if (kind < 0 || !m_wire.sendItemGrant(kind, open)) return;
+    m_pickupAt = m_time;
+    m_pickupItem = kind;
+    if (m_useItemIn < 0.f) m_useItemIn = 2.f + static_cast<float>(m_itemRng % 2000) / 1000.f;
+    std::printf("[race] item box %zu gives %d into slot %d\n", index, kind, m_wire.heldCount() - 1);
+}
+
+// the item boxes come off the race view the race clock says when each can be taken again
 void RaceScreen::loadItemBoxes() {
-    m_boxCooldown.assign(m_view.itemBoxes().size(), 0.f);
-    std::printf("[race] %zu item boxes on the track\n", m_view.itemBoxes().size());
+    m_boxReadyAt.assign(m_view.itemBoxes().size(), 0.0);
+    std::printf("[race] %zu item boxes on the track mode %u items %d\n", m_view.itemBoxes().size(), raceGameMode(),
+                itemRace() ? 1 : 0);
 }
 
 // the boxes that served their cooldown draw again the view holds the respawn clock
@@ -1082,17 +1354,24 @@ bool RaceScreen::drawScene() {
     } else {
         m_view.draw(m_app.renderer(), m_chase, m_frameDt);
     }
+    // sub 4A9DA0 and sub 4AD310 the attack view and the event view draw the world through their own cameras
+    if (m_stage >= Stage::Countdown && m_stage < Stage::Finished)
+        m_itemViews.draw(m_app.renderer(), m_app.width(), m_app.height(), m_app.canvasWidth(), m_app.canvasHeight());
     // sub 4D1BE0 the weather veil lands over the world and under the hud the gauge scene included
     const uint8_t veil = m_view.weatherVeil();
     m_veilInScene = veil != 0 && m_stage < Stage::Finished;
     if (m_veilInScene)
         m_app.renderer().draw_frame_veil(KnC::Render::HourColour{0.f, 0.f, 0.f}, static_cast<float>(veil) / 255.f);
+    // sub 4D2950 the clear weather glare a white veil once the view turns near the sun
+    else if (m_stage < Stage::Finished && m_flare.glare() != 0)
+        m_app.renderer().draw_frame_veil(KnC::Render::HourColour{1.f, 1.f, 1.f},
+                                         static_cast<float>(m_flare.glare()) / 255.f);
     // sub 4AE230 the gauge nifs into the gauge rect the needle the disc and the digits go over them
     if (m_stage < Stage::Finished) {
         HudState state;
         fillHud(state);
         m_gauge.draw(m_app.renderer(), state, m_frameDt, m_app.width(), m_app.height(), m_app.canvasWidth(),
-                     m_app.canvasHeight());
+                     m_app.canvasHeight(), m_app.stretch());
     }
     return true;
 }
@@ -1106,7 +1385,9 @@ void RaceScreen::fillHud(HudState& s) const {
     s.lap = std::min(m_laps + 1, s.totalLaps);
     s.raceSeconds = m_raceClock;
     s.bestLapSeconds = m_bestLap;
-    s.heldItem = m_wire.heldItem();
+    s.heldItem = m_wire.heldItem(0);
+    s.heldItem2 = m_wire.heldItem(1);
+    s.heldItem3 = m_wire.heldItem(2);
     // the Panel Stream label of the port draft below zero keeps it hidden
     s.slipStream = m_sim.slipStreamBonus();
     // 0x4AE230 the band shows in the race stage of a speed mode the item modes keep the plain board
@@ -1151,6 +1432,15 @@ void RaceScreen::fillHud(HudState& s) const {
     }
     if (m_pickupAt >= 0.0) { s.pickupAge = m_time - m_pickupAt; s.pickupItem = m_pickupItem; }
     if (m_hitAt >= 0.0) { s.hitAge = m_time - m_hitAt; s.hitItem = -1; }
+    if (m_dungAt >= 0.0) s.dungAge = m_time - m_dungAt;
+    if (m_flashAt >= 0.0) s.flashAge = m_time - m_flashAt;
+    s.attackView = m_itemViews.attackShown();
+    s.attackFrame = m_itemViews.attackFrame();
+    s.eventView = m_itemViews.eventShown();
+    s.eventFrame = m_itemViews.eventFrame();
+    if (s.attackView)
+        for (const Racer& r : m_wire.racers())
+            if (r.playerId == playerOf(m_itemViews.attackCar())) s.attackName = u16ToUtf8(r.name);
     for (const Racer& r : m_wire.racers()) {
         HudStanding row;
         row.name = u16ToUtf8(r.name);
@@ -1201,6 +1491,28 @@ void RaceScreen::fillHud(HudState& s) const {
         if (m_stage == Stage::Podium) tag.y -= 50.f;
         tag.name = u16ToUtf8(racer->name);
         s.tags.push_back(tag);
+    }
+    // sub 4C9C70 the search marker sits in the middle till a car is in the cone then on that car
+    const ItemReticle mark = m_items.reticle();
+    if (mark.shown && m_stage == Stage::Racing) {
+        s.reticle = true;
+        s.reticleKind = mark.kind;
+        s.reticleSet = mark.set;
+        s.reticleFrame = mark.frame;
+        s.reticleOnCar = mark.carIndex == m_sim.localIndex();
+        s.reticleX = m_app.canvasWidth() * 0.5f;
+        s.reticleY = m_app.canvasHeight() * kReticleRestHeight;
+        if (camera && mark.carIndex >= 0) {
+            const CarPose p = m_sim.pose(mark.carIndex);
+            const float world[4] = {p.x, p.y, p.z + 1.f, 1.f};
+            float e[4], c[4];
+            bx::vec4MulMtx(e, world, view);
+            bx::vec4MulMtx(c, e, proj);
+            if (c[3] > 0.001f) {
+                s.reticleX = (((c[0] / c[3]) * 0.5f + 0.5f) * static_cast<float>(m_app.width()) - offX) / scale;
+                s.reticleY = ((0.5f - (c[1] / c[3]) * 0.5f) * static_cast<float>(m_app.height()) - offY) / scale;
+            }
+        }
     }
     s.status = m_status;
 }

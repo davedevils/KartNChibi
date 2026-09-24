@@ -3,8 +3,11 @@
 
 #include "race/AutoDriver.h"
 #include "race/GaugeScene.h"
+#include "race/LensFlare.h"
+#include "race/ItemViews.h"
 #include "race/PodiumScene.h"
 #include "race/RaceHud.h"
+#include "race/RaceItems.h"
 #include "race/RaceSession.h"
 #include "race/RaceSim.h"
 #include "race/RaceView.h"
@@ -66,7 +69,18 @@ private:
     void readKeys(KnC::Kart::Client::InputFlags& flags, bool& drift, bool& item);
     void tickWire(int ticks);
     void watchCheckpoints();
-    void watchItems(bool useKey);
+    void watchItems(bool pressed, bool released);
+    // FUN 004AEFA0 the use key of the own car one case per held kind online the wire spawns it
+    void useItem(bool pressed, bool released);
+    // the item objects the items see every racer with its rank team and finish
+    std::vector<ItemCar> itemCars() const;
+    // the hooks of the item objects the sounds the reports and the two preview views
+    void beginItems();
+    uint32_t playerOf(int carIndex) const;
+    // KNC ITEM BOT a capture aid the leading sample bot uses a kind on the own car once
+    void botItemTest();
+    // KNC ITEM SHOTS a capture aid shots at race clock seconds after the green light
+    void itemShots();
     // KNC REMOTE LEAN prints the ground under a bot kart and the roll it implies a probe aid
     void logRemoteLean();
     // itemdrum hit test 0x4bed40 the barrels of the track stop or bounce the local car
@@ -98,6 +112,12 @@ private:
     Slot* slot(uint32_t playerId);
     // the game mode of the launch KNC RACE MODE forces it for a capture
     uint32_t raceGameMode() const;
+    // FUN 004028C0 builds the item manager for the modes 0 1 and 4 only the speed modes get no box
+    bool itemRace() const;
+    // FUN 004AECD0 two slots open a third while the item 5000 row is in use with uses left
+    int openItemSlots() const;
+    // a box a car touched goes away the own car rolls an item into a free slot
+    void takeItemBox(size_t index, bool local);
     std::string kartModel(uint32_t kartKey) const;
     std::string driverAsset(uint32_t driverKey) const;
 
@@ -135,8 +155,8 @@ private:
     // the item boxes of itembox ini one prop each hidden while its cooldown runs
     void loadItemBoxes();
     void updateItemBoxes();
-    // item boxes a cooldown per box and the hold timer of the auto driver
-    std::vector<float> m_boxCooldown;
+    // the race clock second each box can be taken again and the hold timer of the auto driver
+    std::vector<double> m_boxReadyAt;
     float m_useItemIn = -1.f;
     uint32_t m_itemRng = 12345;
     // the staged captures of the auto race
@@ -150,6 +170,8 @@ private:
     PodiumScene m_podium;
     // sub 4AE230 the gauge nifs drawn through the gauge camera after the world frame
     GaugeScene m_gauge;
+    // sub 4D1C70 the clear weather sun flare loaded when the track row gives a point
+    LensFlare m_flare;
     // the weather veil went in the world frame this time so the sprite pass leaves it out
     bool m_veilInScene = false;
     double m_boardAt = -1.0;
@@ -189,6 +211,20 @@ private:
     double m_pickupAt = -1.0;
     int m_pickupItem = -1;
     double m_hitAt = -1.0;
+    // the item objects of the race and the attack and event views on them
+    RaceItems m_items;
+    ItemViews m_itemViews;
+    // when the dung splat and the flash veil started on the own screen
+    double m_dungAt = -1.0;
+    double m_flashAt = -1.0;
+    // the auto driver holds the key this long for a rocket or a magnet search
+    float m_autoHold = -1.f;
+    bool m_botItemDone = false;
+    size_t m_itemShot = 0;
+    // the steer keys of the last frame a press turns the rocket and magnet search
+    bool m_leftWas = false;
+    bool m_rightWas = false;
+    uint32_t m_rollSeed = 0x1234567u;
     std::string m_status;
 };
 

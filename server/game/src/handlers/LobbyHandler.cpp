@@ -103,7 +103,7 @@ void LobbyHandler::handleAddFriend(Session::Ptr session, Packet& packet, GameSer
         "SELECT id FROM characters WHERE name = ?", {friendNameNarrow});
     
     if (friends.empty()) {
-        session->send(PacketBuilder::displayMessage(u"MSG_PLAYER_NOT_FOUND", 2));
+        session->send(PacketBuilder::displayMessage(u"Player not found.", 2));
         return;
     }
     
@@ -113,7 +113,7 @@ void LobbyHandler::handleAddFriend(Session::Ptr session, Packet& packet, GameSer
         "INSERT IGNORE INTO friends (character_id, friend_id) VALUES (?, ?)",
         {std::to_string(session->characterId), std::to_string(friendId)});
     
-    session->send(PacketBuilder::displayMessage(u"MSG_FRIEND_ADDED", 1));
+    session->send(PacketBuilder::displayMessage(u"Friend added.", 1));
 }
 
 void LobbyHandler::handleRemoveFriend(Session::Ptr session, Packet& packet, GameServer* server) {
@@ -127,7 +127,7 @@ void LobbyHandler::handleRemoveFriend(Session::Ptr session, Packet& packet, Game
         "DELETE FROM friends WHERE character_id = ? AND friend_id = ?",
         {std::to_string(session->characterId), std::to_string(friendId)});
     
-    session->send(PacketBuilder::displayMessage(u"MSG_FRIEND_REMOVED", 1));
+    session->send(PacketBuilder::displayMessage(u"Friend removed.", 1));
 }
 
 void LobbyHandler::handleBlockPlayer(Session::Ptr session, Packet& packet, GameServer* server) {
@@ -141,7 +141,7 @@ void LobbyHandler::handleBlockPlayer(Session::Ptr session, Packet& packet, GameS
         "INSERT IGNORE INTO blocked_players (character_id, blocked_id) VALUES (?, ?)",
         {std::to_string(session->characterId), std::to_string(playerId)});
     
-    session->send(PacketBuilder::displayMessage(u"MSG_PLAYER_BLOCKED", 1));
+    session->send(PacketBuilder::displayMessage(u"Player blocked.", 1));
 }
 
 void LobbyHandler::sendRoomList(Session::Ptr session, GameServer* server) {
@@ -196,7 +196,7 @@ void LobbyHandler::sendPlayerProfile(Session::Ptr session, int32_t playerId) {
         {std::to_string(playerId)});
     
     if (chars.empty()) {
-        session->send(PacketBuilder::displayMessage(u"MSG_PLAYER_NOT_FOUND", 2));
+        session->send(PacketBuilder::displayMessage(u"Player not found.", 2));
         return;
     }
     

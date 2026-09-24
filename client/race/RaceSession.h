@@ -5,6 +5,7 @@
 
 #include "games/kart/physics/client/motion_packet.h"
 
+#include <array>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -19,7 +20,13 @@ struct Racer {
     uint32_t gridIndex = 0;
     uint32_t team = 0;
     uint32_t driverKey = 0;
+    // the five BODYSET part keys of the character blob at 0x08 O BODY to O BACK
+    std::array<uint32_t, 5> accessory{};
     uint32_t kartKey = 0;
+    // paint plate and antenna part keys of the kart blob at 0x08 the def row stands in for a zero
+    std::array<uint32_t, 3> kartParts{};
+    // the 0x3C custom car block the chassis key then seven part key and grade pairs of a factory kart
+    std::array<uint32_t, 15> customCar{};
     // 0x003E pet base key after two blobs zero means no pet
     uint32_t petKey = 0;
     bool local = false;
@@ -69,10 +76,20 @@ public:
     void sendCheckpoint(uint32_t prev, uint32_t next);
     // C2S 0x0067 gated to one send per 300 ms unless value changed
     void sendProgress(uint32_t score, double nowSeconds);
-    // C2S 0x0049 then 0x0058 state 7 then 0x00CF slot mirror
-    void sendItemGrant(int32_t item);
-    // C2S 0x0047 then empty 0x00CF slot mirror
-    void sendItemUse(int32_t item, float x, float y, float z, float yawDeg);
+    // C2S 0x0049 with the held count then 0x0058 state 7 and the 0x00CF slots false when slots are full
+    bool sendItemGrant(int32_t item, int openSlots);
+    // C2S 0x0047 of slot 0 then the slots move up one and 0x00CF reports them
+    void sendItemUse(float x, float y, float z, float yawDeg);
+    // C2S 0x0047 of a kind with no slot change the rocket and the magnet press
+    void sendItemSpawn(int32_t kind, float x, float y, float z, float yawDeg);
+    // FUN 004AEED0 slot 0 goes the others move up one and 0x00CF reports them
+    void consumeItem();
+    // C2S 0x004B the launch of a locked rocket or magnet
+    void sendHomingLaunch(int32_t kind, uint32_t shooter, uint32_t target);
+    // C2S 0x005C the own turtle and its target
+    void sendTurtleLaunch(uint32_t shooter, uint32_t target);
+    // C2S 0x0057 the lock phase on a target 1 searching 2 locked
+    void sendLockState(uint32_t target, int32_t phase, int32_t kind);
     // C2S 0x0069 victim reports hit
     void sendHit(int16_t code);
     // C2S 0x0058 one byte
@@ -92,8 +109,10 @@ public:
     int lapBoardAdvances() const { return m_lapAdvances; }
     const std::vector<uint32_t>& itemRolls() const { return m_itemRolls; }
     uint32_t localPlayerId() const { return m_localId; }
-    int32_t heldItem() const { return m_heldItem; }
-    void setHeldItem(int32_t item) { m_heldItem = item; }
+    // item object 0x2EB4848 slots at plus 0x30D8 minus one empty slot 0 fires first
+    int32_t heldItem(int slot = 0) const { return slot >= 0 && slot < kItemSlots ? m_slots[static_cast<size_t>(slot)] : -1; }
+    int heldCount() const { return m_heldCount; }
+    static constexpr int kItemSlots = 3;
 
     std::function<void(const Racer&)> onGridSpawn;
     std::function<void()> onRankBoard;
@@ -106,6 +125,9 @@ public:
     std::function<void(uint32_t playerId, int code)> onEffect;
     std::function<void(const ItemSpawn&)> onItemSpawn;
     std::function<void(uint32_t playerId, int32_t item, int32_t slot)> onItemGrant;
+    std::function<void(int32_t kind, uint32_t shooter, uint32_t target)> onHomingLaunch;
+    std::function<void(uint32_t shooter, uint32_t target)> onTurtleLaunch;
+    std::function<void(int32_t kind, int32_t phase)> onLockState;
     std::function<void(uint32_t playerId)> onRacerLeft;
     // S2C 0x00CE game message key player name and number hud prints top right
     std::function<void(const std::string& key, const std::u16string& name, int32_t param)> onGameMessage;
@@ -115,7 +137,7 @@ private:
     void parseStandings(Packet& pkt);
     void parseFinish(Packet& pkt);
     void parseScoreboard(Packet& pkt);
-    void sendSlotMirror(int32_t slot0);
+    void sendSlotMirror();
 
     Session& m_session;
     Phase m_phase = Phase::Idle;
@@ -128,7 +150,8 @@ private:
     uint32_t m_resultTeam = 0;
     int m_lapAdvances = 0;
     std::vector<uint32_t> m_itemRolls;
-    int32_t m_heldItem = -1;
+    std::array<int32_t, kItemSlots> m_slots{-1, -1, -1};
+    int m_heldCount = 0;
     uint32_t m_lastScore = 0xFFFFFFFFu;
     double m_lastScoreAt = -1.0;
     int m_sceneLoadedSent = 0;

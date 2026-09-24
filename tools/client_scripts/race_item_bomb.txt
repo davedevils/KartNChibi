@@ -1,0 +1,8 @@
+# gate: state race
+# gate: env KNC_ITEM_TEST=18
+# gate: env KNC_ITEM_SHOTS=0.6,1.0,1.6,2.4,3.4
+# the bomb flies ahead onto the leader the boom crashes it and the splash of 15 crashes the own kart too
+# the race clock captures out_item_NNNNN at the listed seconds after the green light
+waitfor race 900
+wait 900
+quit

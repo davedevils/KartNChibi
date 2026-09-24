@@ -221,7 +221,8 @@ void ShopScreen::refreshTiles() {
         pushParts(0, m_sub);
     } else if (m_category == 1 && m_sub == 0) {
         for (const KartRow& row : cat.karts()) {
-            if (!row.visible || row.requiredLevel > level) continue;
+            // FUN 00418E00 0x418EE1 the Car tab leaves the model scheme 1 factory chassis to the Car Craft tab
+            if (!row.visible || row.modelScheme == 1 || row.requiredLevel > level) continue;
             ShopTile t;
             t.category = static_cast<uint32_t>(BuyCategory::Kart);
             t.baseKey = row.key;
@@ -317,18 +318,41 @@ void ShopScreen::refreshPreview() {
     const KartRow* myKart = session.catalog().kart(session.myKartKey());
     const DriverRow* myDriver = session.catalog().driver(session.myDriverKey());
     std::string model = myKart && !myKart->model.empty() ? myKart->model : std::string("Basic_1");
+    // a factory kart builds from its preset row so the chassis and the parts show
+    const uint32_t kartInstance = static_cast<uint32_t>(session.profile().kartInstance);
+    if (session.profile().kartInstance >= 0 && session.catalog().ownedKart(kartInstance))
+        model = ownedKartViewModel(m_app, kartInstance);
     std::string asset = myDriver && !myDriver->asset.empty() ? myDriver->asset : std::string("Cosmo");
+    uint32_t driverKey = myDriver ? myDriver->key : 0;
+    PreviewTryOn tryOn;
+    int triedSlot = -1;
+    uint32_t triedKey = 0;
     if (m_selected >= 0 && m_selected < static_cast<int>(m_tiles.size())) {
         const ShopTile& t = m_tiles[static_cast<size_t>(m_selected)];
         if (!t.previewKart.empty()) model = t.previewKart;
-        if (!t.previewDriver.empty()) asset = t.previewDriver;
+        if (!t.previewDriver.empty()) { asset = t.previewDriver; driverKey = t.baseKey; }
+        // a part or pet tile is tried on the own driver and kart its 0x00C2 slot picks where
+        if (t.category == static_cast<uint32_t>(BuyCategory::Pet)) tryOn.petKey = t.baseKey;
+        if (const PartRow* part = t.category == static_cast<uint32_t>(BuyCategory::Part) ? session.catalog().part(t.baseKey) : nullptr) {
+            if (part->equipSlot >= 2 && part->equipSlot <= 6) { triedSlot = static_cast<int>(part->equipSlot) - 2; triedKey = part->key; }
+            if (part->equipSlot == 0) tryOn.paint = part->model;
+            if (part->equipSlot == 1) tryOn.plate = part->model;
+            if (part->equipSlot == 8) tryOn.antenna = part->model;
+        }
     }
-    if (model == m_previewKart && asset == m_previewDriver && m_previewCar >= 0) return;
+    setCharPreviewTryOn(m_view, tryOn);
+    std::array<uint32_t, 5> worn = wornCostume(m_app, driverKey);
+    if (triedSlot >= 0) worn[static_cast<size_t>(triedSlot)] = triedKey;
+    const std::vector<KnC::Tools::GhostDriverPart> parts = driverParts(m_app, asset, worn);
+    const std::string partsToken = KnC::Tools::ghost_driver_parts_token(parts);
+    if (model == m_previewKart && asset == m_previewDriver && partsToken == m_previewParts && m_previewCar >= 0) return;
     if (m_previewCar >= 0) m_view.removeCar(m_previewCar);
     m_previewKart = model;
     m_previewDriver = asset;
+    m_previewParts = partsToken;
     // the paint goes in with the car so the first drawn frame swaps no body and uploads nothing
-    m_previewCar = m_view.addCar(m_app.renderer(), m_app.options().gameDir, model, asset, charPreviewPaint(m_app, model));
+    const std::string paint = tryOn.paint.empty() ? charPreviewPaint(m_app, model) : tryOn.paint;
+    m_previewCar = m_view.addCar(m_app.renderer(), m_app.options().gameDir, model, asset, paint, parts);
     CarPose pose;
     m_view.setPose(m_previewCar, pose, 0.f, 0.f);
 }
@@ -483,7 +507,8 @@ void ShopScreen::onKey(int key, int action, int mods) {
     if (action == GLFW_PRESS) {
         if (key == GLFW_KEY_ESCAPE) { exitShop(); return; }
         if (key == GLFW_KEY_ENTER || key == GLFW_KEY_KP_ENTER) { openItemPopup(); return; }
-        if (key == GLFW_KEY_TAB) { selectTab((m_category + 1) % 3, 0); return; }
+        // Tab walks all five categories Room Craft and Car Craft included
+        if (key == GLFW_KEY_TAB) { selectTab((m_category + 1) % 5, 0); return; }
         if (key == GLFW_KEY_LEFT && m_selected > 0) { --m_selected; m_priceIndex = 0; refreshPreview(); return; }
         if (key == GLFW_KEY_RIGHT && m_selected + 1 < static_cast<int>(m_tiles.size())) { ++m_selected; m_priceIndex = 0; refreshPreview(); return; }
     }
@@ -546,6 +571,12 @@ void ShopScreen::onSession(SessionEvent event) {
         m_status = "bought, gold " + std::to_string(m_goldBefore) + " to " + std::to_string(p.gold) +
                    "  astro " + std::to_string(m_astroBefore) + " to " + std::to_string(p.astro);
         refreshTiles();
+        // the success box stops the update of this stage so the auto buy takes its picture here
+        if (m_boughtAt >= 0.f && !m_capturedBuy && m_app.captureMode() && !m_app.scripted()) {
+            m_capturedBuy = true;
+            m_app.captureStage("shop_buy");
+            if (m_app.options().stopAt == "shop") m_app.finishRun();
+        }
     } else if (event == SessionEvent::InventoryChanged) {
         refreshTiles();
     }

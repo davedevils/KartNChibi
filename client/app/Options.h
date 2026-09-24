@@ -71,6 +71,8 @@ struct Options {
     bool statusLine = false;
     // a script file of one verb per line that clicks and types like a user see the client README
     std::string script;
+    // the console lines and the wire log file only a run with debug writes them
+    bool debug = false;
 };
 
 // false on a bad argument the usage text goes to stderr

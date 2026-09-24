@@ -164,6 +164,11 @@ void SoundBank::music(const std::string& name, float volume) {
     m_impl->startVoice(m_impl->music, *c, true, volume, 1.f);
 }
 
+void SoundBank::setMusicVolume(float volume) {
+    if (!m_ready || !m_impl->music.used) return;
+    ma_sound_set_volume(&m_impl->music.sound, volume);
+}
+
 void SoundBank::engine(const std::string& name, float pitch, float volume) {
     if (!m_ready) return;
     if (pitch <= 0.f) { stopEngine(); return; }

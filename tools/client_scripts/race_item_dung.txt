@@ -1,0 +1,9 @@
+# gate: state race
+# gate: env KNC_ITEM_TEST=9
+# gate: env KNC_ITEM_BOT=19
+# gate: env KNC_ITEM_SHOTS=1.2,1.8,2.6,4.0
+# the leader throws three dung pieces back over its kart one lands on the own kart the splats cover the screen
+# the race clock captures out_item_NNNNN at the listed seconds after the green light
+waitfor race 900
+wait 900
+quit

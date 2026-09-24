@@ -1,0 +1,8 @@
+# gate: state race
+# gate: env KNC_ITEM_TEST=9
+# gate: env KNC_ITEM_SHOTS=0.5,1.2,3.0
+# the smoke bomb stands at the kart then its cloud rides the kart
+# the race clock captures out_item_NNNNN at the listed seconds after the green light
+waitfor race 900
+wait 900
+quit

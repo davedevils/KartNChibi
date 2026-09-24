@@ -326,7 +326,7 @@ void GhostHandler::handleGhostEnter(Session::Ptr session, Packet& packet, GameSe
     if (charRows.empty()) {
         LOG_WARN("GHOST", "ghost enter char " + std::to_string(session->characterId) +
                           " absent from characters");
-        session->send(PacketBuilder::displayMessage(u"MSG_DB_ACCESS_FAIL", 2));
+        session->send(PacketBuilder::messageKey("MSG_DB_ACCESS_FAIL", 2));
         return;
     }
 
@@ -336,7 +336,7 @@ void GhostHandler::handleGhostEnter(Session::Ptr session, Packet& packet, GameSe
     if (level < needed) {
         LOG_WARN("GHOST", "ghost enter track " + std::to_string(trackId) + " needs level " +
                           std::to_string(needed) + " char has " + std::to_string(level));
-        session->send(PacketBuilder::displayMessage(u"MSG_MAP_LEVEL_HIGH", 2));
+        session->send(PacketBuilder::displayMessage(u"Your level is too low for this track.", 2));
         return;
     }
 

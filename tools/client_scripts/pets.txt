@@ -22,6 +22,8 @@ shot pets_price_box
 click 436 551
 wait 120
 shot pets_bought
+key enter
+wait 10
 click 430 746
 waitfor garage 250
 wait 60

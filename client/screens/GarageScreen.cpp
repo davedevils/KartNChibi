@@ -383,12 +383,14 @@ void GarageScreen::refreshPreview() {
     const Session& session = m_app.session();
     const OwnedKart* kart = selectedKart();
     const OwnedCharacter* mine = selectedCharacter();
-    const KartRow* kartDef = kart ? session.catalog().kart(kart->kartKey) : nullptr;
+    uint32_t kartInstance = kart ? kart->instance : 0;
     // sub 413120 picked kart tile swaps preview kart other tabs keep worn one
     if (m_category == 1 && m_sub == 0 && m_selected >= 0 && m_selected < static_cast<int>(m_cells.size()))
-        if (const KartRow* picked = session.catalog().kart(m_cells[static_cast<size_t>(m_selected)].baseKey)) kartDef = picked;
+        if (session.catalog().ownedKart(m_cells[static_cast<size_t>(m_selected)].instance))
+            kartInstance = m_cells[static_cast<size_t>(m_selected)].instance;
     const DriverRow* driverDef = mine ? session.catalog().driver(mine->driverKey) : nullptr;
-    const std::string model = kartDef && !kartDef->model.empty() ? kartDef->model : std::string("Basic_1");
+    // a factory kart builds from its preset row so the chassis and the parts show
+    const std::string model = ownedKartViewModel(m_app, kartInstance);
     const std::string asset = driverDef && !driverDef->asset.empty() ? driverDef->asset : std::string("Cosmo");
     if (model == m_previewKart && asset == m_previewDriver && m_previewCar >= 0) return;
     if (m_previewCar >= 0) m_view.removeCar(m_previewCar);

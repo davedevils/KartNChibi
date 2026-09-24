@@ -80,19 +80,21 @@ bool GaugeScene::load(KnC::Render::SceneRenderer& renderer, const std::string& g
 }
 
 void GaugeScene::draw(KnC::Render::SceneRenderer& renderer, const HudState& state, float dt, uint16_t fbW,
-                      uint16_t fbH, float canvasW, float canvasH) {
+                      uint16_t fbH, float canvasW, float canvasH, bool stretch) {
     if (!m_loaded || state.driftGauge < 0.f) return;
     KnC::Render::HudScene scene;
-    // the sprite batch letterbox the canvas scaled to the frame and centred
-    const float scale = std::min(static_cast<float>(fbW) / canvasW, static_cast<float>(fbH) / canvasH);
-    const float offsetX = std::floor((static_cast<float>(fbW) - canvasW * scale) * 0.5f);
-    const float offsetY = std::floor((static_cast<float>(fbH) - canvasH * scale) * 0.5f);
-    const float left = offsetX + (canvasW - kRectLeft) * scale;
-    const float top = offsetY + (canvasH - kRectTop) * scale;
+    // same canvas to frame mapping as the sprite batch so the band sits on its frame art
+    const float fit = std::min(static_cast<float>(fbW) / canvasW, static_cast<float>(fbH) / canvasH);
+    const float scaleX = stretch ? static_cast<float>(fbW) / canvasW : fit;
+    const float scaleY = stretch ? static_cast<float>(fbH) / canvasH : fit;
+    const float offsetX = std::floor((static_cast<float>(fbW) - canvasW * scaleX) * 0.5f);
+    const float offsetY = std::floor((static_cast<float>(fbH) - canvasH * scaleY) * 0.5f);
+    const float left = offsetX + (canvasW - kRectLeft) * scaleX;
+    const float top = offsetY + (canvasH - kRectTop) * scaleY;
     scene.x = static_cast<uint16_t>(std::max(0.f, std::floor(left)));
     scene.y = static_cast<uint16_t>(std::max(0.f, std::floor(top)));
-    scene.width = static_cast<uint16_t>(std::min(std::floor(kRectSize * scale), static_cast<float>(fbW) - left));
-    scene.height = static_cast<uint16_t>(std::min(std::floor(kRectSize * scale), static_cast<float>(fbH) - top));
+    scene.width = static_cast<uint16_t>(std::min(std::floor(kRectSize * scaleX), static_cast<float>(fbW) - left));
+    scene.height = static_cast<uint16_t>(std::min(std::floor(kRectSize * scaleY), static_cast<float>(fbH) - top));
     bx::mtxLookAt(scene.view, bx::Vec3(kEye[0], kEye[1], kEye[2]), bx::Vec3(kLook[0], kLook[1], kLook[2]),
                   bx::Vec3(kUp[0], kUp[1], kUp[2]), bx::Handedness::Right);
     for (int i = 0; i < 3; ++i) scene.eye[i] = kEye[i];

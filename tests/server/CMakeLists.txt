@@ -40,6 +40,7 @@ add_executable(knc-tests
     test_mission_curve_items.cpp
     test_security_gates.cpp
     test_auto_ban.cpp
+    test_bot_checkpoint_score.cpp
     # the game packet builders are not a library yet so pull the files each wire test needs
     ${CMAKE_CURRENT_SOURCE_DIR}/../../server/game/src/packets/gen/SpawnPackets.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../../server/game/src/handlers/RaceBots.cpp

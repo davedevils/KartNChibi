@@ -1,5 +1,5 @@
 $input a_position, a_normal, a_color0, a_texcoord0, a_indices, a_weight
-$output v_color0, v_texcoord0, v_fogdepth
+$output v_color0, v_texcoord0, v_fogdepth, v_envcoord
 
 #include <bgfx_shader.sh>
 #include "skinning.sh"
@@ -21,6 +21,7 @@ void main()
 	vec3 world_normal = mul(u_model[0], vec4(posed_normal, 0.0)).xyz;
 	v_color0 = vec4(shaded_vertex_colour(a_color0, u_ambientColour.rgb, world_normal), a_color0.a);
 	v_texcoord0 = a_texcoord0;
+	v_envcoord = sphere_environment_coord(mul(u_model[0], vec4(posed, 1.0)).xyz, world_normal);
 	// Table fog runs on the eye-space depth which the projection leaves in w
 	v_fogdepth = mix(gl_Position.w, length(view_position.xyz), u_fogRange.z);
 }

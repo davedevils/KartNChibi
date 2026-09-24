@@ -387,6 +387,7 @@ bool MissionRunScreen::loadWorld(const std::string& worldName) {
     std::string error;
     if (!loadRaceWorld(files, m_world, error)) { m_status = "world load failed: " + error; std::printf("[mission] %s\n", m_status.c_str()); return false; }
     if (!m_sim.init(m_world, m_app.session().profile().playerId, error)) { m_status = "sim init failed: " + error; return false; }
+    if (const OwnedPet* worn = m_app.session().catalog().equippedPet()) m_sim.setEquippedPet(worn->petKey);
     m_view.load(m_app.renderer(), m_world);
     m_auto.reset(m_sim.line());
     m_worldLoaded = true;

@@ -42,6 +42,10 @@ public:
 
     // cached texture for an asset path as the UI JSON names it null when nothing decodes
     const Texture* texture(const std::string& assetPath);
+    // reads and decodes images on a loader thread the next texture call of one only uploads it
+    void prefetchImages(const std::vector<std::string>& assetPaths);
+    // frees the decoded images no texture call took
+    void dropPrefetchedImages();
     // one white pixel for plain rectangles
     const Texture* white();
 
@@ -100,6 +104,18 @@ private:
     mutable bool m_imageIndexed = false;
     std::map<std::string, std::unique_ptr<Texture>> m_cache;
     std::unique_ptr<Texture> m_white;
+    // rgba pixels a loader thread decoded by asset path the frame thread uploads and drops each
+    struct DecodedImage {
+        std::string found;
+        std::vector<uint8_t> pixels;
+        int width = 0;
+        int height = 0;
+    };
+    std::mutex m_decodedLock;
+    std::unordered_map<std::string, DecodedImage> m_decoded;
+    // the device texture of rgba pixels cached under the asset path
+    const Texture* upload(const std::string& assetPath, const std::string& found, const std::vector<uint8_t>& pixels,
+                          int width, int height, bool prefetched);
 };
 
 }

@@ -778,7 +778,7 @@ bool SocialHandler::handleGmCommand(Session::Ptr s, const std::u16string& raw,
 
         if (verb == "kick") {
             if (!online) { reply(target + " is not online"); return true; }
-            online->send(PacketBuilder::displayMessage(u"MSG_KICKED_BY_GM", 2));
+            online->send(PacketBuilder::displayMessage(u"You were kicked by a game master.", 2));
             online->stop();
             logAction("kick", target, "");
             reply("kicked " + target);
@@ -821,7 +821,7 @@ bool SocialHandler::handleGmCommand(Session::Ptr s, const std::u16string& raw,
                     {reason, charId});
             }
             if (online) {
-                online->send(PacketBuilder::displayMessage(u"MSG_BANNED", 2));
+                online->send(PacketBuilder::displayMessage(u"This account is banned.", 2));
                 online->stop();
             }
             logAction("ban", target, days > 0 ? std::to_string(days) + "d" : "permanent");

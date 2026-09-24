@@ -33,17 +33,22 @@ namespace {
 constexpr float kRowY = 176.f;
 constexpr float kRowStep = 53.f;
 constexpr int kRowsPerPage = 7;
-// the preview camera the stock kart sits low in the frame seen from its front left
-constexpr float kOrbitAngle = 160.f;
-constexpr float kOrbitDistance = 5.6f;
-constexpr float kOrbitHeight = 1.6f;
-constexpr float kOrbitLookZ = 1.2f;
+// sub 4A5E00 heading 286 of the lobby panel and the licence 0x44DF00 turns it by 90 minus heading
+constexpr float kPreviewHeading = 286.f;
+// sub 4A5ED0 0x4A89C2 the eye 28 out from 0 0 2 lifted 0 3 looks at the origin
+constexpr float kPreviewDistance = 28.f;
+constexpr float kPreviewTargetZ = 2.f;
+constexpr float kPreviewLift = 0.3f;
+// 0x4A894C lens 0 2443 rad vertical the horizontal takes the window aspect term of base 1
+constexpr float kPreviewFieldRadians = 0.24434609f;
+constexpr float kStockAspectPivot = 1.778f;
+constexpr float kPreviewAspectBase = 1.f;
+// sub 4A4E40 the kart stands 0 3 along x and its row stat 13 minus 2 high
+constexpr float kPreviewKartX = 0.3f;
+constexpr float kPreviewKartDrop = 2.f;
 constexpr float kTurnSpeed = 90.f;
-// the wallpaper quad stands this far past the kart a farther one leaves the scene depth range
-constexpr float kBackdropDistance = 8.f;
-// the pet offsets of the stock driver place on car 0x5A32C8 and 0x5A68CC
-constexpr float kPetOffsetY = 0.9f;
-constexpr float kPetOffsetZ = 1.6f;
+// the wallpaper quad stands past the kart inside the far plane of the preview scene
+constexpr float kBackdropDistance = 50.f;
 constexpr float kDegToRad = 3.14159265f / 180.f;
 
 std::unique_ptr<ButtonWidget> artButton(AssetStore& assets, const char* id, const char* action, const char* art,
@@ -61,28 +66,60 @@ std::unique_ptr<ButtonWidget> artButton(AssetStore& assets, const char* id, cons
     return b;
 }
 
-// the eye and the look point of the fixed preview camera as drawOrbit places them
 void previewCamera(float eye[3], float look[3]) {
-    const float a = kOrbitAngle * kDegToRad;
-    eye[0] = std::cos(a) * kOrbitDistance;
-    eye[1] = std::sin(a) * kOrbitDistance;
-    eye[2] = kOrbitLookZ + kOrbitHeight;
+    const float a = (90.f - kPreviewHeading) * kDegToRad;
+    eye[0] = std::cos(a) * kPreviewDistance;
+    eye[1] = std::sin(a) * kPreviewDistance;
+    eye[2] = kPreviewTargetZ + kPreviewLift;
     look[0] = 0.f;
     look[1] = 0.f;
-    look[2] = kOrbitLookZ + 0.6f;
+    look[2] = 0.f;
+}
+
+// the stock aspect term reads the device size ours reads the canvas as the window shows it
+float previewHorizontalField(App& app) {
+    float px[4];
+    app.canvasToPixels(0.f, 0.f, app.canvasWidth(), app.canvasHeight(), px);
+    const float aspect = px[3] > 0.f ? px[2] / px[3] : 4.f / 3.f;
+    return kPreviewFieldRadians * ((aspect - kStockAspectPivot) * 0.5f + kPreviewAspectBase);
+}
+
+// row stat 13 of the previewed kart model zero when the catalogue has no row
+float previewKartStat13(App& app, const std::string& kartModel) {
+    const std::string chassis = KnC::Tools::ghost_kart_chassis(kartModel);
+    for (const KartRow& row : app.session().catalog().karts())
+        if (row.model == chassis) return row.stats[13];
+    return 0.f;
+}
+
+// the stock kart matrix D3DX RotationZ of plus yaw then the lift bx turns the other way
+CarPose previewKartPose(App& app, const std::string& kartModel, float yawDeg) {
+    CarPose pose;
+    pose.yawDeg = -yawDeg;
+    pose.x = kPreviewKartX;
+    pose.z = previewKartStat13(app, kartModel) - kPreviewKartDrop;
+    return pose;
+}
+
+void previewKartMatrix(const CarPose& pose, float out[16]) {
+    float rotate[16], translate[16];
+    bx::mtxRotateZ(rotate, pose.yawDeg * kDegToRad);
+    bx::mtxTranslate(translate, pose.x, pose.y, pose.z);
+    bx::mtxMul(out, rotate, translate);
 }
 
 // the three skin keys of a previewed kart 0 paint 1 plate 2 antenna the owned row wins
 std::array<uint32_t, 3> previewSkins(App& app, const std::string& kartModel) {
     Session& session = app.session();
     const Catalog& cat = session.catalog();
+    const std::string chassis = KnC::Tools::ghost_kart_chassis(kartModel);
     std::array<uint32_t, 3> keys{};
     for (const KartRow& row : cat.karts())
-        if (row.model == kartModel) { for (size_t i = 0; i < 3; ++i) keys[i] = row.skins[i]; break; }
+        if (row.model == chassis) { for (size_t i = 0; i < 3; ++i) keys[i] = row.skins[i]; break; }
     if (session.profile().kartInstance >= 0)
         if (const OwnedKart* owned = cat.ownedKart(static_cast<uint32_t>(session.profile().kartInstance)))
             if (const KartRow* row = cat.kart(owned->kartKey))
-                if (row->model == kartModel)
+                if (row->model == chassis)
                     for (size_t i = 0; i < 3; ++i)
                         if (owned->part[i] != 0 && owned->part[i] != 0xFFFFFFFFu) keys[i] = owned->part[i];
     return keys;
@@ -131,49 +168,51 @@ PreviewLook previewLook(App& app, const std::string& kartModel) {
     return look;
 }
 
-// the props of one preview view the plate the antenna and the pet live as long as its scene
+// the props of one preview view the plate and the antenna live as long as its scene
 struct PreviewProps {
     int plate = -1;
     int ant = -1;
-    int pet = -1;
     std::string plateNif;
     std::string antNif;
     std::string petNif;
+    // the car the pet rides a preview that swaps its kart gets a new handle
+    int petCar = -1;
     // the two dummies of the kart body read once per kart model not once per frame
     std::string dummyKart;
     float plateLocal[16] = {1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f};
     float antLocal[16] = {1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f};
     bool hasPlate = false;
     bool hasAnt = false;
-    // the seat of the driver on this kart read once per kart and driver pair
-    std::string seatToken;
-    float seat[3] = {0.f, 0.f, 0.f};
-    bool hasSeat = false;
 };
 
-// the M FACE dds of a pet sits under Pet Facial folder not beside its body nif
-std::string petFacialDir(App& app) {
+// the part a shop tile tries on one preview view kept apart from the props its scene drops
+std::map<const RaceView*, PreviewTryOn>& previewTryOns() {
+    static std::map<const RaceView*, PreviewTryOn> tryOns;
+    return tryOns;
+}
+
+const PreviewTryOn& tryOnOf(const RaceView& view) {
+    static const PreviewTryOn none;
+    const auto found = previewTryOns().find(&view);
+    return found == previewTryOns().end() ? none : found->second;
+}
+
+// the pet a preview shows the tried key else the equipped row
+const PetRow* previewPet(App& app, const RaceView& view) {
     const Catalog& cat = app.session().catalog();
+    if (tryOnOf(view).petKey != 0) return cat.pet(tryOnOf(view).petKey);
     const OwnedPet* worn = cat.equippedPet();
-    if (!worn) return std::string();
-    const PetRow* def = cat.pet(worn->petKey);
+    return worn ? cat.pet(worn->petKey) : nullptr;
+}
+
+// the M FACE dds of a pet sits under Pet Facial folder not beside its body nif
+std::string petFacialDir(App& app, const PetRow* def) {
     if (!def || def->model.empty()) return std::string();
     return findEntryCi(app.options().gameDir + "/Data/Public/Pet/Facial", def->model);
 }
 
-// the asset of the worn driver the pet seat comes from its driver pos ini
-std::string ownDriverAsset(App& app) {
-    Session& session = app.session();
-    const DriverRow* row = session.catalog().driver(session.myDriverKey());
-    return row && !row->asset.empty() ? row->asset : std::string("Cosmo");
-}
-
-// pet body of the equipped 0x0104 row driver manager load driver 0x48CE97 builds it from the 0x0103 model folder
-std::string equippedPetNif(App& app) {
-    const Catalog& cat = app.session().catalog();
-    const OwnedPet* worn = cat.equippedPet();
-    if (!worn) return std::string();
-    const PetRow* def = cat.pet(worn->petKey);
+// pet body of a 0x0103 row driver manager load driver 0x48CE97 builds it from the model folder
+std::string petBodyNif(App& app, const PetRow* def) {
     if (!def || def->model.empty()) return std::string();
     const std::string folder = findEntryCi(app.options().gameDir + "/Data/Public/Pet/Body", def->model);
     if (folder.empty()) return std::string();
@@ -185,24 +224,9 @@ std::map<const RaceView*, PreviewProps>& previewProps() {
     return props;
 }
 
-// the BODYSET nifs of one driver asset from the owned row of the worn driver else the def costume
-std::vector<std::string> driverPartNifs(App& app, const DriverRow& row) {
-    Session& session = app.session();
-    const Catalog& cat = session.catalog();
-    std::array<uint32_t, 5> keys = row.costume;
-    if (session.profile().characterInstance >= 0)
-        if (const OwnedCharacter* mine = cat.ownedCharacter(static_cast<uint32_t>(session.profile().characterInstance)))
-            if (mine->driverKey == row.key) keys = mine->accessory;
-    std::vector<std::string> nifs;
-    const std::string dir = app.options().gameDir + "/Data/Public/Driver/Body/High/" + row.asset + "/BODYSET/";
-    std::error_code ignored;
-    for (uint32_t key : keys) {
-        const std::string model = partModelOf(app, key);
-        if (model.empty()) continue;
-        const std::string path = dir + model + ".nif";
-        if (std::filesystem::exists(path, ignored)) nifs.push_back(path);
-    }
-    return nifs;
+// the worn look of one driver asset the owned row of the worn driver else the def costume
+std::vector<KnC::Tools::GhostDriverPart> driverPartNifs(App& app, const DriverRow& row) {
+    return driverParts(app, row.asset, wornCostume(app, row.key));
 }
 
 // the wallpaper png as a disk path the renderer reads its textures from files the pak copy is written out
@@ -235,10 +259,12 @@ int addPreviewPart(App& app, RaceView& view, const std::string& nif, const std::
 }
 
 // the number plate on O NAME and the antenna on O ANT of the previewed kart body
-void placePreviewParts(App& app, RaceView& view, const std::string& kartModel, const std::string& driverAsset,
-                       float yawDeg) {
+void placePreviewParts(App& app, RaceView& view, int carHandle, const std::string& kartModel, const float car[16]) {
     PreviewProps& props = previewProps()[&view];
-    const PreviewLook look = previewLook(app, kartModel);
+    PreviewLook look = previewLook(app, kartModel);
+    const PreviewTryOn& tried = tryOnOf(view);
+    if (!tried.plate.empty()) look.plateNif = carPartNif(app, "Parts", tried.plate);
+    if (!tried.antenna.empty()) look.antNif = carPartNif(app, "Item", tried.antenna);
     if (look.plateNif != props.plateNif) {
         props.plateNif = look.plateNif;
         props.plate = addPreviewPart(app, view, look.plateNif);
@@ -253,35 +279,23 @@ void placePreviewParts(App& app, RaceView& view, const std::string& kartModel, c
         props.hasPlate = KnC::Tools::ghost_car_dummy(body, "O_NAME", props.plateLocal);
         props.hasAnt = KnC::Tools::ghost_car_dummy(body, "O_ANT", props.antLocal);
     }
-    float car[16];
-    bx::mtxRotateZ(car, yawDeg * kDegToRad);
-    auto place = [&](int handle, const float* local, bool has) {
+    // the plate and antenna hang under O NAME and O ANT so they follow the body bounce
+    auto place = [&](int handle, const char* node, const float* local, bool has) {
         if (handle < 0) return;
         float world[16];
-        bx::mtxMul(world, local, car);
+        if (!view.carNodeWorld(app.renderer(), carHandle, node, world)) bx::mtxMul(world, local, car);
         view.placeProp(handle, world, has);
     };
-    place(props.plate, props.plateLocal, props.hasPlate);
-    place(props.ant, props.antLocal, props.hasAnt);
+    place(props.plate, "O_NAME", props.plateLocal, props.hasPlate);
+    place(props.ant, "O_ANT", props.antLocal, props.hasAnt);
 
-    // the pet of FUN 004A5ED0 at 0x4A87FE on the seat point lifted no turn no scale
-    const std::string petNif = equippedPetNif(app);
-    if (petNif != props.petNif) {
+    // FUN 004A5ED0 loads the pet with its kfm sub 4A51B0 hovers it by the seat a shop tile tries one
+    const PetRow* pet = previewPet(app, view);
+    const std::string petNif = petBodyNif(app, pet);
+    if (petNif != props.petNif || carHandle != props.petCar) {
         props.petNif = petNif;
-        props.pet = addPreviewPart(app, view, petNif, petFacialDir(app));
-    }
-    if (props.pet >= 0) {
-        const std::string token = kartModel + "|" + driverAsset;
-        if (props.seatToken != token) {
-            props.seatToken = token;
-            const std::string body = driverBodyNif(app.options().gameDir, driverAsset);
-            props.hasSeat = !body.empty() && KnC::Tools::find_driver_seat(body, kartModel, props.seat);
-        }
-        float local[16];
-        bx::mtxTranslate(local, props.seat[0], props.seat[1] + kPetOffsetY, props.seat[2] + kPetOffsetZ);
-        float world[16];
-        bx::mtxMul(world, local, car);
-        view.placeProp(props.pet, world, props.hasSeat);
+        props.petCar = carHandle;
+        view.setCarPet(app.renderer(), carHandle, petNif, petFacialDir(app, pet), PetHoverKind::Preview);
     }
 }
 
@@ -357,6 +371,80 @@ void drawCharPanel(DrawContext& ctx, AssetStore& assets, const UserListState& li
 
 std::string charPreviewPaint(App& app, const std::string& kartModel) { return previewPaint(app, kartModel); }
 
+void setCharPreviewTryOn(const RaceView& view, const PreviewTryOn& tryOn) { previewTryOns()[&view] = tryOn; }
+
+std::array<uint32_t, 5> wornCostume(App& app, uint32_t driverKey) {
+    Session& session = app.session();
+    const Catalog& cat = session.catalog();
+    std::array<uint32_t, 5> keys{};
+    if (const DriverRow* row = cat.driver(driverKey)) keys = row->costume;
+    if (session.profile().characterInstance >= 0)
+        if (const OwnedCharacter* mine = cat.ownedCharacter(static_cast<uint32_t>(session.profile().characterInstance)))
+            if (mine->driverKey == driverKey) keys = mine->accessory;
+    return keys;
+}
+
+KartLook kartLook(App& app, uint32_t kartKey, const std::array<uint32_t, 3>& parts) {
+    std::array<uint32_t, 3> keys{};
+    if (const KartRow* row = app.session().catalog().kart(kartKey))
+        for (size_t i = 0; i < keys.size(); ++i) keys[i] = row->skins[i];
+    for (size_t i = 0; i < keys.size(); ++i)
+        if (parts[i] != 0 && parts[i] != 0xFFFFFFFFu) keys[i] = parts[i];
+    KartLook look;
+    look.paint = partModelOf(app, keys[0]);
+    look.plate = partModelOf(app, keys[1]);
+    if (look.plate.empty()) look.plate = "NAMEBOX_NORMAL";
+    look.antenna = partModelOf(app, keys[2]);
+    return look;
+}
+
+std::string kartViewModel(App& app, uint32_t kartKey, const std::array<uint32_t, 15>& customCar) {
+    const Catalog& cat = app.session().catalog();
+    const KartRow* row = cat.kart(kartKey);
+    const std::string model = row && !row->model.empty() ? row->model : std::string("Basic_1");
+    if (!row || row->modelScheme != 1) return model;
+    KnC::Tools::GhostFactoryCar car;
+    car.chassis = model;
+    for (size_t slot = 0; slot < car.parts.size(); ++slot) {
+        const CarCraftPartDef* def = cat.carCraftPart(customCar[1 + slot * 2]);
+        if (!def || def->model.empty()) continue;
+        car.parts[slot].model = def->model;
+        car.parts[slot].grade = static_cast<int32_t>(customCar[2 + slot * 2]);
+    }
+    return KnC::Tools::ghost_factory_token(car);
+}
+
+std::string ownedKartViewModel(App& app, uint32_t kartInstance) {
+    const Catalog& cat = app.session().catalog();
+    const OwnedKart* owned = cat.ownedKart(kartInstance);
+    std::array<uint32_t, 15> block{};
+    for (const CarCraftPreset& preset : cat.carCraftPresets()) {
+        if (preset.kartInstance != kartInstance) continue;
+        // the preset holds part instances the block the server sends holds their def keys and grades
+        for (size_t slot = 0; slot < preset.slot.size(); ++slot) {
+            const CarCraftPartInstance* part = cat.carCraftInstance(preset.slot[slot]);
+            if (!part) continue;
+            block[1 + slot * 2] = part->partKey;
+            block[2 + slot * 2] = static_cast<uint32_t>(part->grade);
+        }
+        break;
+    }
+    return kartViewModel(app, owned ? owned->kartKey : 0, block);
+}
+
+std::vector<KnC::Tools::GhostDriverPart> driverParts(App& app, const std::string& asset,
+                                                     const std::array<uint32_t, 5>& keys) {
+    std::vector<KnC::Tools::GhostDriverPart> parts;
+    const std::string dir = findEntryCi(findEntryCi(app.options().gameDir + "/Data/Public/Driver/Body/High", asset), "BODYSET");
+    for (size_t i = 0; i < keys.size(); ++i) {
+        const std::string model = partModelOf(app, keys[i]);
+        const std::string nif = model.empty() || dir.empty() ? std::string() : findEntryCi(dir, model + ".nif");
+        // sub 48C9C0 slot 2 O BODY to 6 O BACK in the order of the five keys
+        if (!nif.empty()) parts.push_back({static_cast<int>(i) + 2, nif});
+    }
+    return parts;
+}
+
 std::string charPreviewLookToken(App& app) {
     Session& session = app.session();
     const Catalog& cat = session.catalog();
@@ -376,15 +464,21 @@ std::string charPreviewLookToken(App& app) {
 }
 
 bool loadCharPreviewScene(App& app, RaceView& view, RaceWorld& world, const Rect& viewRect) {
+    return loadCharPreviewSceneFor(app, view, world, viewRect, wallpaperPath(app),
+                                   Rect{0.f, 0.f, app.canvasWidth(), app.canvasHeight()});
+}
+
+bool loadCharPreviewSceneFor(App& app, RaceView& view, RaceWorld& world, const Rect& viewRect,
+                             const std::string& texture, const Rect& textureRect) {
     float eye[3], look[3];
     previewCamera(eye, look);
-    const Rect canvas = {0.f, 0.f, app.canvasWidth(), app.canvasHeight()};
-    return loadPreviewSceneFor(app, view, world, viewRect, eye, look, KnC::Render::kVerticalFieldOfView,
-                               wallpaperPath(app), canvas);
+    return loadPreviewSceneFor(app, view, world, viewRect, eye, look, kPreviewFieldRadians / kDegToRad, texture,
+                               textureRect, previewHorizontalField(app) / kDegToRad);
 }
 
 bool loadPreviewSceneFor(App& app, RaceView& view, RaceWorld& world, const Rect& viewRect, const float eye[3],
-                         const float look[3], float fovDegrees, const std::string& texture, const Rect& textureRect) {
+                         const float look[3], float fovDegrees, const std::string& texture, const Rect& textureRect,
+                         float horizontalDegrees) {
     using namespace KnC::Render;
     // every driver body loads with its worn BODYSET parts so Prince keeps his head and a hat shows
     for (const DriverRow& row : app.session().catalog().drivers())
@@ -406,7 +500,9 @@ bool loadPreviewSceneFor(App& app, RaceView& view, RaceWorld& world, const Rect&
         const bx::Vec3 u = bx::cross(r, d);
         const bx::Vec3 c = bx::add(e, bx::mul(d, kBackdropDistance));
         const float hh = kBackdropDistance * std::tan(fovDegrees * 0.5f * kDegToRad);
-        const float hw = hh * (viewRect.w / viewRect.h);
+        // a lens with its own horizontal field spans that angle across the rect not the rect aspect
+        const float hw = horizontalDegrees > 0.f ? kBackdropDistance * std::tan(horizontalDegrees * 0.5f * kDegToRad)
+                                                 : hh * (viewRect.w / viewRect.h);
         // the slice of the backdrop image that sits under the view rect on the canvas
         const float u0 = (viewRect.x - textureRect.x) / textureRect.w;
         const float u1 = (viewRect.x + viewRect.w - textureRect.x) / textureRect.w;
@@ -474,15 +570,17 @@ void drawCharPreview(App& app, RaceView& view, int carHandle, float yawDeg, cons
     if (carHandle >= 0) {
         // the BodyColor paint of the kart Car Body High model sub 0x49123D
         const std::string kartModel = view.kartModelOf(carHandle);
-        view.setCarPaint(app.renderer(), carHandle, previewPaint(app, kartModel));
-        CarPose pose;
-        pose.yawDeg = yawDeg;
+        const std::string& tried = tryOnOf(view).paint;
+        view.setCarPaint(app.renderer(), carHandle, tried.empty() ? previewPaint(app, kartModel) : tried);
+        const CarPose pose = previewKartPose(app, kartModel, yawDeg);
         view.setPose(carHandle, pose, 0.f, 0.f);
-        placePreviewParts(app, view, kartModel, ownDriverAsset(app), yawDeg);
+        float car[16];
+        previewKartMatrix(pose, car);
+        placePreviewParts(app, view, carHandle, kartModel, car);
     }
-    CarPose target;
-    target.z = kOrbitLookZ;
-    view.drawOrbit(app.renderer(), target, kOrbitAngle, kOrbitDistance, kOrbitHeight, 1.f / 25.f);
+    float eye[3], look[3];
+    previewCamera(eye, look);
+    view.drawFixed(app.renderer(), eye, look, kPreviewFieldRadians, 1.f / 25.f, previewHorizontalField(app));
 }
 
 float turnCharPreview(WidgetScreen& screen, float yawDeg, float dt) {

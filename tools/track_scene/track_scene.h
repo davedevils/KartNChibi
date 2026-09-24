@@ -19,6 +19,7 @@ struct TrackSceneRequest {
     bool load_collision = true;
     bool load_markers = true;       // build the start and gimmick csv marker boxes
     bool load_item_boxes = true;
+    bool load_item_drums = true;    // the race of a speed mode builds no item manager so no drum
     bool point_textures_at_pak = true;  // open a pak reader for missing textures off when the caller set a source
 };
 

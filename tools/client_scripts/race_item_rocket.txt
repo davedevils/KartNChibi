@@ -1,0 +1,9 @@
+# gate: state race
+# gate: env KNC_ITEM_TEST=10
+# gate: env KNC_ITEM_SHOTS=0.8,1.3,1.8,2.4,3.4
+# the search runs 0 8 s with the marker then the release locks the leader in the cone and fires
+# the rocket flies in the boom crashes the car and the top right attack view shows the hit
+# the race clock captures out_item_NNNNN at the listed seconds after the green light
+waitfor race 900
+wait 900
+quit

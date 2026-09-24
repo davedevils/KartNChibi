@@ -1,6 +1,7 @@
 #include "RaceView.h"
 
 #include "RaceEffects.h"
+#include "RaceItems.h"
 #include "engine/render/nif_prop_model.h"
 #include "engine/render/scene_renderer.h"
 #include "tools/replay/ghost_replay.h"
@@ -22,6 +23,10 @@ namespace {
 
 constexpr float kDegToRad = 3.14159265f / 180.f;
 constexpr float kRadToDeg = 180.f / 3.14159265f;
+// the MT DAMAGE kf runs 2 s the shield 800 and the flash 1100 play no damage clip
+constexpr float kDamageClipSeconds = 2.f;
+constexpr int kShieldCode = 800;
+constexpr int kFlashCode = 1100;
 
 // camera update 0x43F040 mode 1 heading eases a quarter per frame 0x5A32D4 a thirty second before green
 constexpr float kCamHeadingBlend = 0.25f;
@@ -55,29 +60,6 @@ constexpr float kStockFrameSeconds = 1.f / 60.f;
 // camera init 0x4408D0 frustum right edge is tan of fov times this aspect term over 2
 constexpr float kStockAspectPivot = 1.7780f;
 constexpr float kStockAspectBase = 1.35f;
-// driver place on car 0x48B800 pet stands minus 1 along x 0x5A32C8 across 0x5A68CC up
-constexpr float kPetBack = 1.f;
-constexpr float kPetAcross = 0.9f;
-constexpr float kPetUp = 1.6f;
-// trail grows by speed times 0x5A68D8 a frame over 100 a second capped 0x5A68D4
-constexpr float kPetTrailPerSpeed = 0.0005f;
-constexpr float kPetTrailCap = 3.6f;
-constexpr float kPetTrailSpeedGate = 100.f;
-constexpr float kPetTrailSlowGate = 30.f;
-constexpr float kPetTrailSlowStep = 0.1f;
-constexpr double kPetTrailSeconds = 5.0;
-// side wander steps 0x5A68D0 a frame between 0x5A68C8 and 0x5A68CC or holds 3 s
-constexpr float kPetSideStep = 0.03f;
-constexpr float kPetSideLow = -2.5f;
-constexpr float kPetSideHigh = 1.6f;
-constexpr double kPetSideHold = 3.001;
-// bob steps 0x5A05E0 a frame between 0x5A68C4 and one
-constexpr float kPetBobStep = 0.01f;
-constexpr float kPetBobLow = -0.5f;
-constexpr float kPetBobHigh = 1.f;
-// pet node turns by minus a quarter D3DX which is plus a quarter in bx
-constexpr float kPetTurnRadians = 1.5707963f;
-constexpr float kStockFrameHz = 60.f;
 
 // sub 4D3570 four weather nifs under Data Public
 const char* const kRainSheetNif = "Effect/rain_01.nif";
@@ -161,6 +143,11 @@ constexpr std::size_t kNoAppendedModel = static_cast<std::size_t>(-1);
 // car model key from kart and paint plain body under empty paint
 std::string carModelKey(const std::string& model, const std::string& paint) {
     return paint.empty() ? model : model + "@" + paint;
+}
+
+// a factory car wears the grade texture set of its parts no BodyColor paint
+std::string paintOf(const std::string& model, const std::string& paint) {
+    return model.find('#') == std::string::npos ? paint : std::string();
 }
 
 GhostPose ghostPoseOf(const CarPose& pose) {
@@ -281,6 +268,8 @@ bool RaceView::load(SceneRenderer& renderer, RaceWorld& world) {
     renderer.set_far_plane(std::max(kClientFarPlane, radius * 2.2f));
     m_carModels.clear();
     m_driverModels.clear();
+    // a cached pet kept a model index the fresh upload no longer holds
+    m_petModels.clear();
     m_cars.clear();
     m_props.clear();
     m_itemBoxes.clear();
@@ -486,6 +475,8 @@ bool RaceView::loadEmpty(SceneRenderer& renderer) {
     renderer.set_far_plane(kClientFarPlane);
     m_carModels.clear();
     m_driverModels.clear();
+    // a cached pet kept a model index the fresh upload no longer holds
+    m_petModels.clear();
     m_cars.clear();
     m_props.clear();
     m_itemBoxes.clear();
@@ -499,7 +490,8 @@ bool RaceView::loadEmpty(SceneRenderer& renderer) {
 }
 
 RaceView::CarModel& RaceView::carModel(SceneRenderer& renderer, const std::string& gameDir, const std::string& model,
-                                       const std::string& paint) {
+                                       const std::string& wantedPaint) {
+    const std::string paint = paintOf(model, wantedPaint);
     const std::string key = carModelKey(model, paint);
     auto it = m_carModels.find(key);
     if (it != m_carModels.end()) return it->second;
@@ -510,22 +502,29 @@ RaceView::CarModel& RaceView::carModel(SceneRenderer& renderer, const std::strin
         nif = kartBodyNif(gameDir, "Basic_1");
     }
     std::string error;
+    // model scheme 1 the factory branch of 0x490A70 builds the chassis and the installed parts
+    GhostFactoryCar factory;
+    const bool built = ghost_factory_of(model, factory)
+                           ? load_ghost_factory_car(gameDir + "/Data/Public/Car/FactoryCar", factory, cm.car, error)
+                           : !nif.empty() && load_ghost_car(nif, cm.car, error, paint);
     // paint names BodyColor folder of body Car Body High model BodyColor paint 0x49123D
-    if (nif.empty() || !load_ghost_car(nif, cm.car, error, paint)) {
+    if (!built) {
         std::printf("[view] kart %s failed %s\n", model.c_str(), error.c_str());
         return cm;
     }
     cm.firstModelIndex = renderer.append_prop_model(cm.car.body);
     for (const PropModel& wheel : cm.car.wheels) renderer.append_prop_model(wheel);
+    for (const PropModel& piece : cm.car.pieces) renderer.append_prop_model(piece);
     cm.valid = true;
     std::printf("[view] kart %s paint %s %zu wheels from %s\n", model.c_str(), paint.empty() ? "none" : paint.c_str(),
                 cm.car.wheels.size(), nif.c_str());
     return cm;
 }
 
-void RaceView::setCarPaint(SceneRenderer& renderer, int handle, const std::string& paint) {
+void RaceView::setCarPaint(SceneRenderer& renderer, int handle, const std::string& wantedPaint) {
     if (handle < 0 || handle >= static_cast<int>(m_cars.size())) return;
     CarVisual& v = m_cars[static_cast<size_t>(handle)];
+    const std::string paint = paintOf(v.kartName, wantedPaint);
     if (!v.alive || v.paint == paint) return;
     CarModel& cm = carModel(renderer, m_gameDir, v.kartName, paint);
     if (!cm.valid) return;
@@ -539,9 +538,21 @@ const std::string& RaceView::kartModelOf(int handle) const {
     return m_cars[static_cast<size_t>(handle)].kartName;
 }
 
+bool RaceView::carNodeWorld(const SceneRenderer& renderer, int handle, const std::string& name, float out[16]) const {
+    if (handle < 0 || handle >= static_cast<int>(m_cars.size())) return false;
+    const CarVisual& v = m_cars[static_cast<size_t>(handle)];
+    const auto cm = m_carModels.find(v.kartModel);
+    if (!v.alive || cm == m_carModels.end() || !cm->second.valid) return false;
+    float local[16];
+    if (!renderer.prop_node_matrix(cm->second.firstModelIndex, name, local)) return false;
+    bx::mtxMul(out, local, v.world);
+    return true;
+}
+
 RaceView::DriverModel& RaceView::driverModel(SceneRenderer& renderer, const std::string& gameDir,
-                                             const std::string& asset, const std::string& chassis) {
-    const std::string key = asset + "@" + chassis;
+                                             const std::string& asset, const std::string& chassis,
+                                             const std::vector<GhostDriverPart>* parts) {
+    const std::string key = asset + "@" + chassis + (parts ? "|" + ghost_driver_parts_token(*parts) : std::string());
     auto it = m_driverModels.find(key);
     if (it != m_driverModels.end()) return it->second;
     DriverModel& dm = m_driverModels[key];
@@ -551,7 +562,9 @@ RaceView::DriverModel& RaceView::driverModel(SceneRenderer& renderer, const std:
         nif = driverBodyNif(gameDir, "Cosmo");
     }
     std::string error;
-    if (nif.empty() || !load_ghost_driver(nif, chassis, dm.driver, error)) {
+    const bool loaded = !nif.empty() && (parts ? load_ghost_driver(nif, chassis, *parts, dm.driver, error)
+                                               : load_ghost_driver(nif, chassis, dm.driver, error));
+    if (!loaded) {
         std::printf("[view] driver %s failed %s\n", asset.c_str(), error.c_str());
         return dm;
     }
@@ -566,10 +579,23 @@ RaceView::DriverModel& RaceView::driverModel(SceneRenderer& renderer, const std:
 
 int RaceView::addCar(SceneRenderer& renderer, const std::string& gameDir, const std::string& kartModel,
                      const std::string& driverAsset, const std::string& paint) {
+    return addCar(renderer, gameDir, kartModel, driverAsset, paint, nullptr);
+}
+
+int RaceView::addCar(SceneRenderer& renderer, const std::string& gameDir, const std::string& kartModel,
+                     const std::string& driverAsset, const std::string& paint,
+                     const std::vector<GhostDriverPart>& parts) {
+    return addCar(renderer, gameDir, kartModel, driverAsset, paint, &parts);
+}
+
+int RaceView::addCar(SceneRenderer& renderer, const std::string& gameDir, const std::string& kartModel,
+                     const std::string& driverAsset, const std::string& wantedPaint,
+                     const std::vector<GhostDriverPart>* parts) {
     if (!m_loaded) return -1;
     m_gameDir = gameDir;
+    const std::string paint = paintOf(kartModel, wantedPaint);
     CarModel& cm = carModel(renderer, gameDir, kartModel, paint);
-    std::string chassis = kartModel;
+    std::string chassis = ghost_kart_chassis(kartModel);
     if (cm.valid) {
         const std::string nif = kartBodyNif(gameDir, kartModel);
         const size_t slash = nif.find_last_of("/\\");
@@ -579,12 +605,12 @@ int RaceView::addCar(SceneRenderer& renderer, const std::string& gameDir, const 
             chassis = up == std::string::npos ? dir : dir.substr(up + 1);
         }
     }
-    driverModel(renderer, gameDir, driverAsset, chassis);
+    driverModel(renderer, gameDir, driverAsset, chassis, parts);
     CarVisual v;
     v.kartModel = carModelKey(kartModel, cm.valid ? paint : std::string());
     v.kartName = kartModel;
     v.paint = cm.valid ? paint : std::string();
-    v.driverAsset = driverAsset + "@" + chassis;
+    v.driverAsset = driverAsset + "@" + chassis + (parts ? "|" + ghost_driver_parts_token(*parts) : std::string());
     v.alive = true;
     m_cars.push_back(v);
     return static_cast<int>(m_cars.size() - 1);
@@ -609,57 +635,14 @@ RaceView::PetModel& RaceView::petModel(SceneRenderer& renderer, const std::strin
     return pm;
 }
 
-void RaceView::setCarPet(SceneRenderer& renderer, int handle, const std::string& petNif, const std::string& facialDir) {
+void RaceView::setCarPet(SceneRenderer& renderer, int handle, const std::string& petNif, const std::string& facialDir,
+                         PetHoverKind hover) {
     if (handle < 0 || handle >= static_cast<int>(m_cars.size())) return;
     CarVisual& v = m_cars[static_cast<size_t>(handle)];
     v.petModel.clear();
-    v.hover = PetHover();
+    v.pet.reset(hover);
     if (petNif.empty()) return;
     if (petModel(renderer, petNif, facialDir).valid) v.petModel = petNif;
-}
-
-// driver place on car 0x48B800 pet trails at speed wanders across and bobs per 60 Hz frame
-void RaceView::hoverPet(CarVisual& v, const CarPose& pose, float dt, double clockSeconds) {
-    PetHover& h = v.hover;
-    const float frames = dt * kStockFrameHz;
-    const float speed = std::fabs(pose.speed);
-    if (h.trailState == 0) {
-        h.trailState = 1;
-        h.trailAt = clockSeconds;
-    } else if (h.trailState == 1) {
-        if (speed >= kPetTrailSpeedGate) {
-            h.trail = std::min(kPetTrailCap, h.trail + speed * kPetTrailPerSpeed * frames);
-            if (clockSeconds - h.trailAt >= kPetTrailSeconds) { h.trailState = 2; h.trailAt = clockSeconds; }
-        } else {
-            h.trailState = 2;
-            h.trailAt = clockSeconds;
-        }
-    } else {
-        const float step = speed >= kPetTrailSlowGate ? speed * kPetTrailPerSpeed : kPetTrailSlowStep;
-        h.trail = std::max(0.f, h.trail - step * frames);
-        if (clockSeconds - h.trailAt > kPetTrailSeconds) { h.trailState = 1; h.trailAt = clockSeconds; }
-    }
-    if (h.sideState == 0) {
-        const int roll = std::rand() & 3;
-        h.sideState = roll;
-        if (roll == 3) h.sideAt = clockSeconds;
-    }
-    if (h.sideState == 1) {
-        h.side += kPetSideStep * frames;
-        if (h.side > kPetSideHigh) { h.side = kPetSideHigh; h.sideState = 0; }
-    } else if (h.sideState == 2) {
-        h.side -= kPetSideStep * frames;
-        if (h.side < kPetSideLow) { h.side = kPetSideLow; h.sideState = 0; }
-    } else if (h.sideState == 3) {
-        if (clockSeconds - h.sideAt >= kPetSideHold) h.sideState = 0;
-    }
-    if (h.bobState == 0) {
-        h.bob += kPetBobStep * frames;
-        if (h.bob > kPetBobHigh) { h.bob = kPetBobHigh; h.bobState = 1; }
-    } else {
-        h.bob -= kPetBobStep * frames;
-        if (h.bob < kPetBobLow) { h.bob = kPetBobLow; h.bobState = 0; }
-    }
 }
 
 void RaceView::removeCar(int handle) {
@@ -700,9 +683,15 @@ void RaceView::setPose(int handle, const CarPose& given, float dt, float clockSe
     CarPose pose = given;
     applyDriftTest(pose);
     carWorld(pose, v.world);
+    // sub 4C25E0 the hammer squash flattens the car and its driver on the car z
+    if (v.squash < 0.999f) {
+        float squash[16], squashed[16];
+        bx::mtxScale(squash, 1.f, 1.f, v.squash);
+        bx::mtxMul(squashed, squash, v.world);
+        for (int i = 0; i < 16; ++i) v.world[i] = squashed[i];
+    }
     // remote car has no port matrix ground under its wheels tilts it like stock
     if (!pose.hasBody) remoteLean(v, pose, dt);
-    if (!v.petModel.empty()) hoverPet(v, pose, dt, clockSeconds);
     float moved[3] = {0.f, 0.f, 0.f};
     if (v.prevValid) {
         moved[0] = pose.x - v.prevPos[0];
@@ -730,6 +719,15 @@ void RaceView::setPose(int handle, const CarPose& given, float dt, float clockSe
         // local car keeps lean clip for a speed over 10 remote rule gates at 3
         const float speed = pose.hasBody && pose.speed <= kLocalLeanSpeedGate ? 0.f : pose.speed;
         int wanted = ghost_driver_clip(dm->second.driver, ghostPoseOf(pose), speed);
+        // car effect apply 0x495C30 plays the MT DAMAGE clip once on every code but 800 and 1100
+        const int hitCode = pose.hasSignals ? pose.signals.hitCode : 0;
+        if (hitCode != 0 && hitCode != v.hitCode && hitCode != kShieldCode && hitCode != kFlashCode)
+            v.damageUntil = clockSeconds + kDamageClipSeconds;
+        v.hitCode = hitCode;
+        if (clockSeconds < v.damageUntil) {
+            const int damage = dm->second.driver.clip_of(kDriverSeqDamage);
+            if (damage >= 0) wanted = damage;
+        }
         // podium forces win or lose sequence on driver
         if (v.forcedClip >= 0) {
             const int forced = dm->second.driver.clip_of(v.forcedClip);
@@ -740,35 +738,29 @@ void RaceView::setPose(int handle, const CarPose& given, float dt, float clockSe
             v.clipStart = clockSeconds;
         }
         v.clipSeconds = std::max(0.f, clockSeconds - v.clipStart);
+        // set sequence 0x48B460 plays the same KFM id on the pet
+        const int sequence = v.forcedClip >= 0 ? v.forcedClip : ghost_driver_sequence(ghostPoseOf(pose), speed);
+        v.pet.follow(sequence, pose.speed);
     }
-}
-
-void RaceView::drawOrbit(SceneRenderer& renderer, const CarPose& target, float orbitDeg, float distance,
-                         float height, float dt) {
-    if (!m_loaded) return;
-    renderer.animation().advance(dt);
-    submit(renderer);
-    const float angle = orbitDeg * kDegToRad;
-    const float eye[3] = {target.x + std::cos(angle) * distance, target.y + std::sin(angle) * distance,
-                          target.z + height};
-    float view[16];
-    bx::mtxLookAt(view, bx::Vec3(eye[0], eye[1], eye[2]), bx::Vec3(target.x, target.y, target.z + 0.6f),
-                  bx::Vec3(0.f, 0.f, 1.f), bx::Handedness::Right);
-    // preview keeps stock base field 1 05 and stock horizontal rule
-    renderer.set_field_of_view(kCamFovBase, stockHorizontalField(kCamFovBase, renderer));
-    for (int i = 0; i < 16; ++i) m_lastView[i] = view[i];
-    for (int i = 0; i < 3; ++i) m_lastEye[i] = eye[i];
-    renderer.draw(view, eye);
 }
 
 void RaceView::submit(SceneRenderer& renderer) {
     std::vector<PropInstance> props;
     std::vector<CharacterInstance> riders;
-    for (const CarVisual& v : m_cars) {
+    for (size_t handle = 0; handle < m_cars.size(); ++handle) {
+        CarVisual& v = m_cars[handle];
         if (!v.alive) continue;
         auto cm = m_carModels.find(v.kartModel);
         if (cm != m_carModels.end() && cm->second.valid) {
             ghost_car_instances(cm->second.car, cm->second.firstModelIndex, v.world, v.wheels, props);
+            // car apply kart loadout hangs plate and antenna under O NAME and O ANT so they bounce with the body
+            float name[16], ant[16];
+            const GhostCar& car = cm->second.car;
+            if (!renderer.prop_node_matrix(cm->second.firstModelIndex, "O_NAME", name))
+                std::copy(car.name_local.begin(), car.name_local.end(), name);
+            if (!renderer.prop_node_matrix(cm->second.firstModelIndex, "O_ANT", ant))
+                std::copy(car.ant_local.begin(), car.ant_local.end(), ant);
+            raceEffects().followDummies(static_cast<int>(handle), name, ant);
         }
         auto dm = m_driverModels.find(v.driverAsset);
         if (dm != m_driverModels.end() && dm->second.valid) {
@@ -776,19 +768,12 @@ void RaceView::submit(SceneRenderer& renderer) {
             ghost_driver_instance(dm->second.driver, dm->second.modelIndex, v.world, v.clip < 0 ? -1 : v.clip,
                                   v.clipSeconds, rider);
             riders.push_back(rider);
-            // pet beside driver seat turned a quarter hovering on its idle clip
+            // pet beside the driver seat on the render clock so a still stand keeps it moving
             auto pm = v.petModel.empty() ? m_petModels.end() : m_petModels.find(v.petModel);
             if (pm != m_petModels.end() && pm->second.valid) {
-                const float* seat = dm->second.driver.seat;
-                float turn[16], lift[16], local[16], world[16];
-                bx::mtxRotateZ(turn, kPetTurnRadians);
-                bx::mtxTranslate(lift, seat[0] - kPetBack + v.hover.trail, seat[1] + kPetAcross + v.hover.side,
-                                 seat[2] + kPetUp + v.hover.bob);
-                bx::mtxMul(local, turn, lift);
-                bx::mtxMul(world, local, v.world);
                 CharacterInstance pet;
-                ghost_driver_instance(pm->second.driver, pm->second.modelIndex, world, pm->second.driver.idle_clip,
-                                      renderer.animation().seconds(), pet);
+                v.pet.place(pm->second.driver, pm->second.modelIndex, dm->second.driver.seat, v.world,
+                            renderer.animation().seconds(), pet);
                 riders.push_back(pet);
             }
         }
@@ -812,6 +797,7 @@ void RaceView::submit(SceneRenderer& renderer) {
         for (int i = 0; i < 16; ++i) instance.world[i] = extra.world[i];
         props.push_back(instance);
     }
+    if (m_items) m_items->submit(renderer, props);
     // effect placements of every car after karts sparks flames dust shadow
     raceEffects().submit(renderer, props, m_camera.valid ? m_camera.eye : nullptr);
     renderer.set_appended_prop_instances(props);
@@ -854,17 +840,18 @@ void RaceView::drawFinish(SceneRenderer& renderer, const CarPose& own, float dt)
 }
 
 void RaceView::drawFixed(SceneRenderer& renderer, const float eye[3], const float look[3], float fovRadians,
-                         float dt) {
+                         float dt, float horizontalRadians) {
     if (!m_loaded) return;
     renderer.animation().advance(dt);
     submit(renderer);
     m_camera.place(eye, look, fovRadians, dt);
-    present(renderer, fovRadians);
+    present(renderer, fovRadians, horizontalRadians);
 }
 
-void RaceView::present(SceneRenderer& renderer, float fovRadians) {
-    // lens of frame vertical field of camera horizontal one by stock rule
-    renderer.set_field_of_view(fovRadians, stockHorizontalField(fovRadians, renderer));
+void RaceView::present(SceneRenderer& renderer, float fovRadians, float horizontalRadians) {
+    // lens of frame vertical field of camera horizontal one by stock rule unless the caller has its own
+    renderer.set_field_of_view(fovRadians, horizontalRadians > 0.f ? horizontalRadians
+                                                                   : stockHorizontalField(fovRadians, renderer));
     m_camera.view(m_lastView, m_lastEye);
     renderer.draw(m_lastView, m_lastEye);
 }
@@ -894,6 +881,11 @@ void RaceView::placeProp(int handle, const float world[16], bool shown) {
 void RaceView::restartProp(SceneRenderer& renderer, int handle) {
     if (handle < 0 || handle >= static_cast<int>(m_props.size())) return;
     renderer.restart_prop_particles(m_props[static_cast<size_t>(handle)].modelIndex, renderer.animation().seconds());
+}
+
+void RaceView::setCarSquash(int handle, float zScale) {
+    if (handle < 0 || handle >= static_cast<int>(m_cars.size())) return;
+    m_cars[static_cast<size_t>(handle)].squash = zScale;
 }
 
 void RaceView::setDriverClip(int handle, int sequenceId) {

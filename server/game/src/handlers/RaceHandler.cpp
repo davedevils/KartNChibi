@@ -1,5 +1,6 @@
 #include "handlers/RaceHandler.h"
 #include "handlers/AntiCheatHandler.h"
+#include "handlers/GachaHandler.h"
 #include "handlers/InventoryHandler.h"
 #include "handlers/MissionHandler.h"
 #include "handlers/ProgressionHandler.h"
@@ -66,15 +67,32 @@ constexpr uint64_t SUSPICION_DECAY_MS = 3000;
 // client docks itself on leave race so the server must dock the same wallet
 constexpr int32_t RETIRE_MIN_CARS = 2;
 
-// the order every standings frame uses time first then the 0x67 score then lap then height
+// the order every standings frame uses time first then the server place key then the 0x67 score lap and height
 bool rankLess(const RacePlayer* a, const RacePlayer* b) {
     if (a->finished != b->finished) return a->finished;
     if (a->finished && b->finished) return a->totalTime < b->totalTime;
+    if (a->rankKey >= 0.0f && b->rankKey >= 0.0f && a->rankKey != b->rankKey) return a->rankKey > b->rankKey;
     if (a->haveProgress && b->haveProgress && a->progressScore != b->progressScore) {
         return a->progressScore > b->progressScore;
     }
     if (a->lap != b->lap) return a->lap > b->lap;
     return a->z > b->z;
+}
+
+// humans from their checked 0x41 faces bots from their follower all on one scale
+void refreshRankKeys(const RoomRaceLive& live, std::vector<RacePlayer>& roster) {
+    for (auto& p : roster) {
+        p.rankKey = -1.0f;
+        if (live.checkpointPoints.size() < 2) continue;
+        const BotRacer* bot = nullptr;
+        for (const auto& b : live.bots) if (b.playerId == p.playerId) { bot = &b; break; }
+        if (bot) {
+            p.rankKey = raceRankKey(live.checkpointPoints, bot->checkpoints.laps, bot->checkpoints.checkpoint, p.x, p.y);
+        } else if (p.lapTracker.checkpointCount() == static_cast<int32_t>(live.checkpointPoints.size())) {
+            p.rankKey = raceRankKey(live.checkpointPoints, clientLapsFromTracker(p.lapTracker),
+                                    p.lapTracker.nextCheckpoint(), p.x, p.y);
+        }
+    }
 }
 
 // exclude by character id because a bot has no session to exclude by
@@ -257,6 +275,7 @@ void RaceHandler::loadTrackData(Room* room) {
     int32_t checkpointCount = 0;
     std::vector<SpawnPackets::ColPadCell> pads;
     bool padsLoaded = false;
+    std::vector<SpawnPackets::TrackVec3> checkpointPoints;
     if (themeFolder.empty() || trackFolder.empty()) {
         LOG_WARN("RACE", "track " + std::to_string(trackId) +
                  " has no theme or track folder lap tracking off");
@@ -264,6 +283,7 @@ void RaceHandler::loadTrackData(Room* room) {
         SpawnPackets::ColCheckpoints col;
         if (SpawnPackets::loadTrackCheckpoints(themeFolder, trackFolder, col)) {
             checkpointCount = col.checkpointCount;
+            if (static_cast<int32_t>(col.points.size()) == col.checkpointCount) checkpointPoints = col.points;
             // the client starts a pad boost alone the observer needs the cells to tell it from a cheat
             pads = std::move(col.pads);
             padsLoaded = true;
@@ -286,6 +306,7 @@ void RaceHandler::loadTrackData(Room* room) {
     live.grid            = std::move(grid);
     live.lapTrackingLive = checkpointCount > 0;
     live.pads            = std::move(pads);
+    live.checkpointPoints = std::move(checkpointPoints);
     live.padsLoaded      = padsLoaded;
 
     for (auto& p : m_racePlayers[room->id()]) {
@@ -522,6 +543,7 @@ void RaceHandler::handleMotion(Session::Ptr session, Packet& packet, Room* room,
             auto& roster = m_racePlayers[room->id()];
             if (!roster.empty()) {
                 // zero based place in the same order calculatePositions writes used to send only leader as one flipping the HUD
+                refreshRankKeys(live, roster);
                 std::vector<RacePlayer*> order;
                 order.reserve(roster.size());
                 for (auto& p : roster) order.push_back(&p);
@@ -1865,7 +1887,8 @@ void RaceHandler::sendGrid(Room* room) {
         e.team        = wireTeam(rp->team);
         // same blobs the room member carried a synthesized record has zero skin keys sub 490A70 drops the socket
         GameServer::loadoutBlobs(*rp, e.character, e.kart, e.customCar);
-        e.petBaseKey  = 0;   // UNKNOWN no pet source on the room row
+        // sub 479D60 hands this key to sub 48CBB0 which loads Pet Body of that pet beside the racer
+        e.petBaseKey  = GachaHandler::equippedPetBaseKey(static_cast<uint32_t>(playerId));
         entries.push_back(e);
 
         // db read stays outside the lock else tick stalls on the kart catalog
@@ -2045,8 +2068,9 @@ void RaceHandler::calculatePositions(uint32_t roomId) {
     if (it == m_racePlayers.end()) return;
 
     auto& players = it->second;
+    refreshRankKeys(m_roomLive[roomId], players);
 
-    // sort finished by time else by the client 0x67 score then by lap then z
+    // sort finished by time else by the server place key then the 0x67 score lap and z
     std::vector<RacePlayer*> sorted;
     for (auto& p : players) {
         sorted.push_back(&p);
@@ -2620,7 +2644,10 @@ void RaceHandler::tickBots(uint64_t now, GameServer* server) {
                 if (auto* p = getPlayer(roomId, b.playerId)) {
                     p->x = d.x(); p->y = d.y(); p->z = d.z(); p->rot = d.yawDeg();
                     p->lap = static_cast<uint8_t>(std::min<int32_t>(d.lapsDone(), 255));
-                    p->progressScore = static_cast<int32_t>(d.progressScore());
+                    // the standings compare this with human 0x67 so it must be the same checkpoint formula
+                    p->progressScore = static_cast<int32_t>(live.checkpointPoints.size() >= 2
+                        ? b.checkpoints.update(live.checkpointPoints, d.x(), d.y())
+                        : d.progressScore());
                     p->haveProgress = true;
                     p->lastUpdate = std::chrono::steady_clock::now();
                 }

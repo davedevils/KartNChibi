@@ -7,10 +7,12 @@
 #include "engine/render/nif_prop_model.h"
 #include "engine/render/scene_renderer.h"
 #include "net/Utf.h"
+#include "race/RaceEffects.h"
 #include "screens/HelpPopup.h"
 #include "screens/MenuPopup.h"
 #include "screens/ShopCommon.h"
 #include "tools/track_scene/ghost_car.h"
+#include "ui/CharPanel.h"
 #include "ui/MenuFrame.h"
 
 #include "games/kart/physics/client/motion_packet.h"
@@ -56,6 +58,16 @@ constexpr float kCameraLookZ = 2.f;
 constexpr float kRoomFieldRadians = 1.028f;
 // the stock eye and look of mode 14 sit this much over our Floor01 rows
 constexpr float kRoomFloorRise = 4.11f;
+// camera update 0x43F040 mode 13 eye 14 behind the car on minus x 8 4 up look 3 4 up
+constexpr float kFollowBack = 14.f;
+constexpr float kFollowEyeUp = 8.4f;
+constexpr float kFollowLookUp = 3.4f;
+// the eye stops at x minus 10 and climbs a fifth of the way the car goes on past it
+constexpr float kFollowEyeMaxX = -10.f;
+constexpr float kFollowClimb = 0.2f;
+// the eye height eases half the gap a 60 Hz frame the other axes snap
+constexpr float kFollowHeightEase = 0.5f;
+constexpr float kStockFrameSeconds = 1.f / 60.f;
 constexpr float kDegToRad = 3.14159265f / 180.f;
 // the stock auto start runs thirty seconds from the second seat the digits sit at 5 and 35 on 300
 constexpr float kAutoStartSeconds = 30.f;
@@ -181,6 +193,7 @@ void RoomScreen::enter() {
     m_autoStartLeft = -1.f;
     m_simReady = false;
     m_localSpawned = false;
+    m_followValid = false;
     m_driveClock = 0.0;
     m_motionAt = 0.0;
     m_teams.clear();
@@ -332,6 +345,7 @@ void RoomScreen::refreshButtons() {
 void RoomScreen::startRoomDrive() {
     m_simReady = false;
     m_localSpawned = false;
+    m_followValid = false;
     if (!m_worldLoaded) return;
     std::string error;
     if (!m_sim.init(m_world, m_app.session().profile().playerId, error)) {
@@ -399,6 +413,7 @@ void RoomScreen::driveRoom(float dt) {
     m_sim.setLocalInput(flags, drift, false);
     const int ticks = m_sim.advance(dt);
     (void)ticks;
+    followCamera(dt);
     const float clock = m_app.renderer().animation().seconds();
     for (Car& c : m_cars) {
         if (c.handle < 0 || c.carIndex < 0) continue;
@@ -433,19 +448,37 @@ void RoomScreen::refreshCars() {
     const RoomState& room = session.room();
     std::vector<RoomMember> members = room.members;
     std::stable_sort(members.begin(), members.end(), [](const RoomMember& a, const RoomMember& b) { return a.slot < b.slot; });
+    const auto lookOf = [&](const RoomMember& m) {
+        std::string token = kartViewModel(m_app, m.kartKey, m.customCar) + "|" + std::to_string(m.driverKey) + " p" +
+                            std::to_string(m.petKey);
+        for (uint32_t key : m.kartParts) token += " " + std::to_string(key);
+        for (uint32_t key : m.accessory) token += " " + std::to_string(key);
+        return token;
+    };
     bool same = members.size() == m_cars.size();
-    for (size_t i = 0; same && i < members.size(); ++i) same = members[i].playerId == m_cars[i].playerId;
+    for (size_t i = 0; same && i < members.size(); ++i)
+        same = members[i].playerId == m_cars[i].playerId && lookOf(members[i]) == m_cars[i].look;
     if (same) return;
     for (Car& c : m_cars) if (c.handle >= 0) m_view.removeCar(c.handle);
     m_cars.clear();
     for (const RoomMember& m : members) {
         Car c;
         c.playerId = m.playerId;
+        c.look = lookOf(m);
         const KartRow* kart = session.catalog().kart(m.kartKey);
         const DriverRow* driver = session.catalog().driver(m.driverKey);
         c.model = kart && !kart->model.empty() ? kart->model : std::string("Basic_1");
         c.driver = driver && !driver->asset.empty() ? driver->asset : std::string("Cosmo");
-        c.handle = m_view.addCar(m_app.renderer(), m_app.options().gameDir, c.model, c.driver);
+        // the member blobs dress the driver and paint the kart with plate and antenna like the race grid
+        const KartLook look = kartLook(m_app, m.kartKey, m.kartParts);
+        c.handle = m_view.addCar(m_app.renderer(), m_app.options().gameDir, kartViewModel(m_app, m.kartKey, m.customCar),
+                                 c.driver, look.paint, driverParts(m_app, c.driver, m.accessory));
+        raceEffects().setLook(c.handle, look.plate, look.antenna);
+        // sub 40CC90 loads the worn pet of the 0x0021 row beside the member on the room stand
+        if (const PetRow* pet = m.petKey != 0 ? session.catalog().pet(m.petKey) : nullptr) {
+            const PetFiles files = petFiles(m_app.options().gameDir, pet->model);
+            m_view.setCarPet(m_app.renderer(), c.handle, files.nif, files.facialDir);
+        }
         m_cars.push_back(c);
     }
     // the start rows of the room world seat the members the empty scene keeps a row of its own
@@ -455,11 +488,11 @@ void RoomScreen::refreshCars() {
     for (size_t i = 0; i < m_cars.size(); ++i) {
         CarPose pose;
         if (m_worldLoaded && i < rows.size()) {
-            // heading 0 drives toward minus x where the stock eye stands so the karts turn round to face it
-            pose.x = rows[i].x; pose.y = rows[i].y; pose.z = rows[i].z; pose.yawDeg = rows[i].heading + 180.f;
+            // FUN 004A05C0 seats the car on the row heading 0 drives toward minus x so the nose faces the eye
+            pose.x = rows[i].x; pose.y = rows[i].y; pose.z = rows[i].z; pose.yawDeg = rows[i].heading;
         } else {
             pose.y = -span * 0.5f + kCarGap * static_cast<float>(i);
-            pose.yawDeg = 180.f;
+            pose.yawDeg = 0.f;
         }
         Car& c = m_cars[i];
         c.x = pose.x; c.y = pose.y; c.z = pose.z;
@@ -495,8 +528,40 @@ void RoomScreen::refreshCars() {
 
 // camera mode 14 of FUN 0043ED70 a fixed eye and look the stock floor sits 6 5 above our rows
 void RoomScreen::roomCamera(float eye[3], float look[3]) const {
+    if (m_followValid) {
+        for (int i = 0; i < 3; ++i) { eye[i] = m_followEye[i]; look[i] = m_followLook[i]; }
+        return;
+    }
     eye[0] = -31.5f; eye[1] = 10.3f; eye[2] = 13.3f - kRoomFloorRise;
     look[0] = -17.5f; look[1] = 10.3f; look[2] = 8.3f - kRoomFloorRise;
+}
+
+// mode 13 at the start row gives the mode 14 numbers so the first frame does not jump
+void RoomScreen::followCamera(float dt) {
+    if (!m_simReady || !m_localSpawned) {
+        m_followValid = false;
+        return;
+    }
+    const CarPose own = m_sim.pose(m_sim.localIndex());
+    float x = own.x - kFollowBack;
+    float climb = 0.f;
+    if (x > kFollowEyeMaxX) {
+        climb = (x - kFollowEyeMaxX) * kFollowClimb;
+        x = kFollowEyeMaxX;
+    }
+    const float eyeZ = own.z + kFollowEyeUp + climb;
+    if (!m_followValid) {
+        m_followEye[2] = eyeZ;
+    } else {
+        const float blend = 1.f - std::pow(1.f - kFollowHeightEase, dt / kStockFrameSeconds);
+        m_followEye[2] += (eyeZ - m_followEye[2]) * blend;
+    }
+    m_followEye[0] = x;
+    m_followEye[1] = own.y;
+    m_followLook[0] = own.x;
+    m_followLook[1] = own.y;
+    m_followLook[2] = own.z + kFollowLookUp;
+    m_followValid = true;
 }
 
 bool RoomScreen::project(const float world[3], float& sx, float& sy) const {

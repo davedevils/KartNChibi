@@ -77,9 +77,17 @@ struct RoomMember {
     uint8_t level = 0;
     uint32_t driverKey = 0;
     uint32_t kartKey = 0;
+    // the five BODYSET part keys of the character blob at 0x08 O BODY to O BACK
+    std::array<uint32_t, 5> accessory{};
+    // paint plate and antenna part keys of the kart blob at 0x08 the def row stands in for a zero
+    std::array<uint32_t, 3> kartParts{};
+    // the 0x3C custom car block the chassis key then seven part key and grade pairs of a factory kart
+    std::array<uint32_t, 15> customCar{};
     uint32_t ready = 0;
     // the u32 after the pccafe byte sub 499180 draws its pendant left of the room name plate
     uint32_t pendantKey = 0;
+    // L plus 0x6F the worn pet sub 40D650 keeps and sub 40CC90 loads on the room stand
+    uint32_t petKey = 0;
 };
 
 // one decor record of the 0x0013 tail the room craft world of the master

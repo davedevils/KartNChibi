@@ -17,9 +17,9 @@ public:
     bool load(KnC::Render::SceneRenderer& renderer, const std::string& gameDir, bool teamMode);
     void unload() { m_loaded = false; }
     bool loaded() const { return m_loaded; }
-    // call after world frame fbW fbH are frame pixels canvasW canvasH are 1024x768 stock canvas letterboxed
+    // call after world frame fbW fbH are frame pixels canvasW canvasH the stock canvas stretch as the sprite batch
     void draw(KnC::Render::SceneRenderer& renderer, const HudState& state, float dt, uint16_t fbW, uint16_t fbH,
-              float canvasW, float canvasH);
+              float canvasW, float canvasH, bool stretch);
 
 private:
     bool m_loaded = false;

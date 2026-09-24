@@ -112,6 +112,8 @@ struct TrackRow {
     uint32_t specialModeOnly = 0;
     uint32_t lapCount = 3;
     float fogFar = 0.f;
+    // record 0x5C to 0x64 the point the clear weather sun flare aims at a negative z turns it off
+    float lensFlare[3] = {0.f, 0.f, 0.f};
     std::string nameKey;
     bool visible = false;
 };

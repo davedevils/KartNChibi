@@ -1,0 +1,12 @@
+# gate: state race
+# the gas down the first straight then a right turn into the yellow barrier
+# the kart bounces off and runs on along the road before 2026-09-24 it sank into the barrier and crept through it
+waitfor race 900
+hold up 2400
+wait 247
+hold right 15
+wait 19
+shot race_wall_hit
+wait 8
+shot race_wall_along
+quit

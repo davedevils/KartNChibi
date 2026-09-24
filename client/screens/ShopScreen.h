@@ -68,6 +68,8 @@ private:
     int m_previewCar = -1;
     std::string m_previewKart;
     std::string m_previewDriver;
+    // the parts token of the driver the preview wears a tried part reloads it
+    std::string m_previewParts;
     bool m_sceneReady = false;
     // the kart yaw of the preview the arrows turn it the front ball resets it
     float m_orbit = 0.f;

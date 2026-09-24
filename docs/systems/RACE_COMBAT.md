@@ -70,8 +70,12 @@ judge.
 C2S `0x41` checkpoint transitions feed `SpawnPackets::LapTracker` with the checkpoint count
 of the track COL. A skipped or repeated checkpoint is refused, a full lap advances the lap
 board with S2C `0x44`, the last lap calls the finish. C2S `0x67` is the client progress score,
-used for the live rank and to log a client that runs a lap ahead of the server. The rank
-order is finish time, then progress score, then lap, then height. C2S `0x68` respawn is
+used to log a client that runs a lap ahead of the server. The rank order is finish time,
+then the server place key, then progress score, then lap, then height. The place key is
+laps times 5000 plus the last checkpoint and the share of the next segment times the bucket,
+for a human from its checked `0x41` faces and its motion, for a CPU car from a follower that
+walks the COL checkpoints like a client car. The raw `0x67` score is not monotonic, from START
+to checkpoint 1 it reads almost a full lap high, so it never ranks alone. C2S `0x68` respawn is
 relayed to the others and resets the judges of that car.
 
 ## Items
@@ -97,6 +101,23 @@ relayed to the others and resets the judges of that car.
 No opcode carries drift or boost. The server reads them from the state bits of each 0x40
 sample, with the kart thresholds from the 0xC0 stats and the boost pads of the track COL,
 and only judges. Remotes see the effect through the relayed motion.
+
+## Pets
+
+The pet effects are client side only. Each one reads the first row of the own `0x0104` list
+with +0x08 equal to 1 (container `0x1A69708`) and maps the key through `sub_451490`. Nothing on
+the race wire carries them. The clone fills that list for the physics port in
+`RaceSim::setEquippedPet` after every sim init.
+
+| Key | Pet | Kind | Stock | Effect |
+|---|---|---|---|---|
+| 10 | Rosie | 0x13 | `sub_4AE590` then `sub_4ADC20` | band fill factor 1.05 instead of 1 |
+| 20 | Chai | 0x14 | `sub_49AA90` | 3 mini turbos in 100 start a kind 1 boost |
+| 30 | Porki | 0x15 | `sub_496BE0` | push strength 1.04 on the boost kinds 1 2 3 5 7 |
+| 40 | Dim Dim | 0x16 | `sub_496E50` | 500 ms more on the boost kinds 1 and 2 |
+
+The pet model rides the `0x003E` and `0x0021` keys, our server fills both from the
+`owned_pet` equipped mirror (`GachaHandler::equippedPetBaseKey`).
 
 ## CPU cars
 

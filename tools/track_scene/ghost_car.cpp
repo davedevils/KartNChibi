@@ -202,19 +202,94 @@ void find_body_clips(const fs::path& body_nif, std::vector<CharacterClipRequest>
 const char* const kSlotNodes[7] = {"O_PAINT", "O_NAME", "O_BODY", "O_FACE", "O_HEAD", "O_GLASS", "O_BACK"};
 
 // The parts worn by a driver asset one list per asset for the whole process
-std::map<std::string, std::vector<std::string>>& driver_part_registry() {
-    static std::map<std::string, std::vector<std::string>> registry;
+std::map<std::string, std::vector<GhostDriverPart>>& driver_part_registry() {
+    static std::map<std::string, std::vector<GhostDriverPart>> registry;
     return registry;
 }
 
-// The attach node the part file names itself its root child carries one of the five names
-std::string part_attach_node(const KnC::NifScene& scene) {
-    std::vector<std::pair<std::string, NodeXf>> named;
-    for (uint32_t root : scene.roots) collect_named_nodes(scene, root, NodeXf{}, named);
-    for (const auto& entry : named)
-        for (int slot = 2; slot <= 6; ++slot)
-            if (lower(entry.first) == lower(kSlotNodes[slot])) return kSlotNodes[slot];
+// EngineDLL socket scan 0x10014310 takes O and underscore plus a letter and five bone prefixes
+bool is_socket_name(const std::string& name) {
+    if (name.size() > 2 && name.compare(0, 2, "O_") == 0) return true;
+    for (const char* prefix : {" Head", " L Hand", " R Hand", " L Foot", " R Foot"})
+        if (name.rfind(prefix, 0) == 0) return true;
+    return false;
+}
+
+// One socket of the body the parent block it hangs on and the local transform a part takes
+struct DriverSocket {
+    std::string name;
+    uint32_t parent = KnC::kNoLink;
+    KnC::NifTransform local;
+};
+
+bool is_geometry(const KnC::NifScene& scene, uint32_t block) {
+    return block < scene.blocks.size() && scene.blocks[block].data_link < scene.blocks.size();
+}
+
+// NiTriShape and NiTriStrips the NiTriBasedGeom RTTI 0x1021A7A8 the scan tests for
+bool is_tri_based(const KnC::NifScene& scene, uint32_t block) {
+    return block < scene.blocks.size() && scene.blocks[block].type.rfind("NiTri", 0) == 0;
+}
+
+// The scan 0x10014310 detaches every socket with its subtree and every other mesh the parts dress the skeleton
+std::vector<DriverSocket> detach_sockets(KnC::NifScene& scene) {
+    scene.roots = KnC::find_root_block_indices(scene);
+    std::vector<DriverSocket> sockets;
+    std::vector<uint32_t> pending(scene.roots.begin(), scene.roots.end());
+    std::vector<char> seen(scene.blocks.size(), 0);
+    while (!pending.empty()) {
+        const uint32_t block = pending.back();
+        pending.pop_back();
+        if (block >= scene.blocks.size() || seen[block]) continue;
+        seen[block] = 1;
+        std::vector<uint32_t>& children = scene.blocks[block].children;
+        for (auto child = children.begin(); child != children.end();) {
+            if (*child < scene.blocks.size() && is_socket_name(scene.blocks[*child].name)) {
+                sockets.push_back({scene.blocks[*child].name, block, scene.blocks[*child].transform});
+                child = children.erase(child);
+                continue;
+            }
+            if (is_tri_based(scene, *child)) {
+                child = children.erase(child);
+                continue;
+            }
+            pending.push_back(*child);
+            ++child;
+        }
+    }
+    return sockets;
+}
+
+// The entry of that name in a folder any case empty when it has none
+std::string find_file_ci(const std::string& dir, const std::string& name) {
+    if (dir.empty() || name.empty()) return std::string();
+    std::error_code ignored;
+    for (const auto& entry : fs::directory_iterator(dir, ignored))
+        if (lower(entry.path().filename().string()) == lower(name)) return entry.path().string();
     return std::string();
+}
+
+// Drops every child the keep test refuses the part then builds without it
+template <typename Keep>
+void drop_children(KnC::NifScene& scene, Keep keep) {
+    scene.roots = KnC::find_root_block_indices(scene);
+    for (KnC::NifBlock& block : scene.blocks)
+        block.children.erase(std::remove_if(block.children.begin(), block.children.end(),
+                                            [&](uint32_t child) { return !keep(child); }),
+                             block.children.end());
+}
+
+// 0x10014CC0 walks down while a node holds under two children and no effect
+uint32_t descend_part_root(const KnC::NifScene& scene, uint32_t block) {
+    while (block < scene.blocks.size() && !is_geometry(scene, block)) {
+        const KnC::NifBlock& node = scene.blocks[block];
+        std::vector<uint32_t> held;
+        for (uint32_t child : node.children)
+            if (child < scene.blocks.size()) held.push_back(child);
+        if (held.size() != 1 || !node.effects.empty()) break;
+        block = held.front();
+    }
+    return block;
 }
 
 // A composed placement back as a local transform the palette bind takes one
@@ -274,6 +349,8 @@ void resolve_textures(const std::string& root, PropModel& model) {
         part.texture_path = find_texture(root, part.texture_path);
         if (!part.detail_texture_path.empty())
             part.detail_texture_path = find_texture(root, part.detail_texture_path);
+        if (!part.environment.texture.empty())
+            part.environment.texture = find_texture(root, part.environment.texture);
     }
     // The flip files of a mesh part sit beside its base map
     for (KnC::Render::FlipAnimation& flip : model.animation.flip_channels)
@@ -286,7 +363,11 @@ void resolve_textures(const std::string& root, PropModel& model) {
 }
 
 void resolve_textures(const std::string& root, CharacterModel& model) {
-    for (SkinnedPart& part : model.parts) part.texture_path = find_texture(root, part.texture_path);
+    for (SkinnedPart& part : model.parts) {
+        part.texture_path = find_texture(root, part.texture_path);
+        if (!part.environment.texture.empty())
+            part.environment.texture = find_texture(root, part.environment.texture);
+    }
 }
 
 namespace {
@@ -314,8 +395,11 @@ std::string model_key(const std::string& nif, const std::string& more) {
 
 bool load_ghost_car_fresh(const std::string& body_nif, GhostCar& out, std::string& error,
                           const std::string& paint);
-bool load_ghost_driver_fresh(const std::string& body_nif, const std::string& chassis, GhostDriver& out,
-                             std::string& error);
+void read_car_dummies(const KnC::NifScene& body_scene, GhostCar& out);
+void load_wheels(const KnC::NifScene& body_scene, const fs::path& wheel_dir, const std::string& texture_dir,
+                 GhostCar& out);
+bool load_ghost_driver_fresh(const std::string& body_nif, const std::string& chassis,
+                             const std::vector<GhostDriverPart>& worn, GhostDriver& out, std::string& error);
 
 }
 
@@ -357,7 +441,13 @@ bool load_ghost_car_fresh(const std::string& body_nif, GhostCar& out, std::strin
     KnC::NifScene body_scene;
     std::string scene_error;
     if (!KnC::read_nif_scene(body_nif, body_scene, scene_error)) return true;  // body alone still usable
+    read_car_dummies(body_scene, out);
+    load_wheels(body_scene, body_dir, body_dir.string(), out);
+    return true;
+}
 
+// O SM01 O SM02 O ANT and O NAME of the body the effects and the kart items ride them
+void read_car_dummies(const KnC::NifScene& body_scene, GhostCar& out) {
     for (int smokeNumber = 1; smokeNumber <= 2; ++smokeNumber) {
         char name[16];
         std::snprintf(name, sizeof(name), "O_SM%02d", smokeNumber);
@@ -369,33 +459,171 @@ bool load_ghost_car_fresh(const std::string& body_nif, GhostCar& out, std::strin
     }
     out.has_ant = find_named_dummy(body_scene, "O_ANT", out.ant_local.data());
     out.has_name = find_named_dummy(body_scene, "O_NAME", out.name_local.data());
+}
 
+// WHEEL1 to WHEEL4 of a folder each on its O WHEEL dummy of the body
+void load_wheels(const KnC::NifScene& body_scene, const fs::path& wheel_dir, const std::string& texture_dir,
+                 GhostCar& out) {
     for (int wheelNumber = 1; wheelNumber <= 4; ++wheelNumber) {
         float dummy_world[16];
         if (!find_wheel_dummy(body_scene, wheelNumber, dummy_world)) continue;
         char file_name[32];
         std::snprintf(file_name, sizeof(file_name), "WHEEL%d.nif", wheelNumber);
-        const fs::path wheel_path = body_dir / file_name;
-        std::error_code ignored;
-        if (!fs::exists(wheel_path, ignored)) continue;
+        const std::string wheel_path = find_file_ci(wheel_dir.string(), file_name);
+        if (wheel_path.empty()) continue;
 
         NifModelRequest wheel_request;
-        wheel_request.nif_path = wheel_path.string();
-        wheel_request.texture_dir = body_dir.string();
+        wheel_request.nif_path = wheel_path;
+        wheel_request.texture_dir = texture_dir;
         PropModel wheel_model;
         std::string wheel_error;
         if (!load_prop_model(wheel_request, wheel_model, wheel_error)) continue;
         resolve_textures(wheel_request.texture_dir, wheel_model);
 
-        std::array<float, 16> local;
-        for (int i = 0; i < 16; ++i) local[i] = dummy_world[i];
+        // car model wheel nodes keeps the node position car 0x3528 alone the Everest dummies turn 90 degrees
+        std::array<float, 16> local = {1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f};
+        for (int i = 12; i < 15; ++i) local[static_cast<size_t>(i)] = dummy_world[i];
         out.wheel_radius.push_back(wheel_radius_of(wheel_model));
+        // A wheel hangs under the body so the lights of the body root effect list reach it
+        wheel_model.lights = out.body.lights;
         out.wheels.push_back(std::move(wheel_model));
         out.wheel_local.push_back(local);
+    }
+}
+
+// The texture set word of a grade under 5 Basic under 20 Unique up to 64 Epic above Legend
+const char* factory_grade_word(int grade) {
+    if (grade < 5) return "_Basic";
+    if (grade < 20) return "_Unique";
+    if (grade <= 64) return "_Epic";
+    return "_Legend";
+}
+
+// 0x492910 the chassis set takes the mean of the grades over zero Basic when none is
+int factory_mean_grade(const GhostFactoryCar& car) {
+    int sum = 0;
+    int count = 0;
+    for (const GhostFactoryPart& part : car.parts) {
+        if (part.model.empty() || part.grade <= 0) continue;
+        sum += part.grade;
+        ++count;
+    }
+    return count > 0 ? sum / count : 0;
+}
+
+// The folder and the files of each slot in the 0x20 config order tires come apart as wheels
+struct FactorySlotFiles {
+    const char* folder;
+    const char* file;
+    int count;
+};
+constexpr int kFactoryTireSlot = 1;
+const FactorySlotFiles kFactorySlots[7] = {
+    {"COVER", "COVER", 1},       {"TIRES", "WHEEL", 4},       {"BOOSTER", "BOOSTER", 1}, {"BUMPER", "BUMPER", 1},
+    {"F_FENDER", "F_FENDER", 2}, {"R_FENDER", "R_FENDER", 2}, {"WING", "WING", 1},
+};
+
+bool load_ghost_factory_car_fresh(const std::string& factory_root, const GhostFactoryCar& car, GhostCar& out,
+                                  std::string& error) {
+    out = GhostCar{};
+    const fs::path root(factory_root);
+    const std::string textures = find_file_ci(factory_root, "Texture");
+    const std::string chassis_dir = find_file_ci(find_file_ci(factory_root, "CHASSIS"), car.chassis);
+    const std::string body_nif = find_file_ci(chassis_dir, "BODY.nif");
+    if (body_nif.empty()) {
+        error = "factory chassis " + car.chassis + " has no BODY.nif under " + factory_root;
+        return false;
+    }
+    NifModelRequest body_request;
+    body_request.nif_path = body_nif;
+    body_request.texture_dir = find_file_ci(textures, car.chassis + factory_grade_word(factory_mean_grade(car)));
+    if (body_request.texture_dir.empty()) body_request.texture_dir = chassis_dir;
+    if (!load_prop_model(body_request, out.body, error)) return false;
+    resolve_textures(body_request.texture_dir, out.body);
+    resolve_textures(chassis_dir, out.body);
+
+    KnC::NifScene body_scene;
+    std::string scene_error;
+    if (!KnC::read_nif_scene(body_nif, body_scene, scene_error)) return true;
+    read_car_dummies(body_scene, out);
+    for (int slot = 0; slot < 7; ++slot) {
+        const GhostFactoryPart& part = car.parts[static_cast<size_t>(slot)];
+        if (part.model.empty()) continue;
+        const FactorySlotFiles& files = kFactorySlots[slot];
+        const std::string dir = find_file_ci(find_file_ci(factory_root, files.folder), part.model);
+        const std::string texture_dir = find_file_ci(textures, part.model + factory_grade_word(part.grade));
+        if (slot == kFactoryTireSlot) {
+            load_wheels(body_scene, dir, texture_dir.empty() ? dir : texture_dir, out);
+            continue;
+        }
+        for (int piece = 1; piece <= files.count; ++piece) {
+            char name[32];
+            if (files.count == 1) std::snprintf(name, sizeof(name), "%s.nif", files.file);
+            else std::snprintf(name, sizeof(name), "%s%02d.nif", files.file, piece);
+            NifModelRequest request;
+            request.nif_path = find_file_ci(dir, name);
+            request.texture_dir = texture_dir.empty() ? dir : texture_dir;
+            PropModel model;
+            std::string piece_error;
+            if (request.nif_path.empty() || !load_prop_model(request, model, piece_error)) continue;
+            resolve_textures(request.texture_dir, model);
+            resolve_textures(dir, model);
+            // the parts are authored in chassis space and hang under it so the chassis lights reach them
+            model.lights = out.body.lights;
+            out.pieces.push_back(std::move(model));
+        }
     }
     return true;
 }
 
+}
+
+std::string ghost_factory_token(const GhostFactoryCar& car) {
+    std::string token = car.chassis + "#";
+    for (const GhostFactoryPart& part : car.parts) token += part.model + ":" + std::to_string(part.grade) + "/";
+    return token;
+}
+
+bool ghost_factory_of(const std::string& token, GhostFactoryCar& out) {
+    const size_t hash = token.find('#');
+    if (hash == std::string::npos) return false;
+    out = GhostFactoryCar{};
+    out.chassis = token.substr(0, hash);
+    size_t at = hash + 1;
+    for (GhostFactoryPart& part : out.parts) {
+        const size_t end = token.find('/', at);
+        if (end == std::string::npos) break;
+        const std::string entry = token.substr(at, end - at);
+        const size_t colon = entry.find(':');
+        part.model = entry.substr(0, colon);
+        part.grade = colon == std::string::npos ? 0 : std::atoi(entry.c_str() + colon + 1);
+        at = end + 1;
+    }
+    return !out.chassis.empty();
+}
+
+std::string ghost_kart_chassis(const std::string& model) {
+    const size_t hash = model.find('#');
+    return hash == std::string::npos ? model : model.substr(0, hash);
+}
+
+bool load_ghost_factory_car(const std::string& factory_root, const GhostFactoryCar& car, GhostCar& out,
+                            std::string& error) {
+    const std::string key = model_key(factory_root, ghost_factory_token(car));
+    {
+        ParsedModels& models = parsed_models();
+        std::lock_guard<std::mutex> lock(models.lock);
+        const auto found = models.cars.find(key);
+        if (found != models.cars.end()) {
+            out = *found->second;
+            return true;
+        }
+    }
+    if (!load_ghost_factory_car_fresh(factory_root, car, out, error)) return false;
+    ParsedModels& models = parsed_models();
+    std::lock_guard<std::mutex> lock(models.lock);
+    models.cars[key] = std::make_shared<const GhostCar>(out);
+    return true;
 }
 
 bool load_kart_part_model(const std::string& nif, const std::string& texture_dir, PropModel& out,
@@ -501,6 +729,11 @@ void ghost_car_instances(const GhostCar& car, size_t first_model_index, const fl
         bx::mtxMul(wheel.world, placed, car_world);
         out.push_back(wheel);
     }
+    for (size_t i = 0; i < car.pieces.size(); ++i) {
+        PropInstance piece = body;
+        piece.model_index = first_model_index + 1 + car.wheels.size() + i;
+        out.push_back(piece);
+    }
 }
 
 void ghost_wheels_shake(float speed, const float grip[4], bool on_ground, GhostWheelState& wheels) {
@@ -567,79 +800,152 @@ const char* ghost_driver_slot_node(int equip_slot) {
     return kSlotNodes[equip_slot];
 }
 
-void ghost_driver_set_parts(const std::string& asset, const std::vector<std::string>& part_nifs) {
-    driver_part_registry()[lower(asset)] = part_nifs;
+void ghost_driver_set_parts(const std::string& asset, const std::vector<GhostDriverPart>& parts) {
+    driver_part_registry()[lower(asset)] = parts;
 }
 
-const std::vector<std::string>& ghost_driver_parts(const std::string& asset) {
-    static const std::vector<std::string> none;
+const std::vector<GhostDriverPart>& ghost_driver_parts(const std::string& asset) {
+    static const std::vector<GhostDriverPart> none;
     const auto it = driver_part_registry().find(lower(asset));
     return it == driver_part_registry().end() ? none : it->second;
 }
 
-std::string ghost_driver_parts_token(const std::string& asset) {
+std::string ghost_driver_parts_token(const std::vector<GhostDriverPart>& parts) {
     std::string token;
-    for (const std::string& path : ghost_driver_parts(asset)) {
-        token += fs::path(path).stem().string();
+    for (const GhostDriverPart& part : parts) {
+        token += std::to_string(part.equip_slot) + ':' + fs::path(part.nif).stem().string();
         token += ' ';
     }
     return token;
 }
 
+std::string ghost_driver_parts_token(const std::string& asset) { return ghost_driver_parts_token(ghost_driver_parts(asset)); }
+
 namespace {
 
-// BODYSET nif merged into body attach node rigid pieces drop
-bool merge_driver_part(const std::string& part_nif, int attach, CharacterModel& body) {
+// The body node of each lower case name a part bone binds by name
+std::map<std::string, int> body_nodes_by_name(const CharacterModel& body) {
+    std::map<std::string, int> nodes;
+    for (size_t index = 0; index < body.rig.skeleton.nodes.size(); ++index)
+        nodes.emplace(lower(body.rig.skeleton.nodes[index].name), static_cast<int>(index));
+    return nodes;
+}
+
+// 0x10033620 a skinned mesh joins the body only when every bone of it is named there
+bool skin_binds_to_body(const KnC::NifScene& scene, const KnC::NifBlock& shape,
+                        const std::map<std::string, int>& body_nodes) {
+    if (shape.skin_instance_link >= scene.blocks.size()) return false;
+    const KnC::NifSkin* skin = scene.blocks[shape.skin_instance_link].skin.get();
+    if (skin == nullptr || skin->bones.empty()) return false;
+    for (uint32_t bone : skin->bones) {
+        if (bone >= scene.blocks.size() || scene.blocks[bone].name.empty()) return false;
+        if (body_nodes.count(lower(scene.blocks[bone].name)) == 0) return false;
+    }
+    return true;
+}
+
+// The part of FUN 0048C680 hung on its socket the way EngineDLL 0x10014650 does it
+bool merge_driver_part(const std::string& part_nif, const DriverSocket& socket, int socket_parent,
+                       const std::string& facial_dir, CharacterModel& body) {
     KnC::NifScene scene;
     std::string error;
     if (!KnC::read_nif_scene(part_nif, scene, error)) return false;
+    const std::map<std::string, int> body_nodes = body_nodes_by_name(body);
+    std::vector<char> skinned(scene.blocks.size(), 0);
+    bool any_skinned = false;
+    for (uint32_t block = 0; block < scene.blocks.size(); ++block)
+        if (is_geometry(scene, block) && skin_binds_to_body(scene, scene.blocks[block], body_nodes)) {
+            skinned[block] = 1;
+            any_skinned = true;
+        }
+    // 0x10033190 a part with such skins brings those meshes alone the rigid ones stay out
+    std::vector<uint32_t> tops;
+    if (any_skinned) {
+        drop_children(scene, [&](uint32_t child) { return !is_geometry(scene, child) || skinned[child] != 0; });
+    } else {
+        // 0x10014750 drops the unnamed lights then 0x10014890 hangs the first branching node
+        drop_children(scene, [&](uint32_t child) {
+            return child >= scene.blocks.size() || !scene.blocks[child].name.empty() ||
+                   scene.blocks[child].type.find("Light") == std::string::npos;
+        });
+        const uint32_t root = scene.roots.empty() ? KnC::kNoLink : descend_part_root(scene, scene.roots.front());
+        if (root >= scene.blocks.size()) return false;
+        // a Scene Root keeps its place every child of it takes the socket transform
+        if (!is_geometry(scene, root) && scene.blocks[root].name == "Scene Root")
+            for (uint32_t child : scene.blocks[root].children) tops.push_back(child);
+        else
+            tops.push_back(root);
+    }
     CharacterModelRequest request;
     request.nif_path = part_nif;
     request.texture_dir = fs::path(part_nif).parent_path().string();
+    // An empty part such as the Cosmo face hangs nothing on its socket
+    request.allow_no_geometry = true;
+    request.draw_untextured = true;
     CharacterModel part;
     if (!build_character_model(scene, request, part, error)) return false;
     resolve_textures(request.texture_dir, part);
+    // the facial manager puts Driver Facial asset expression sheets on the face the BODYSET copy is older
+    std::error_code ignored;
+    for (SkinnedPart& piece : part.parts) {
+        if (piece.texture_path.empty()) continue;
+        std::string sheet = find_file_ci(facial_dir, fs::path(piece.texture_path).filename().string());
+        // sub 48D490 preloads MT IMMO IDLE for the face a face whose own sheet is missing wears it
+        if (sheet.empty() && socket.name == "O_FACE" && !fs::exists(piece.texture_path, ignored))
+            sheet = find_file_ci(facial_dir, "MT_IMMO_IDLE.dds");
+        if (!sheet.empty()) piece.texture_path = sheet;
+    }
 
-    // The rest world of every node of the part file a rigid piece bakes it into its bind
-    std::vector<KnC::NifPlacement> part_rest;
-    rest_nif_skeleton(part.rig.skeleton, part_rest);
-    // only node skin binds bone body shares by name
-    std::vector<char> is_bone(part.rig.skeleton.nodes.size(), 0);
+    const KnC::NifSkeleton& skeleton = part.rig.skeleton;
+    std::vector<char> is_top(skeleton.nodes.size(), 0);
+    for (uint32_t top : tops) {
+        const int node = skeleton.node_of(top);
+        if (node >= 0) is_top[static_cast<size_t>(node)] = 1;
+    }
+    std::vector<char> is_bone(skeleton.nodes.size(), 0);
     for (const KnC::NifBlock& block : scene.blocks) {
         if (!block.skin) continue;
         for (uint32_t bone : block.skin->bones) {
-            const int node = part.rig.skeleton.node_of(bone);
-            if (node >= 0 && static_cast<size_t>(node) < is_bone.size()) is_bone[static_cast<size_t>(node)] = 1;
+            const int node = skeleton.node_of(bone);
+            if (node >= 0) is_bone[static_cast<size_t>(node)] = 1;
         }
     }
+    std::vector<KnC::NifPlacement> part_rest;
+    rest_nif_skeleton(skeleton, part_rest);
     for (size_t index = 0; index < part.parts.size(); ++index) {
         BonePalette palette = part.rig.palettes[index];
-        bool rigid = false;
+        bool placed = true;
         for (size_t slot = 0; slot < palette.nodes.size(); ++slot) {
             const int node = palette.nodes[slot];
-            const bool bone = node >= 0 && static_cast<size_t>(node) < is_bone.size() &&
-                              is_bone[static_cast<size_t>(node)] != 0;
-            const std::string name = bone ? lower(part.rig.skeleton.nodes[static_cast<size_t>(node)].name)
-                                          : std::string();
-            int same = -1;
-            if (!name.empty())
-                for (size_t look = 0; look < body.rig.skeleton.nodes.size(); ++look)
-                    if (lower(body.rig.skeleton.nodes[look].name) == name) { same = static_cast<int>(look); break; }
-            if (same >= 0) {
+            if (node < 0) { placed = false; break; }
+            const auto named = is_bone[static_cast<size_t>(node)] != 0
+                                   ? body_nodes.find(lower(skeleton.nodes[static_cast<size_t>(node)].name))
+                                   : body_nodes.end();
+            if (named != body_nodes.end()) {
                 // A skinned piece keeps its bind the body carries the same bone
-                palette.nodes[slot] = same;
+                palette.nodes[slot] = named->second;
                 continue;
             }
-            // A rigid piece takes the rest world of its own node then rides the attach node
-            const KnC::NifTransform baked =
-                node >= 0 && static_cast<size_t>(node) < part_rest.size()
-                    ? transform_of_placement(part_rest[static_cast<size_t>(node)])
-                    : KnC::NifTransform();
-            palette.binds[slot] = compose_transform(baked, palette.binds[slot]);
-            palette.nodes[slot] = attach;
-            rigid = true;
+            KnC::NifTransform offset;
+            if (any_skinned) {
+                offset = transform_of_placement(part_rest[static_cast<size_t>(node)]);
+            } else {
+                // The top node of the branch sits on the socket what hangs below keeps its rest
+                std::vector<int> chain;
+                int walk = node;
+                while (walk >= 0 && is_top[static_cast<size_t>(walk)] == 0) {
+                    chain.push_back(walk);
+                    walk = skeleton.nodes[static_cast<size_t>(walk)].parent;
+                }
+                if (walk < 0) { placed = false; break; }
+                offset = socket.local;
+                for (auto step = chain.rbegin(); step != chain.rend(); ++step)
+                    offset = compose_transform(offset, skeleton.nodes[static_cast<size_t>(*step)].rest);
+            }
+            palette.binds[slot] = compose_transform(offset, palette.binds[slot]);
+            palette.nodes[slot] = socket_parent;
         }
-        if (rigid && attach < 0) continue;
+        if (!placed || socket_parent < 0) continue;
         body.parts.push_back(std::move(part.parts[index]));
         body.rig.palettes.push_back(std::move(palette));
     }
@@ -685,9 +991,14 @@ void measure_driver_bounds(CharacterModel& model) {
 
 bool load_ghost_driver(const std::string& body_nif, const std::string& chassis, GhostDriver& out,
                        std::string& error) {
-    // the worn parts change the build so they join the key
     const std::string asset = fs::path(body_nif).parent_path().filename().string();
-    const std::string key = model_key(body_nif, chassis + "|" + ghost_driver_parts_token(asset));
+    return load_ghost_driver(body_nif, chassis, ghost_driver_parts(asset), out, error);
+}
+
+bool load_ghost_driver(const std::string& body_nif, const std::string& chassis,
+                       const std::vector<GhostDriverPart>& parts, GhostDriver& out, std::string& error) {
+    // the worn parts change the build so they join the key
+    const std::string key = model_key(body_nif, chassis + "|" + ghost_driver_parts_token(parts));
     {
         ParsedModels& models = parsed_models();
         std::lock_guard<std::mutex> lock(models.lock);
@@ -697,7 +1008,7 @@ bool load_ghost_driver(const std::string& body_nif, const std::string& chassis, 
             return true;
         }
     }
-    if (!load_ghost_driver_fresh(body_nif, chassis, out, error)) return false;
+    if (!load_ghost_driver_fresh(body_nif, chassis, parts, out, error)) return false;
     ParsedModels& models = parsed_models();
     std::lock_guard<std::mutex> lock(models.lock);
     models.drivers[key] = std::make_shared<const GhostDriver>(out);
@@ -706,50 +1017,39 @@ bool load_ghost_driver(const std::string& body_nif, const std::string& chassis, 
 
 namespace {
 
-bool load_ghost_driver_fresh(const std::string& body_nif, const std::string& chassis, GhostDriver& out,
-                             std::string& error) {
+bool load_ghost_driver_fresh(const std::string& body_nif, const std::string& chassis,
+                             const std::vector<GhostDriverPart>& worn, GhostDriver& out, std::string& error) {
     out = GhostDriver{};
     const fs::path body_path(body_nif);
     CharacterModelRequest request;
     request.nif_path = body_nif;
     request.texture_dir = body_path.parent_path().string();
     find_body_clips(body_path, request.clips);
+    out.parts_token = ghost_driver_parts_token(worn);
 
-    // The worn BODYSET parts of this asset the folder name is the asset the server names
-    const std::string asset = body_path.parent_path().filename().string();
-    const std::vector<std::string>& worn = ghost_driver_parts(asset);
-    out.parts_token = ghost_driver_parts_token(asset);
-    // The body keeps all its own geometry the exe only sets the child of the slot node
-    std::vector<std::pair<std::string, std::string>> attach;
-    {
-        std::error_code ignored;
-        for (const std::string& part : worn) {
-            if (part.empty() || !fs::exists(part, ignored)) continue;
-            KnC::NifScene part_scene;
-            std::string part_error;
-            if (!KnC::read_nif_scene(part, part_scene, part_error)) continue;
-            const std::string node = part_attach_node(part_scene);
-            if (node.empty()) continue;
-            attach.emplace_back(part, node);
-        }
-    }
     KnC::NifScene body_scene;
     if (!KnC::read_nif_scene(body_nif, body_scene, error)) return false;
+    // With no catalogue the body draws as authored a worn set hides the O sockets like the exe
+    std::vector<DriverSocket> sockets;
+    if (!worn.empty()) sockets = detach_sockets(body_scene);
+    // Driver Body High asset body nif the expression sheets sit in Driver Facial asset
+    const fs::path driver_root = body_path.parent_path().parent_path().parent_path().parent_path();
+    const std::string facial =
+        find_file_ci(find_file_ci(driver_root.string(), "Facial"), body_path.parent_path().filename().string());
+    request.allow_no_geometry = !worn.empty();
     if (!build_character_model(body_scene, request, out.model, error)) return false;
     resolve_textures(request.texture_dir, out.model);
-    for (const auto& part : attach) {
-        // A mesh named like a slot takes no child so a rigid part of that slot never shows
-        int node = -1;
-        for (uint32_t block = 0; block < body_scene.blocks.size(); ++block) {
-            if (lower(body_scene.blocks[block].name) != lower(part.second)) continue;
-            if (body_scene.blocks[block].data_link < body_scene.blocks.size()) continue;
-            const int found = out.model.rig.skeleton.node_of(block);
-            if (found >= 0) { node = found; break; }
-        }
-        if (!merge_driver_part(part.first, node, out.model))
-            std::printf("[driver] %s did not merge on %s\n", part.first.c_str(), part.second.c_str());
+    std::error_code ignored;
+    for (const GhostDriverPart& part : worn) {
+        const std::string slot = ghost_driver_slot_node(part.equip_slot);
+        if (slot.empty() || part.nif.empty() || !fs::exists(part.nif, ignored)) continue;
+        const auto socket = std::find_if(sockets.begin(), sockets.end(),
+                                         [&](const DriverSocket& s) { return s.name == slot; });
+        const int parent = socket == sockets.end() ? -1 : out.model.rig.skeleton.node_of(socket->parent);
+        if (parent < 0 || !merge_driver_part(part.nif, *socket, parent, facial, out.model))
+            std::printf("[driver] %s did not merge on %s\n", part.nif.c_str(), slot.c_str());
     }
-    if (!attach.empty()) measure_driver_bounds(out.model);
+    if (!worn.empty()) measure_driver_bounds(out.model);
     for (size_t clip = 0; clip < out.model.rig.clips.size(); ++clip) {
         const CharacterClip& bound = out.model.rig.clips[clip];
         if (out.idle_clip < 0 || bound.motion.name == "MT_IDLE") out.idle_clip = static_cast<int>(clip);

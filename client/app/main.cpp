@@ -18,7 +18,29 @@
 #include <cstdio>
 #include <memory>
 
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+
 using namespace KnC::Client;
+
+namespace {
+
+// a run without debug writes no line the console a double click opened goes away
+void silenceLogs() {
+#if defined(_WIN32)
+    DWORD attached[2] = {};
+    if (GetConsoleProcessList(attached, 2) == 1) FreeConsole();
+    const char* sink = "NUL";
+#else
+    const char* sink = "/dev/null";
+#endif
+    std::freopen(sink, "w", stdout);
+    std::freopen(sink, "w", stderr);
+    std::setvbuf(stdout, nullptr, _IOFBF, 1 << 16);
+}
+
+}
 
 int main(int argc, char** argv) {
     Options options;
@@ -27,7 +49,8 @@ int main(int argc, char** argv) {
         return 2;
     }
     // the capture runs read the log through a pipe an unbuffered stdout keeps its last line on a crash
-    std::setvbuf(stdout, nullptr, _IONBF, 0);
+    if (options.debug) std::setvbuf(stdout, nullptr, _IONBF, 0);
+    else silenceLogs();
     std::printf("=== KnC client ===\n");
     App app(options);
     app.setScreenFactory([](App& a, const std::string& name) -> std::unique_ptr<Screen> {

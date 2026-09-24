@@ -87,6 +87,35 @@ double App::uptimeMs() {
 
 namespace {
 
+// the frame parts summed over a few seconds the pacing sleep left out so the line reads the work
+struct FrameStats {
+    static constexpr double kSpanMs = 5000.0;
+    static constexpr double kSlowMs = 1000.0 / 30.0;
+    double from = App::uptimeMs();
+    int frames = 0;
+    int slow = 0;
+    double work = 0.0, workMax = 0.0;
+    double update = 0.0, updateMax = 0.0;
+    double draw = 0.0, drawMax = 0.0;
+    double present = 0.0, presentMax = 0.0;
+    void add(double pollNet, double updateMs, double drawMs, double presentMs, const char* screen) {
+        const double total = pollNet + updateMs + drawMs + presentMs;
+        ++frames;
+        if (total > kSlowMs) ++slow;
+        work += total; workMax = std::max(workMax, total);
+        update += updateMs; updateMax = std::max(updateMax, updateMs);
+        draw += drawMs; drawMax = std::max(drawMax, drawMs);
+        present += presentMs; presentMax = std::max(presentMax, presentMs);
+        const double now = App::uptimeMs();
+        if (now - from < kSpanMs) return;
+        const double n = static_cast<double>(frames);
+        std::printf("[time] fps %.1f work %.1f max %.1f ms update %.1f max %.1f draw %.1f max %.1f present %.1f max %.1f over 33 ms %d on %s\n",
+                    n * 1000.0 / (now - from), work / n, workMax, update / n, updateMax, draw / n, drawMax, present / n,
+                    presentMax, slow, screen);
+        *this = FrameStats();
+    }
+};
+
 // one line per startup step the span of the step and the process clock after it
 struct StepClock {
     double last = App::uptimeMs();
@@ -130,7 +159,8 @@ bool App::init() {
         m_options.host = "127.0.0.1";
         m_options.port = m_sample.port();
     }
-    if (!m_options.wireLog.empty()) {
+    // the wire log is a log file like the console lines only a debug run writes it
+    if (!m_options.wireLog.empty() && m_options.debug) {
         m_wireOpen = m_wireLog.open(m_options.wireLog);
         m_wireLog.setEcho(false);
         if (!m_wireOpen) std::fprintf(stderr, "[app] cannot open %s\n", m_options.wireLog.c_str());
@@ -353,10 +383,7 @@ void App::canvasToPixels(float x, float y, float w, float h, float out[4]) const
 void App::applySoundOptions() {
     const GameOptions& o = m_gameOptions;
     m_sound.setGroupGain(o.effectOff != 0.f ? 0.f : o.effect, o.carOff != 0.f ? 0.f : o.car * kKartChannelGain);
-    if (m_musicName.empty()) return;
-    // the bank keeps a named track playing so the volume lands through a stop and a start
-    m_sound.music("");
-    playMusic(m_musicName);
+    m_sound.setMusicVolume(0.6f * (o.bgmOff != 0.f ? 0.f : o.bgm));
 }
 
 // the Input ini rows replace the stock defaults the VK of the row becomes the glfw key polled
@@ -403,7 +430,11 @@ void App::wireSession() {
         if (std::string(baseScreenName()) != "shop") go("shop");
     };
     m_session.onInventoryChanged = [this](uint32_t) { dispatch(SessionEvent::InventoryChanged); };
-    m_session.onBuyOk = [this](uint32_t) { dispatch(SessionEvent::BuyOk); };
+    m_session.onBuyOk = [this](uint32_t) {
+        dispatch(SessionEvent::BuyOk);
+        // sub 484F50 ends every 0x00B7 with the MSG SUCC BUY box whatever the category
+        showMessage(tr("MSG_SUCC_BUY"));
+    };
     m_session.onRoomsChanged = [this]() { dispatch(SessionEvent::RoomsChanged); };
     m_session.onChat = [this](const ChatLine&) { dispatch(SessionEvent::Chat); };
     m_session.onRoomEnter = [this]() {
@@ -482,14 +513,15 @@ void App::wireSession() {
         std::printf("[app] quick match room %u acked with 0x0063, no 0x0013 context follows on our server\n", id);
     };
     m_session.onMessage = [this](const ServerMessage& m) {
-        const std::string text = m.wide ? u16ToUtf8(m.text) : m.key;
+        // sub 478DA0 resolves the ascii key through def trans index the wide box is shown as sent
+        const std::string text = m.wide ? u16ToUtf8(m.text) : tr(m.key);
         std::printf("[app] server message type %u %s\n", m.boxType, text.c_str());
         showMessage(text);
     };
     m_session.onDisconnected = [this](const std::string& reason) {
         std::printf("[app] disconnected %s\n", reason.c_str());
         dispatch(SessionEvent::Disconnected);
-        showMessage("Disconnected: " + reason, [this]() { if (std::string(baseScreenName()) != "login") go("login"); });
+        showMessage("Disconnected: " + tr(reason), [this]() { if (std::string(baseScreenName()) != "login") go("login"); });
     };
     m_session.onFrame = [this](uint16_t op, Packet& pkt) {
         if (m_frameTap) {
@@ -554,12 +586,10 @@ void App::applyPending() {
             const std::string screen = m_stack.back()->name();
             std::printf("[time] screen %s enter %.0f ms (at %.0f ms)\n", screen.c_str(), uptimeMs() - before, uptimeMs());
             m_firstFrameOf = screen;
-            // the pak names of the stock loops the race and the mission pick their own theme track
-            if (screen == "logo") playMusic("logo_bgm");
-            else if (screen == "login" || screen == "channel" || screen == "menu") playMusic("title_bgm");
-            else if (screen == "lobby" || screen == "room" || screen == "missions") playMusic("multiplay_lobby_bgm");
-            else if (screen == "garage") playMusic("garage_bgm");
-            else if (screen == "shop") playMusic("itemshop_bgm");
+            // the stock logo is silent every menu stage shares the one lobby loop the runs pick their own
+            if (screen == "login" || screen == "channel" || screen == "menu" || screen == "lobby" || screen == "room" ||
+                screen == "missions" || screen == "garage" || screen == "shop" || screen == "carcraft" || screen == "roomcraft")
+                playMenuMusic();
         } else {
             std::fprintf(stderr, "[app] no screen named %s\n", m_pendingGo.c_str());
         }
@@ -585,18 +615,21 @@ void App::releaseHeld() {
 bool App::loadUiFile(const std::string& fileName, std::string& text) const {
     std::vector<std::string> dirs;
     if (!m_options.uiDir.empty()) dirs.push_back(m_options.uiDir);
+    std::string exeDir;
     // release ships its layouts in clone beside the exe never in the game Data folder
 #if defined(_WIN32)
     {
         char exe[MAX_PATH] = {};
         if (GetModuleFileNameA(nullptr, exe, MAX_PATH) > 0) {
-            const std::string exeDir = std::filesystem::path(exe).parent_path().string();
+            exeDir = std::filesystem::path(exe).parent_path().string();
             dirs.push_back(exeDir + "/clone/Data/Public/UI");
         }
     }
 #endif
     if (!m_options.gameDir.empty()) dirs.push_back(m_options.gameDir + "/Data/Public/UI");
     if (KNC_CLIENT_SOURCE_DIR[0] != '\0') dirs.push_back(std::string(KNC_CLIENT_SOURCE_DIR) + "/Data/Public/UI");
+    // an exe in the repo release folder built from another path finds the repo layouts one level up
+    if (!exeDir.empty()) dirs.push_back(exeDir + "/../Data/Public/UI");
     dirs.push_back("Data/Public/UI");
     for (const std::string& dir : dirs) {
         const std::filesystem::path path = std::filesystem::path(dir) / fileName;
@@ -936,6 +969,7 @@ int App::run() {
     // the parts of the last frame a frame past the report span prints them
     double partPoll = 0.0, partNet = 0.0, partUpdate = 0.0, partDraw = 0.0, partSleep = 0.0;
     double frameFrom = uptimeMs();
+    FrameStats stats;
     while (!glfwWindowShouldClose(m_window) && !m_quit) {
         {
             const double frameEnd = uptimeMs();
@@ -1027,6 +1061,7 @@ int App::run() {
         partDraw = presentFrom - partAt;
         bgfx::frame();
         m_presentMs = uptimeMs() - presentFrom;
+        stats.add(partPoll + partNet, partUpdate, partDraw, m_presentMs, baseScreenName());
         ++frame;
         if (!m_firstFrameOf.empty()) {
             std::printf("[time] screen %s first frame at %.0f ms\n", m_firstFrameOf.c_str(), uptimeMs());

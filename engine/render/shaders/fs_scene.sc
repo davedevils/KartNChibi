@@ -1,4 +1,4 @@
-$input v_color0, v_texcoord0, v_fogdepth
+$input v_color0, v_texcoord0, v_fogdepth, v_envcoord
 
 #include <bgfx_shader.sh>
 #include "shading.sh"
@@ -6,6 +6,10 @@ $input v_color0, v_texcoord0, v_fogdepth
 SAMPLER2D(s_diffuse, 0);
 SAMPLER2D(s_coverage, 1);
 SAMPLER2D(s_detail, 2);
+SAMPLER2D(s_environment, 3);
+
+// w is 1 when a NiTextureEffect sphere map lies over the part
+uniform vec4 u_environmentRowU;
 
 void main()
 {
@@ -20,6 +24,9 @@ void main()
 	// straight alpha reaches device as authored blend pair takes it so additive surface adds its own colour only
 	float coverage = texture2D(s_coverage, v_texcoord0).a;
 	vec4 lit = vec4(diffuse.rgb * v_color0.rgb, diffuse.a * coverage * surface_alpha(v_color0.a));
+	// The D3D default shader adds the environment stage onto the lit base colour
+	if (u_environmentRowU.w > 0.5)
+		lit.rgb = min(lit.rgb + texture2D(s_environment, v_envcoord).rgb, vec3_splat(1.0));
 	float fogged = fog_amount(v_fogdepth);
 	gl_FragColor = vec4(mix(lit.rgb, u_fogColour.rgb, fogged), lit.a);
 }

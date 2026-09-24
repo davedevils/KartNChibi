@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 #include <array>
 #include <cstring>
+#include <string>
 #include <vector>
 
 #include "packets/PacketBuilder.h"
@@ -278,4 +279,54 @@ TEST(GaragePaint, TheExpiredBlackPaintIsDeletable) {
     EXPECT_TRUE(ownedRowExpired(1, 2, 0, today));
     EXPECT_FALSE(ownedRowExpired(1, 2, 3, today));
     EXPECT_FALSE(ownedRowExpired(1, 3, 0, today));
+}
+
+// the user rows of 2026-09-24 Dark Shades 2101 and Devil Wings 2201 answered MSG UNKNOWN ERROR on 0xB9
+TEST(GarageCharSlots, GlassAndBackHaveASlot) {
+    EXPECT_EQ(partSlotFor(2, "common_char_glass_002"), 5);
+    EXPECT_EQ(partSlotFor(2, "common_char_back_002"), 6);
+    EXPECT_EQ(partSlotFor(2, "pumpkin_char_glass_001"), 5);
+    EXPECT_EQ(partSlotFor(2, "wolf_char_back_002"), 6);
+}
+
+// the same slots the 0xC2 burst sends at 0x38 of every part row
+TEST(GarageCharSlots, SameMapAsThePartCatalogue) {
+    EXPECT_EQ(partSlotFor(2, "Cosmo_char_body_001"), 2);
+    EXPECT_EQ(partSlotFor(2, "monster_char_bady_015"), 2);
+    EXPECT_EQ(partSlotFor(2, "Cosmo_char_face_001"), 3);
+    EXPECT_EQ(partSlotFor(2, "common_char_head_001"), 4);
+    EXPECT_EQ(partSlotFor(2, "x_char_cap_001"), 4);
+    EXPECT_EQ(partSlotFor(2, "x_char_bag_001"), 6);
+    EXPECT_EQ(partSlotFor(2, "x_char_tail_001"), PART_SLOT_HIDDEN);
+    EXPECT_EQ(partSlotFor(0, "BLACK"), 0);
+    EXPECT_EQ(partSlotFor(1, "NAMEBOX_001"), 1);
+    EXPECT_EQ(partSlotFor(8, "ANT_01"), 8);
+}
+
+// sub 484770 case 3 puts slot 5 and 6 at 0x14 and 0x18 of the character record
+TEST(GarageCharSlots, GlassAndBackLandInTheCharacterRecord) {
+    InventoryPackets::CharacterRow cr;
+    cr.instanceId = 8;
+    cr.baseKey = 5;
+    cr.accGlass = 2101;
+    cr.accBack = 2201;
+    const auto blob = InventoryPackets::characterBlob(cr);
+    int32_t glass = 0;
+    int32_t back = 0;
+    std::memcpy(&glass, blob.data() + 0x14, 4);
+    std::memcpy(&back, blob.data() + 0x18, 4);
+    EXPECT_EQ(glass, 2101);
+    EXPECT_EQ(back, 2201);
+}
+
+// sub 478DA0 resolves an ascii key through def trans index the wide 0x0002 box drew MSG UNKNOWN ERROR raw
+TEST(MessageBoxes, AKeyGoesOutOnTheAsciiBox) {
+    Packet box = PacketBuilder::messageKey("MSG_UNKNOWN_ERROR", 0);
+    EXPECT_EQ(box.opcode(), 0x0001);
+    const std::vector<uint8_t>& p = box.payload();
+    const std::string key = "MSG_UNKNOWN_ERROR";
+    ASSERT_EQ(p.size(), key.size() + 1 + 4);
+    EXPECT_EQ(std::string(reinterpret_cast<const char*>(p.data())), key);
+    EXPECT_EQ(p[key.size()], 0u);
+    EXPECT_EQ(i32At(p, key.size() + 1), 0);
 }

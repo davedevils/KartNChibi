@@ -28,6 +28,7 @@
 #include <chrono>
 #include <cctype>
 #include "security/BanManager.h"
+#include "util/GarageSlotRules.h"
 #include "security/PacketValidator.h"
 #include "db/Database.h"
 #include "handlers/LicenseHandler.h"
@@ -493,8 +494,6 @@ void GameServer::collectLoginBurst(const Session::Ptr& session, const PlayerData
                  std::to_string(tracks.size()) + " tracks");
     }
 
-    // shop part tab filter 0x418C80 maps tabs to slots 0-6 and 8 slot 7 stays out of every tab
-    constexpr int32_t kUiCatHidden = 7;
     // 0x490A70 and 0x4A5ED0 read factory parts from 0x108 only twin keys 2000-2004 shadow common char head 001-005
     const char* envUi = std::getenv("KNC_PART_UICAT");
     const bool useUiCat = !envUi || std::string(envUi) != "0";
@@ -508,17 +507,8 @@ void GameServer::collectLoginBurst(const Session::Ptr& session, const PlayerData
     for (const auto& sd : skinRows) {
         const int32_t cat = std::stoi(sd.at("category"));
         const std::string& n = sd.at("name");
-        int32_t uiCat = cat;
-        if (cat == 2) {
-            // tab ids off chibikart 0xC2 rows body 2 face 3 head and cap 4 glass 5 back and bag 6
-            auto has = [&n](const char* part) { return n.find(part) != std::string::npos; };
-            if (has("_char_body_") || has("_char_bady_"))   uiCat = 2;
-            else if (has("_char_face_"))                    uiCat = 3;
-            else if (has("_char_head_") || has("_char_cap_")) uiCat = 4;
-            else if (has("_char_glass_"))                   uiCat = 5;
-            else if (has("_char_back_") || has("_char_bag_")) uiCat = 6;
-            else                                            uiCat = kUiCatHidden;
-        }
+        // tab ids off chibikart 0xC2 rows the 0xB9 0xBA and 0xB8 handlers read the same map
+        const int32_t uiCat = partSlotFor(cat, n);
         // str1 stays the asset str2 resolves through sub 4E1B70 def trans index str3 is the info text
         std::string label = sd.count("display_name") ? sd.at("display_name") : std::string();
         if (label.empty()) label = n;

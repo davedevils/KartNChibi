@@ -290,7 +290,7 @@ Location: `tools/headless/`.
 The client itself is the scriptable UI test of the new stack. `release/knc_client.exe --script <file>` reads one verb per line and clicks, types and takes pictures like a hand on the mouse, through the same input entry points the glfw callbacks use, so a script proves the real path of a button and a screen. Verbs: `wait N` frames, `waitfor SCREEN [N]`, `click X Y` and `rclick X Y` in the 1024 by 768 stock coordinates (the press this frame, the release on the next), `key NAME` (`escape`, `enter`, `f1`, a letter, a glfw code), `text WORDS` as char events, `shot NAME` a png next to the `--screenshot` path, `expect SCREEN` prints PASS or FAIL with the top screen name, `quit`. The exit code is 1 when an `expect` failed. With `--screenshot` the window is hidden and 25 frames make a second.
 
 ```
-release\knc_client.exe --game <client> --host 127.0.0.1 --port 50017 --user hltest --pass hltestpw --no-focus --mute --stop-at lobby --script s.txt --screenshot out.png
+release\knc_client.exe --game <client> --host 127.0.0.1 --port 50017 --user hltest --pass hltestpw --no-focus --mute --debug --stop-at lobby --script s.txt --screenshot out.png
 ```
 
 Location: `client/app/App.cpp` (`runScript`), the verbs and the popup names in `docs/client/README.md`.

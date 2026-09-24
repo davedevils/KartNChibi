@@ -27,5 +27,8 @@ expect shopitem
 click 436 551
 wait 90
 shot buy_done
+expect message
+key enter
+wait 10
 expect shop
 quit

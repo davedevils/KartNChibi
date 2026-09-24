@@ -71,13 +71,6 @@ constexpr float kInfoDy = 162.f;
 constexpr Rect kPreviewRect = {kOriginX + 160.f, kOriginY + 60.f, 340.f, 350.f};
 // blue box of license back 003 kart shows over it 10 px inside sheet corner
 constexpr Rect kPreviewHole = {kOriginX + kBoardDx + 10.f, kOriginY + kBoardDy + 10.f, 265.f, 225.f};
-// preview camera of char panel kart seen from its front right
-constexpr float kOrbitAngle = 160.f;
-constexpr float kOrbitDistance = 5.6f;
-constexpr float kOrbitHeight = 1.6f;
-constexpr float kOrbitLookZ = 1.2f;
-constexpr float kBackdropDistance = 8.f;
-constexpr float kDegToRad = 3.14159265f / 180.f;
 
 const char* const kMedalArt[3] = {"LicenseMenu/license_rookie_", "LicenseMenu/license_advanced_", "LicenseMenu/license_master_"};
 
@@ -200,7 +193,7 @@ void LicenceScreen::enter() {
     m_startSent = false;
     m_status.clear();
     showPickedWidgets(false);
-    m_app.playMusic("license_lobby_BGM");
+    m_app.playMenuMusic();
 }
 
 void LicenceScreen::leave() {
@@ -214,76 +207,10 @@ void LicenceScreen::leave() {
 
 // blue box slice of sheet drawn as quad before fixed camera then own kart
 void LicenceScreen::loadPreview() {
-    using namespace KnC::Render;
     if (m_sceneReady) return;
-    MapScene scene;
-    scene.sun.direction[0] = -0.42f;
-    scene.sun.direction[1] = 0.46f;
-    scene.sun.direction[2] = -0.78f;
-    scene.sun.colour = HourColour{1.f, 0.98f, 0.94f};
-    scene.sun.enabled = true;
-    scene.day_night = flat_day_night(HourColour{0.56f, 0.61f, 0.70f});
-    scene.day_night.ambient.fill(HourColour{0.85f, 0.85f, 0.90f});
-    const std::string texture = boardPath(m_app);
-    if (!texture.empty()) {
-        const float a = kOrbitAngle * kDegToRad;
-        const bx::Vec3 e(std::cos(a) * kOrbitDistance, std::sin(a) * kOrbitDistance, kOrbitLookZ + kOrbitHeight);
-        const bx::Vec3 l(0.f, 0.f, kOrbitLookZ + 0.6f);
-        const bx::Vec3 d = bx::normalize(bx::sub(l, e));
-        const bx::Vec3 r = bx::normalize(bx::cross(d, bx::Vec3(0.f, 0.f, 1.f)));
-        const bx::Vec3 u = bx::cross(r, d);
-        const bx::Vec3 c = bx::add(e, bx::mul(d, kBackdropDistance));
-        const float hh = kBackdropDistance * std::tan(kVerticalFieldOfView * 0.5f * kDegToRad);
-        const float hw = hh * (kPreviewRect.w / kPreviewRect.h);
-        // view rect in sheet space sheet sits at board spot
-        const float sheetX = kOriginX + kBoardDx;
-        const float sheetY = kOriginY + kBoardDy;
-        const float u0 = (kPreviewRect.x - sheetX) / 708.f;
-        const float u1 = (kPreviewRect.x + kPreviewRect.w - sheetX) / 708.f;
-        const float v0 = (kPreviewRect.y - sheetY) / 420.f;
-        const float v1 = (kPreviewRect.y + kPreviewRect.h - sheetY) / 420.f;
-        PropModel model;
-        model.name = "licence preview board";
-        model.lit_by_map_ambient = false;
-        PropPart part;
-        part.texture_path = texture;
-        part.has_vertex_colours = true;
-        const bx::Vec3 corners[4] = {
-            bx::add(bx::sub(c, bx::mul(r, hw)), bx::mul(u, hh)),
-            bx::add(bx::add(c, bx::mul(r, hw)), bx::mul(u, hh)),
-            bx::sub(bx::add(c, bx::mul(r, hw)), bx::mul(u, hh)),
-            bx::sub(bx::sub(c, bx::mul(r, hw)), bx::mul(u, hh)),
-        };
-        const float uv[4][2] = {{u0, v0}, {u1, v0}, {u1, v1}, {u0, v1}};
-        for (int i = 0; i < 4; ++i) {
-            SceneVertex v;
-            v.x = corners[i].x; v.y = corners[i].y; v.z = corners[i].z;
-            v.normal_x = -d.x; v.normal_y = -d.y; v.normal_z = -d.z;
-            v.abgr = 0xffffffffu;
-            v.u = uv[i][0]; v.v = uv[i][1];
-            part.vertices.push_back(v);
-        }
-        const uint32_t tris[12] = {0, 1, 2, 0, 2, 3, 0, 2, 1, 0, 3, 2};
-        part.indices.assign(tris, tris + 12);
-        part.bound.center[0] = c.x; part.bound.center[1] = c.y; part.bound.center[2] = c.z;
-        part.bound.radius = std::sqrt(hw * hw + hh * hh);
-        model.bound = part.bound;
-        model.parts.push_back(std::move(part));
-        scene.prop_models.push_back(std::move(model));
-        PropInstance instance;
-        instance.model_index = 0;
-        scene.prop_instances.push_back(instance);
-        reset_scene_bounds(scene);
-        for (int i = 0; i < 4; ++i) {
-            const float point[3] = {corners[i].x, corners[i].y, corners[i].z};
-            expand_scene_bounds(point, scene);
-        }
-        const float origin[3] = {0.f, 0.f, 0.f};
-        expand_scene_bounds(origin, scene);
-    }
-    m_previewWorld = RaceWorld();
-    m_previewWorld.scene.scene = std::move(scene);
-    m_sceneReady = m_view.load(m_app.renderer(), m_previewWorld);
+    // sub 4375FD opens the char panel camera on this rect the sheet sits at its board spot
+    const Rect sheet = {kOriginX + kBoardDx, kOriginY + kBoardDy, 708.f, 420.f};
+    m_sceneReady = loadCharPreviewSceneFor(m_app, m_view, m_previewWorld, kPreviewRect, boardPath(m_app), sheet);
     if (!m_sceneReady) return;
     const Session& session = m_app.session();
     const Catalog& cat = session.catalog();
@@ -472,7 +399,7 @@ void LicenceScreen::onSession(SessionEvent event) {
         m_startSent = false;
         showPickedWidgets(false);
         applyTierArt();
-        m_app.playMusic("license_lobby_BGM");
+        m_app.playMenuMusic();
         // scripted run ends with its own quit so last actions get their frames
         if (autoLicence() && m_autoStarted && m_app.captureMode() && !m_app.scripted()) m_app.finishRun();
     }
@@ -610,6 +537,7 @@ bool LicenceRunScreen::loadWorld() {
     std::string error;
     if (!loadRaceWorld(files, m_world, error)) { m_status = "world load failed: " + error; std::printf("[licence] %s\n", m_status.c_str()); return false; }
     if (!m_sim.init(m_world, m_app.session().profile().playerId, error)) { m_status = "sim init failed: " + error; return false; }
+    if (const OwnedPet* worn = m_app.session().catalog().equippedPet()) m_sim.setEquippedPet(worn->petKey);
     m_view.load(m_app.renderer(), m_world);
     m_view.camera().licenceMode = true;
     m_auto.reset(m_sim.line());
@@ -714,6 +642,7 @@ void LicenceRunScreen::restart() {
     m_viewHandle = -1;
     std::string error;
     m_sim.init(m_world, m_app.session().profile().playerId, error);
+    if (const OwnedPet* worn = m_app.session().catalog().equippedPet()) m_sim.setEquippedPet(worn->petKey);
     m_auto.reset(m_sim.line());
     spawnLocal();
     m_view.camera().reset();

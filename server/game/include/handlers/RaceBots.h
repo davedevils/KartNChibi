@@ -11,6 +11,21 @@
 
 namespace knc {
 
+/// walks the COL checkpoints like a client car so a bot scores as a human in its place
+struct BotCheckpointFollower {
+    int32_t checkpoint = 0;   ///< last checkpoint touched 0 is START as the client resets it at GO
+    int32_t laps = 0;
+
+    /// steps past each checkpoint the car went beyond then returns the client score for this spot
+    uint32_t update(const std::vector<SpawnPackets::TrackVec3>& points, float x, float y);
+};
+
+/// place key that only grows laps then last checkpoint then the share of the next segment
+float raceRankKey(const std::vector<SpawnPackets::TrackVec3>& points, int32_t laps, int32_t checkpoint, float x, float y);
+
+/// laps as the client counts them the tracker closes a lap one report after START
+int32_t clientLapsFromTracker(const SpawnPackets::LapTracker& tracker);
+
 /// the shipped line and item boxes of one track loaded once per race
 struct BotTrack {
     std::vector<SpawnPackets::TrackPoint> line;   ///< the shipped racing line and item box files x y z per row both closed loops

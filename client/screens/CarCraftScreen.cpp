@@ -9,6 +9,7 @@
 #include "race/TrackData.h"
 #include "screens/GarageScreen.h"
 #include "screens/ShopCommon.h"
+#include "screens/ShopScreen.h"
 #include "tools/track_scene/ghost_car.h"
 #include "ui/CharPanel.h"
 #include "ui/MenuFrame.h"
@@ -98,6 +99,9 @@ constexpr Rect kPreviewRect = {400.f, 310.f, 562.f, 340.f};
 constexpr float kPreviewEye[3] = {-4.f, 0.1f, 3.f};
 constexpr float kPreviewLook[3] = {0.f, 0.f, 0.f};
 constexpr float kPreviewField = 1.f;
+// 0x4310A2 the lens aspect term is 1 6 or 1 92 while wide mode is on
+constexpr float kPreviewAspect = 1.6f;
+constexpr float kPreviewAspectWide = 1.92f;
 constexpr float kTurnSpeed = 90.f;
 constexpr float kDegToRad = 3.14159265f / 180.f;
 
@@ -157,6 +161,7 @@ constexpr float kRowTextX = 134.f;
 constexpr float kRowPeriodX = 146.f;
 constexpr float kRowInfoX = 340.f;
 constexpr float kRowDurX = 126.f;
+constexpr float kRowFontPx = 15.f;
 // sub 42EFE0 the slot name at slot x plus 124 y 165 centred the plate name at 488 244
 constexpr float kSlotNameDX = 124.f;
 constexpr float kSlotNameY = 165.f;
@@ -353,6 +358,26 @@ void CarCraftScreen::save() {
     m_status = "0x010B sent for preset " + std::to_string(row->presetId);
 }
 
+// FUN 0045E110 mode 1 the shop item box with the part name art text and prices its Buy sends 0x00B7
+void CarCraftScreen::openPartInfo(const ListRow& row) {
+    if (m_part == 0) { m_status = "the chassis info box is not in"; return; }
+    const Catalog& cat = m_app.session().catalog();
+    const CarCraftPartDef* def = cat.carCraftPart(row.key);
+    if (!def) return;
+    // 0x4328EF a part def that is not on sale opens the box in mode 0 which ours does not draw
+    if (def->enabled == 0) { m_status = "that part is not on sale"; return; }
+    ShopTile tile;
+    tile.category = static_cast<uint32_t>(BuyCategory::CarCraft);
+    tile.baseKey = def->key;
+    tile.label = m_app.tr(def->nameKey);
+    tile.icon = carCraftIcon(def->model, static_cast<int>(def->category));
+    tile.bigIcon = carCraftIcon(def->model, static_cast<int>(def->category), true);
+    tile.descKey = def->descKey;
+    tile.quotes = quotesOf(cat, def->prices);
+    tile.owned = true;
+    m_app.pushScreen(std::make_unique<ShopItemPopup>(m_app, tile, true));
+}
+
 void CarCraftScreen::beginRename() {
     const CarCraftPreset* row = preset();
     // button 10 of sub 432B20 answers only on a built slot
@@ -408,7 +433,8 @@ bool CarCraftScreen::loadPreview() {
     const Rect backRect = {kBackX, kBackY, back ? static_cast<float>(back->width) : 942.f,
                            back ? static_cast<float>(back->height) : 629.f};
     if (!loadPreviewSceneFor(m_app, m_view, m_previewWorld, kPreviewRect, kPreviewEye, kPreviewLook,
-                             kPreviewField * 180.f / 3.14159265f, backArtPath(m_app), backRect))
+                             kPreviewField / kDegToRad, backArtPath(m_app), backRect,
+                             previewHorizontalField() / kDegToRad))
         return false;
     Session& session = m_app.session();
     const Catalog& cat = session.catalog();
@@ -493,6 +519,11 @@ bool CarCraftScreen::loadPreview() {
     return true;
 }
 
+// the EngineDLL frustum takes the field times the aspect term as its horizontal angle
+float CarCraftScreen::previewHorizontalField() const {
+    return kPreviewField * (m_app.gameOptions().wideMode > 0.f ? kPreviewAspectWide : kPreviewAspect);
+}
+
 void CarCraftScreen::refreshPreview() {
     if (previewToken() != m_previewToken) loadPreview();
 }
@@ -540,7 +571,7 @@ bool CarCraftScreen::drawScene() {
         else for (int i = 0; i < 16; ++i) world[i] = car[i];
         m_view.placeProp(part.handle, world, true);
     }
-    m_view.drawFixed(m_app.renderer(), kPreviewEye, kPreviewLook, kPreviewField, 1.f / 25.f);
+    m_view.drawFixed(m_app.renderer(), kPreviewEye, kPreviewLook, kPreviewField, 1.f / 25.f, previewHorizontalField());
     return true;
 }
 
@@ -624,15 +655,16 @@ void CarCraftScreen::drawOverlay(DrawContext& ctx) {
         sprite(static_cast<int>(index) == m_selected ? "CarFactory/Factory_Car_List_01.png" : "CarFactory/Factory_Car_List_00.png", kListX, y);
         const Texture* icon = r.icon.empty() ? nullptr : assets.texture(r.icon);
         if (icon && icon->valid()) ctx.batch.draw(icon->handle, kListX, y, 64.f, 60.f);
-        ctx.bold.draw(ctx.batch, r.label, kRowTextX, y + 12.f, 15.f, kInkWhite);
+        // font slot 1 of 0x5CE5B8 Arial 15 weight 600 black on the white name box and the row
+        ctx.bold.draw(ctx.batch, r.label, kRowTextX, y + 12.f, kRowFontPx, kInkBlack);
         if (m_part == 0) {
             const OwnedKart* owned = r.periodType == 3 ? m_app.session().catalog().ownedKart(r.instance) : nullptr;
             if (owned) drawDurability(ctx, assets, kRowDurX, y + 34.f, r.periodValue, kartDurabilityMax(m_app.session().catalog(), *owned));
         } else if (!r.active) {
             sprite("Garage/Garage_Itembox_Expiration.png", kListX, y);
-            ctx.font.draw(ctx.batch, m_app.tr("UNIT_EXPIRED"), kRowPeriodX, y + 38.f, 13.f, kInkWhite);
+            ctx.bold.draw(ctx.batch, m_app.tr("UNIT_EXPIRED"), kRowPeriodX, y + 38.f, kRowFontPx, kInkBlack);
         } else {
-            ctx.font.draw(ctx.batch, periodText(r.periodType, r.periodValue), kRowPeriodX, y + 38.f, 13.f, kInkWhite);
+            ctx.bold.draw(ctx.batch, periodText(r.periodType, r.periodValue), kRowPeriodX, y + 38.f, kRowFontPx, kInkBlack);
         }
         if (m_part != 0 && r.count > 0)
             drawAligned(ctx, ctx.bold, "+" + std::to_string(r.count), kRowInfoX - 6.f, y + 37.f, 14.f, kInkWhite, Align::Right);
@@ -667,9 +699,17 @@ void CarCraftScreen::onMouseButton(int button, int action, float x, float y) {
             return;
         }
         for (int i = 0; i < kListRows; ++i) {
-            const Rect r = {kListX, kListY + kListStep * static_cast<float>(i), 314.f, 60.f};
-            if (!r.contains(x, y)) continue;
+            const float rowY = kListY + kListStep * static_cast<float>(i);
             const size_t index = static_cast<size_t>(m_scroll + i);
+            // sub 432B20 0x4326D1 the magnifier strictly inside 340 to 362 across 22 above the row foot
+            if (x > kRowInfoX && x < kRowInfoX + 22.f && y > rowY + 36.f && y < rowY + 58.f && index < m_rows.size()) {
+                m_app.click();
+                m_selected = static_cast<int>(index);
+                openPartInfo(m_rows[index]);
+                return;
+            }
+            const Rect r = {kListX, rowY, 314.f, 60.f};
+            if (!r.contains(x, y)) continue;
             if (index >= m_rows.size()) break;
             m_app.click();
             m_selected = static_cast<int>(index);

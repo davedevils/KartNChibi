@@ -50,6 +50,7 @@ struct RacePlayer {
     bool     haveProgress = false;
     bool     progressWarned = false;
     int32_t  progressScore = 0;
+    float    rankKey = -1.0f;         ///< server place key below zero means the track has no checkpoints
     MotionGateState motionGate;         // per axis budget baseline counted in wire periods lastSuspicionDecayMs is the leaky bucket clock so honest strikes fade
     uint64_t lastSuspicionDecayMs = 0;
     SpawnPackets::LapTracker lapTracker;
@@ -81,6 +82,7 @@ struct MotionSlot {
 struct BotRacer {
     int32_t   playerId = 0;
     BotDriver driver;
+    BotCheckpointFollower checkpoints;  ///< the standings score on the client scale
     bool      finished = false;
 };
 
@@ -100,6 +102,7 @@ struct RoomRaceLive {
     std::vector<MotionSlot> motion;
     ItemPackets::ItemModel  items;
     std::vector<SpawnPackets::ColPadCell> pads;  ///< BOOST NNN cells with their boost ini kind
+    std::vector<SpawnPackets::TrackVec3>  checkpointPoints;  ///< COL head points one per checkpoint empty when the head is short
 
     BotTrack                   botTrack;      ///< racing line and boxes empty when track has none bots arm at GO and die with the room
     std::vector<BotRacer>      bots;

@@ -172,6 +172,12 @@ constexpr float kEffect300QuadraticTerm = 29.4f;  // 0x5a69f4 effect 300 end con
 constexpr float kEffect300RecoveryRate = 300.0f;
 constexpr float kEffect300SecondaryMul = 1.005f;  // 0x5a69f8 effect 300 secondary accumulator per frame multiplier 0x42080000 immediate effect 300 apply seed value
 constexpr float kEffect300ApplySeed = 34.0f;
+// car remote effect update 0x496600 a remote spin turns 800 a second and ends past 720
+constexpr float kRemoteEffect100Rate = 800.0f;
+constexpr float kRemoteEffect100End = 720.0f;
+// 0x496600 the remote flip of 200 falls on 19 6 the remote wobble of 400 700 1000 holds at 1080
+constexpr float kRemoteEffect200Gravity = 19.6f;
+constexpr float kRemoteEffectWobbleCap = 1080.0f;
 
 // EFFECTS AND GEAR RK4 and tire model
 
@@ -307,6 +313,17 @@ constexpr float kRespawnTeleportHeightBias = 3.0f; // 0x5a32b8 respawn state mac
 constexpr int kRespawnDirectionDebounceMs = 2501;  // 0x9c5 respawn direction change debounce 0x7d0 respawn commit timer
 constexpr int kRespawnCommitTimeoutMs = 2000;
 constexpr int kRespawnGridRowWidth = 400;         // 0x190 respawn grid table row width
+// 0x4A0A96 an index step of 5 or more is a lap wrap not a wrong way move
+constexpr int kRespawnIndexStepLimit = 5;
+// 0x4A0B40 tracks 63 and 42 run list 0 backward over these rows so they never escalate
+constexpr int kRespawnLoopTrackA = 63;
+constexpr int kRespawnLoopTrackAFirst = 116;
+constexpr int kRespawnLoopTrackALast = 130;
+constexpr int kRespawnLoopTrackB = 42;
+constexpr int kRespawnLoopTrackBFirst = 56;
+constexpr int kRespawnLoopTrackBLast = 86;
+// 0x487250 the battle arena track id the watchdog stands still there
+constexpr int kBattleTrackId = 30000000;
 
 // TICK car boost start 0x496BE0 and car boost update 0x496E50 immediates with the code address
 
@@ -339,6 +356,8 @@ constexpr float kCollisionImpulseCeil = 3.0f;
 constexpr float kCollisionSpinCeil = 1.5f;  // 0x498c13 immediate spin term ceiling also 0x5a6a48 0x5a3eb8 spin term one minus curve times kmh times this
 constexpr float kCollisionSpinKmhScale = 0.04f;
 constexpr float kCollisionFrictionFloorLow = 0.8f;  // 0x498d46 immediate 0x3f4ccccd friction floor under 3 wheels 0x5a32a8 impact heading fold band
+// the calls before 0x49D0A5 and at 0x4A3082 both push 1 0 as the collision response time argument
+constexpr float kCollisionImpulseTime = 1.0f;
 constexpr float kCollisionAngleFold180 = 180.0f;
 constexpr float kCollisionAngleFold270 = 270.0f;  // 0x5a6a50 impact heading fold band 0x5a6a4c one over 90 folded heading to 0 1
 constexpr float kCollisionAngleToUnit = 0.0111111f;
@@ -423,6 +442,9 @@ constexpr float kGimmickDropHeightBias = 5.0f;  // 0x5a3238 the drop places the 
 constexpr float kGimmickCarryStep = 3.6f;
 constexpr float kGimmickCarryEase = 0.1f;  // 0x5a2494 slot position eases by this toward its target 0x5a3230 respawn follow advance point steps past this range
 constexpr float kFollowAdvanceRadius = 15.0f;
+// 0x4C7F6E the carry pool grabs its car with the effect 600 the blue rabbit pool 0x4BA380 with 900
+constexpr int kGimmickCarryGrabCode = 600;
+constexpr int kGimmickBlueGrabCode = 900;
 constexpr int kGimmickGrabLockMs = 600;  // 0x4c8078 immediate state 1 to 100 after this 0x4c80d8 immediate the carry window
 constexpr int kGimmickCarryMs = 3000;
 constexpr int kGimmickCarryLicenceMs = 6000;  // 0x4c80ea immediate the carry window in licence test 1 0x4c80f0 immediate added for a remote car

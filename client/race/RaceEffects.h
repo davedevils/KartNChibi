@@ -33,6 +33,8 @@ public:
     void hit(int handle, int code, float clock);
     // plate and antenna item of car model names from 0x00C2 part rows
     void setLook(int handle, const std::string& plateModel, const std::string& antModel);
+    // the posed O NAME and O ANT of the body the plate and antenna ride its bounce like child nodes
+    void followDummies(int handle, const float name[16], const float ant[16]);
     void remove(int handle);
     // ground shake of wheels on car state call after wheel update
     void shakeWheels(int handle, KnC::Tools::GhostWheelState& wheels) const;
@@ -44,6 +46,8 @@ public:
                                                                   const std::atomic<bool>* stop = nullptr);
     // takes parsed models after reset first shown then appended only
     void adopt(std::map<std::string, KnC::Render::PropModel>&& models);
+    // a parseAll thread runs so an effect waits for adopt instead of a parse on the frame thread
+    void awaitParse() { m_awaitingParse = true; }
 
 private:
     // one effect per car exe slot list from car visual update same order
@@ -110,6 +114,7 @@ private:
     // resolved file per effect name empty when folder lacks it
     mutable std::map<std::string, std::string> m_paths;
     std::string m_gameDir;
+    bool m_awaitingParse = false;
     // camera eye from last submit impact sprite sits between it and car
     float m_eye[3] = {0.f, 0.f, 0.f};
     bool m_eyeValid = false;

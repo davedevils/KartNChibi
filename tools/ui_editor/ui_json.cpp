@@ -241,7 +241,7 @@ std::string json_path_for_state(int state) {
         if (dir.back() != '/' && dir.back() != '\\') dir += '/';
         dirs.push_back(dir);
     }
-    for (const char* dir : {"Data/Public/UI/", "tools/ui_extractor/extracted_ui/", "../Data/Public/UI/",
+    for (const char* dir : {"clone/Data/Public/UI/", "Data/Public/UI/", "tools/ui_extractor/extracted_ui/", "../Data/Public/UI/",
                             "../tools/ui_extractor/extracted_ui/"})
         dirs.push_back(dir);
 

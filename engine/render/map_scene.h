@@ -87,6 +87,8 @@ struct PropPart {
     uint32_t morph_first_vertex = 0;
     // NiMorphData relative targets frame 0 is the shape and the rest are offsets
     bool morph_relative = true;
+    // The sphere map a NiTextureEffect above the geometry adds empty texture for none
+    EnvironmentMap environment;
 };
 
 // A named node of the tree the placer asks for its posed matrix the O POS of the gauge nif
@@ -113,6 +115,8 @@ struct PropModel {
     std::vector<ParticleSystemDefinition> particle_systems;
     // Map NiAmbientLight reaches model surfaces node given light
     bool lit_by_map_ambient = true;
+    // The lights the root effect list of the nif hangs over its own parts beside the world ones
+    ModelLights lights;
 };
 
 // Placement model column major world matrix renderer sets

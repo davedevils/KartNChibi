@@ -2,6 +2,7 @@
 #pragma once
 
 #include "RaceSim.h"
+#include "PetActor.h"
 #include "TrackData.h"
 
 #include "tools/track_scene/ghost_car.h"
@@ -16,6 +17,8 @@
 namespace KnC::Render { class SceneRenderer; }
 
 namespace KnC::Client {
+
+class RaceItems;
 
 // weather word from 0x0014 launch dword 0xB2319C manager sub 4D1C70 picks class by it
 enum class RaceWeather { Clear = 0, Night = 1, Rain = 2, Snow = 3 };
@@ -69,13 +72,20 @@ public:
     // one car visual on kart model and driver body loaded once per name and paint returns its handle
     int addCar(KnC::Render::SceneRenderer& renderer, const std::string& gameDir, const std::string& kartModel,
                const std::string& driverAsset, const std::string& paint = std::string());
+    // same with the BODYSET parts the character record of a racer wears
+    int addCar(KnC::Render::SceneRenderer& renderer, const std::string& gameDir, const std::string& kartModel,
+               const std::string& driverAsset, const std::string& paint,
+               const std::vector<KnC::Tools::GhostDriverPart>& parts);
     // swaps body of a car for copy painted with this BodyColor folder loaded once per pair
     void setCarPaint(KnC::Render::SceneRenderer& renderer, int handle, const std::string& paint);
     // driver manager load driver 0x48CE97 pet body nif in Pet Body facial folder in Pet Facial empty nif removes pet
     void setCarPet(KnC::Render::SceneRenderer& renderer, int handle, const std::string& petNif,
-                   const std::string& facialDir);
+                   const std::string& facialDir, PetHoverKind hover = PetHoverKind::Race);
     // kart model name a car was added with empty for bad handle
     const std::string& kartModelOf(int handle) const;
+    // a named node of the kart body posed by its controllers this frame in world space false when missing
+    bool carNodeWorld(const KnC::Render::SceneRenderer& renderer, int handle, const std::string& name,
+                      float out[16]) const;
     // moves car visual to pose body wheels and clip follow pose feed
     void setPose(int handle, const CarPose& pose, float dt, float clockSeconds);
     void removeCar(int handle);
@@ -83,12 +93,9 @@ public:
     void draw(KnC::Render::SceneRenderer& renderer, const CarPose& chase, float dt);
     // finish camera of mode 9 in front of own kart then scene draw
     void drawFinish(KnC::Render::SceneRenderer& renderer, const CarPose& own, float dt);
-    // fixed camera eye look and vertical field radians then scene draw podium uses it
+    // fixed camera eye look and vertical field radians a horizontal of zero takes the stock race rule
     void drawFixed(KnC::Render::SceneRenderer& renderer, const float eye[3], const float look[3], float fovRadians,
-                   float dt);
-    // preview camera turns around target at fixed distance and height
-    void drawOrbit(KnC::Render::SceneRenderer& renderer, const CarPose& target, float orbitDeg, float distance,
-                   float height, float dt);
+                   float dt, float horizontalRadians = 0.f);
     // question mark boxes of track at their itembox ini spots session picks from this list
     const std::vector<ItemBoxSpot>& itemBoxes() const { return m_itemBoxes; }
     std::vector<ItemBoxSpot>& itemBoxes() { return m_itemBoxes; }
@@ -114,6 +121,10 @@ public:
     void restartProp(KnC::Render::SceneRenderer& renderer, int handle);
     // driver clip forced on car by KFM sequence id minus one gives rule back
     void setDriverClip(int handle, int sequenceId);
+    // the item objects drawn with the cars null for none
+    void setItems(RaceItems* items) { m_items = items; }
+    // sub 4C25E0 the hammer squash of a car one is none
+    void setCarSquash(int handle, float zScale);
     // view and eye of last draw whatever camera hud projects name tags with them
     void lastView(float out[16], float outEye[3]) const;
     bool loaded() const { return m_loaded; }
@@ -137,17 +148,6 @@ private:
         size_t modelIndex = 0;
         bool valid = false;
     };
-    // driver place on car 0x48B800 three hover state machines from pet manager 0xE8A0 0xE8A4 0xE8A8
-    struct PetHover {
-        int trailState = 0;
-        float trail = 0.f;
-        double trailAt = 0.0;
-        int sideState = 0;
-        float side = 0.f;
-        double sideAt = 0.0;
-        int bobState = 0;
-        float bob = 0.f;
-    };
     struct CarVisual {
         // car model key is kart model at paint
         std::string kartModel;
@@ -164,9 +164,13 @@ private:
         float clipSeconds = 0.f;
         // KFM sequence forced on driver minus one lets pose rule pick
         int forcedClip = -1;
-        // pet model key empty for none plus its hover
+        // the effect code of the last pose and when the damage clip of its start ends
+        int hitCode = 0;
+        float damageUntil = -1.f;
+        float squash = 1.f;
+        // pet model key empty for none plus its clip and hover
         std::string petModel;
-        PetHover hover;
+        PetActor pet;
         // car 0x3224 and 0x3228 of remote car ground under its wheels eased by an eighth
         float pitchDeg = 0.f;
         float rollDeg = 0.f;
@@ -184,17 +188,18 @@ private:
     // car visual update 0x48E6A0 ground under four wheel points pitches and rolls remote car
     void remoteLean(CarVisual& v, const CarPose& pose, float dt);
     // lens of camera then scene draw last view kept for hud
-    void present(KnC::Render::SceneRenderer& renderer, float fovRadians);
+    void present(KnC::Render::SceneRenderer& renderer, float fovRadians, float horizontalRadians = 0.f);
     // rolls for weather placements zero to span and minus one to one
     float weatherRoll(float span);
     float weatherJitter();
     CarModel& carModel(KnC::Render::SceneRenderer& renderer, const std::string& gameDir, const std::string& model,
                        const std::string& paint);
     DriverModel& driverModel(KnC::Render::SceneRenderer& renderer, const std::string& gameDir, const std::string& asset,
-                             const std::string& chassis);
+                             const std::string& chassis, const std::vector<KnC::Tools::GhostDriverPart>* parts);
+    int addCar(KnC::Render::SceneRenderer& renderer, const std::string& gameDir, const std::string& kartModel,
+               const std::string& driverAsset, const std::string& paint,
+               const std::vector<KnC::Tools::GhostDriverPart>* parts);
     PetModel& petModel(KnC::Render::SceneRenderer& renderer, const std::string& petNif, const std::string& facialDir);
-    // hover of pet per frame off car speed and clock
-    void hoverPet(CarVisual& v, const CarPose& pose, float dt, double clockSeconds);
 
     std::map<std::string, CarModel> m_carModels;
     std::string m_gameDir;
@@ -206,6 +211,7 @@ private:
     std::size_t m_itemBoxModel = static_cast<std::size_t>(-1);
     std::vector<ItemBoxSpot> m_itemBoxes;
     ChaseCamera m_camera;
+    RaceItems* m_items = nullptr;
     // weather class from sub 4D3570 one prop per nif minus one when mode does not load it
     RaceWeather m_weather = RaceWeather::Clear;
     int m_rainSheet = -1;
