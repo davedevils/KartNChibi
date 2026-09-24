@@ -140,7 +140,6 @@ website/public/images/levels/
 docs/client/parity/*_stock.png
 
 # real secrets for the public history rewrite copy redact example txt to start
-tools/release/redact.txt
 
 # nuget restore output, fetch it with nuget restore, do not commit it
 launcher/packages/
